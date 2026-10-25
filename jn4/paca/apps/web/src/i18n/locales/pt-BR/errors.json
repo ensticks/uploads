@@ -1,6 +1,0 @@
-{
-	"pluginLoadFailedPrefix": "O plugin",
-	"pluginLoadFailedSuffix": "falhou ao carregar",
-	"pluginNoPermissionTitle": "Você não tem permissão para ver esta página",
-	"pluginNoPermissionDescription": "Peça a um proprietário ou administrador do projeto para conceder acesso a {{pluginName}}."
-}
