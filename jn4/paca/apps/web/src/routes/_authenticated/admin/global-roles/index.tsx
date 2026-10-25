@@ -1,0 +1,166 @@
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
+import { createFileRoute, redirect } from "@tanstack/react-router";
+import { Shield } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
+import { DeleteRoleDialog } from "@/components/admin/global-roles/DeleteRoleDialog";
+import { GlobalRolesHeader } from "@/components/admin/global-roles/GlobalRolesHeader";
+import {
+	EmptyRolesState,
+	GlobalRolesErrorState,
+} from "@/components/admin/global-roles/GlobalRolesStates";
+import { GlobalRolesStats } from "@/components/admin/global-roles/GlobalRolesStats";
+import { GlobalRolesTable } from "@/components/admin/global-roles/GlobalRolesTable";
+import { RoleFormDialog } from "@/components/admin/global-roles/RoleFormDialog";
+import { RolesTableSkeleton } from "@/components/admin/global-roles/RolesTableSkeleton";
+import { SetDefaultRoleDialog } from "@/components/admin/global-roles/SetDefaultRoleDialog";
+import { activePermissions } from "@/components/admin/global-roles/utils";
+import { NoPermissionState } from "@/components/shared/no-permission-state";
+import { Pagination } from "@/components/ui/pagination";
+import { usePermissions } from "@/hooks/use-permissions";
+import { useTablePaging } from "@/hooks/use-table-paging";
+import { myPermissionsQueryOptions } from "@/lib/admin-api";
+import { hasPermission } from "@/lib/permissions";
+import { platformRolesPageQueryOptions, type Role } from "@/lib/role-api";
+
+export const Route = createFileRoute("/_authenticated/admin/global-roles/")({
+	beforeLoad: async ({ context: { queryClient } }) => {
+		const permissions = await queryClient
+			.fetchQuery(myPermissionsQueryOptions)
+			.catch(() => [] as string[]);
+
+		const canAccess =
+			hasPermission(permissions, "roles:read") ||
+			hasPermission(permissions, "roles:write") ||
+			hasPermission(permissions, "roles:assign");
+
+		if (!canAccess) {
+			throw redirect({ to: "/home" });
+		}
+	},
+	component: GlobalRolesPage,
+});
+
+function GlobalRolesPage() {
+	const { t } = useTranslation("admin");
+	const { hasPermission, isLoading: isPermissionsLoading } = usePermissions();
+	const canRead = hasPermission("roles:read");
+	const canWrite = hasPermission("roles:write");
+
+	const { page, pageSize, setPage, setPageSize } =
+		useTablePaging("admin-global-roles");
+	const {
+		data: rolePage,
+		isLoading: isDataLoading,
+		isError,
+	} = useQuery({
+		...platformRolesPageQueryOptions(page, pageSize),
+		enabled: canRead,
+		placeholderData: keepPreviousData,
+	});
+	const roles = useMemo(() => rolePage?.items ?? [], [rolePage]);
+	const rolesCount = rolePage?.total_count ?? 0;
+	const totalPages = Math.max(1, Math.ceil(rolesCount / pageSize));
+	// Deleting the last role of the last page leaves it empty: step back.
+	useEffect(() => {
+		if (rolePage && page > totalPages) setPage(totalPages);
+	}, [rolePage, page, totalPages, setPage]);
+	// While permissions are still loading, canRead defaults to false same as
+	// a confirmed denial — fold isPermissionsLoading into isLoading (and
+	// guard the noPermission check below) so the page shows the skeleton
+	// instead of flashing NoPermissionState first.
+	const isLoading = isPermissionsLoading || isDataLoading;
+
+	const [createOpen, setCreateOpen] = useState(false);
+	const [editRole, setEditRole] = useState<Role | null>(null);
+	const [deleteRole, setDeleteRole] = useState<Role | null>(null);
+	const [defaultRole, setDefaultRole] = useState<Role | null>(null);
+
+	// The grants sum is only meaningful when every role is on this page.
+	const totalGranted =
+		rolesCount > pageSize
+			? undefined
+			: roles.reduce((sum, r) => sum + activePermissions(r.policy).length, 0);
+
+	return (
+		<div className="flex flex-col gap-6 p-6 max-w-5xl w-full mx-auto">
+			<GlobalRolesHeader
+				canWrite={canWrite}
+				onCreate={() => setCreateOpen(true)}
+			/>
+
+			{canWrite ? (
+				<RoleFormDialog open={createOpen} onOpenChange={setCreateOpen} />
+			) : null}
+
+			{canRead && !isLoading && !isError && (
+				<GlobalRolesStats rolesCount={rolesCount} totalGranted={totalGranted} />
+			)}
+
+			{!isPermissionsLoading && !canRead ? (
+				<NoPermissionState
+					icon={Shield}
+					title={t("globalRoles.noPermission.title")}
+					description={t("globalRoles.noPermission.description")}
+				/>
+			) : isLoading ? (
+				<RolesTableSkeleton />
+			) : isError ? (
+				<GlobalRolesErrorState />
+			) : roles.length === 0 ? (
+				<EmptyRolesState
+					canWrite={canWrite}
+					onCreate={() => setCreateOpen(true)}
+				/>
+			) : (
+				<GlobalRolesTable
+					roles={roles}
+					canWrite={canWrite}
+					onEdit={setEditRole}
+					onDelete={setDeleteRole}
+					onSetDefault={setDefaultRole}
+				/>
+			)}
+			{canRead && !isLoading && !isError && rolesCount > 0 ? (
+				<Pagination
+					page={page}
+					totalPages={totalPages}
+					onPageChange={setPage}
+					total={rolesCount}
+					pageSize={pageSize}
+					onPageSizeChange={setPageSize}
+				/>
+			) : null}
+
+			{editRole ? (
+				<RoleFormDialog
+					role={editRole}
+					open={!!editRole}
+					onOpenChange={(open) => {
+						if (!open) setEditRole(null);
+					}}
+				/>
+			) : null}
+
+			{defaultRole ? (
+				<SetDefaultRoleDialog
+					role={defaultRole}
+					open={!!defaultRole}
+					onOpenChange={(open) => {
+						if (!open) setDefaultRole(null);
+					}}
+				/>
+			) : null}
+
+			{deleteRole ? (
+				<DeleteRoleDialog
+					role={deleteRole}
+					open={!!deleteRole}
+					onOpenChange={(open) => {
+						if (!open) setDeleteRole(null);
+					}}
+				/>
+			) : null}
+		</div>
+	);
+}

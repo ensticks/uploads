@@ -1,0 +1,21 @@
+{{- if .Values.api.plugins.persistence.enabled }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "paca.fullname" . }}-plugins
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "paca.labels" . | nindent 4 }}
+spec:
+  accessModes: [{{ .Values.api.plugins.persistence.accessMode | quote }}]
+  {{- $storageClassName := .Values.api.plugins.persistence.storageClassName }}
+  {{- if and (not $storageClassName) .Values.nfsProvisioner.enabled }}
+  {{- $storageClassName = .Values.nfsProvisioner.storageClass.name }}
+  {{- end }}
+  {{- if $storageClassName }}
+  storageClassName: {{ $storageClassName | quote }}
+  {{- end }}
+  resources:
+    requests:
+      storage: {{ .Values.api.plugins.persistence.size }}
+{{- end }}

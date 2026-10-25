@@ -1,0 +1,481 @@
+// Package acp is a minimal Agent Client Protocol client for talking to
+// `goose serve`'s HTTP+SSE /acp endpoint from a Go process that spawned the
+// container it's running in.
+//
+// This is deliberately hand-rolled instead of built on
+// github.com/coder/acp-go-sdk: that SDK's Connection type assumes a single
+// continuous duplex stream (the shape stdio-based ACP servers like `goose
+// acp` use), but `goose serve` speaks one-POST-per-call with an SSE-framed
+// response per call — the same "Streamable HTTP" shape MCP uses, not a
+// persistent stream. Forcing the SDK's stdio-shaped Connection onto that
+// transport would need an io.Reader/io.Writer adapter faking a duplex
+// stream on top of discrete request/response exchanges, which is more
+// indirection than just decoding the (small, now-verified) message shapes
+// directly. Revisit if the SDK grows a native HTTP transport.
+//
+// All wire shapes here were captured empirically against a live `goose
+// serve` (originally image ghcr.io/block/goose@sha256:d85a724...30, goose
+// 1.30.0; re-verified against ghcr.io/aaif-goose/goose@sha256:3c961bac...46,
+// goose 1.46.0 — see services/agent-server/Dockerfile's doc comment on the
+// block->aaif-goose rename). initialize's response shape (this file's one
+// load-bearing check, agentCapabilities.loadSession) was re-verified again
+// live against goose 1.50.1 (2026-09-15, alongside that Dockerfile's 1.46.0
+// -> 1.50.1 bump): still "loadSession":true, same authMethods shape (one
+// "goose-provider" entry), same /status "ok" response (manual curl probe).
+// Separately, test/e2e/acp_client_test.go's
+// TestACPClientAgainstRealGooseContainer (PACA_E2E=1) was actually run
+// against this same 1.50.1 digest and passed — this package's real
+// Initialize/NewSession/Prompt round trip, tool_call events included,
+// against a fake OpenAI-compatible backend. session/load specifically
+// (resuming a session, replaying its history) was NOT re-exercised in
+// either pass — no test here drives that path — so LoadSession's own
+// behavior still rests on the 1.46.0-era spike; see LoadSession's own doc
+// comment. Fields not exercised in any of these passes are marked below;
+// verify before depending on them.
+package acp
+
+import (
+	"encoding/json"
+	"fmt"
+)
+
+// ─── JSON-RPC 2.0 envelope ─────────────────────────────────────────────────
+
+// rpcRequest is what the client sends. Every call in this package is a
+// request (never a bare notification) — goose serve responds to each with
+// an SSE stream containing zero or more notifications followed by exactly
+// one terminal response frame carrying the matching id.
+type rpcRequest struct {
+	JSONRPC string `json:"jsonrpc"`
+	ID      int64  `json:"id"`
+	Method  string `json:"method"`
+	Params  any    `json:"params,omitempty"`
+}
+
+// rpcFrame is one `data:` line from the SSE response body, decoded loosely
+// enough to tell a notification (Method set, ID nil) apart from the
+// terminal response (ID set, Method empty) without committing to either
+// shape up front.
+type rpcFrame struct {
+	JSONRPC string          `json:"jsonrpc"`
+	ID      *int64          `json:"id,omitempty"`
+	Method  string          `json:"method,omitempty"`
+	Params  json.RawMessage `json:"params,omitempty"`
+	Result  json.RawMessage `json:"result,omitempty"`
+	Error   *rpcError       `json:"error,omitempty"`
+}
+
+func (f rpcFrame) isNotification() bool { return f.ID == nil && f.Method != "" }
+func (f rpcFrame) isResponse() bool     { return f.ID != nil }
+
+type rpcError struct {
+	Code    int    `json:"code"`
+	Message string `json:"message"`
+	Data    any    `json:"data,omitempty"`
+}
+
+// Error renders Data alongside Message when present — goose serve puts the
+// actually-useful diagnostic there (e.g. "Failed to set provider: Could not
+// configure agent: missing provider", or a wrapped provider-API error like
+// an upstream 401) while Message is often just the generic JSON-RPC
+// "Internal error". Dropping Data left every session/new or session/prompt
+// failure's DB-persisted error_message (and logs) as an unhelpful "Internal
+// error" with no way to tell a bad API key from a missing provider without
+// reproducing the call by hand.
+func (e *rpcError) Error() string {
+	if e.Data != nil {
+		return fmt.Sprintf("%s: %v", e.Message, e.Data)
+	}
+	return e.Message
+}
+
+// ─── initialize ─────────────────────────────────────────────────────────────
+
+type initializeParams struct {
+	ProtocolVersion    int            `json:"protocolVersion"`
+	ClientCapabilities map[string]any `json:"clientCapabilities"`
+}
+
+// AuthMethod is one entry of initialize's authMethods list. Observed with a
+// single "goose-provider" entry when no LLM provider is configured yet.
+type AuthMethod struct {
+	ID          string `json:"id"`
+	Name        string `json:"name"`
+	Description string `json:"description"`
+}
+
+// initializeResult is only decoded for agentCapabilities.loadSession —
+// every other field (promptCapabilities, mcpCapabilities,
+// sessionCapabilities, auth, authMethods, agentInfo) goes unused today, so
+// this only models the one path this package actually reads. Confirmed
+// against a real goose serve instance (goose 1.46.0, re-confirmed live on
+// 1.50.1): "loadSession":true — see LoadSession's own doc comment for why
+// this is checked rather than assumed.
+type initializeResult struct {
+	AgentCapabilities struct {
+		LoadSession bool `json:"loadSession"`
+	} `json:"agentCapabilities"`
+}
+
+// ─── session/new ────────────────────────────────────────────────────────────
+
+// NewSessionParams are the params for "session/new". MCPServers is always
+// sent empty (present, not omitted — see the historical "missing required
+// field hangs session/new" gotcha on MCPServerConfig) — the real servers
+// travel in Meta.EnabledExtensions instead, alongside the "skills" platform
+// extension; see GooseExtension's doc comment for why both must go
+// together.
+type NewSessionParams struct {
+	Cwd        string            `json:"cwd"`
+	MCPServers []MCPServerConfig `json:"mcpServers"`
+	Meta       *NewSessionMeta   `json:"_meta,omitempty"`
+}
+
+// NewSessionMeta is session/new's `_meta` field.
+type NewSessionMeta struct {
+	EnabledExtensions []GooseExtension `json:"enabledExtensions"`
+}
+
+// GooseExtension is one entry of session/new's `_meta.enabledExtensions` —
+// goose's own mechanism for requesting a platform extension (like "skills")
+// alongside MCP servers in the same session. Necessary because goose's
+// session/new handler picks exactly one of "use _meta.enabledExtensions" or
+// "use the plain top-level mcpServers field" for a fresh session, never
+// both — confirmed directly against a real container (not guessed from
+// docs): a non-empty mcpServers field alone activates the requested MCP
+// servers but silently skips every config-driven default extension,
+// including "skills". Only the "platform" and "mcp" variants are modeled
+// here — this package never needs to request goose's third variant,
+// "builtin".
+type GooseExtension struct {
+	Type string `json:"type"` // "platform" | "mcp"
+
+	// Name is set for Type == "platform".
+	Name string `json:"name,omitempty"`
+
+	// Server/EnvKeys are set for Type == "mcp". For a stdio server,
+	// Server.Env must stay empty (a present, empty array — see
+	// UntaggedMcpServer's doc comment) — goose rejects any *inline* env
+	// value reaching it through this path ("extension env values must be
+	// passed via envKeys referencing stored secrets, not inline env").
+	// EnvKeys instead names environment variables the mcp server subprocess
+	// should inherit from its own container's OS environment — confirmed
+	// empirically that this resolves real values there, not only from
+	// goose's own (here, nonexistent) stored-secrets config. The caller
+	// (executor.go) is responsible for actually setting those names in the
+	// container's env (see coldStart) before this request goes out — an
+	// EnvKeys name with no matching container env var resolves to empty,
+	// not an error.
+	//
+	// A StreamableHttp server's Headers, by contrast, travel inline with
+	// real values with no equivalent restriction — confirmed against the
+	// same source: only the stdio variant's env is routed through
+	// secret_updates.
+	Server  *UntaggedMcpServer `json:"server,omitempty"`
+	EnvKeys []string           `json:"envKeys,omitempty"`
+}
+
+// UntaggedMcpServer is the MCP server shape used inside a GooseExtension's
+// "mcp" variant — deliberately a separate type from MCPServerConfig.
+//
+// ACP's McpServer is an internally-tagged enum (tag "type", snake_case)
+// for the http and sse transports, with ONLY its stdio variant untagged
+// (agent-client-protocol-schema v1.5.0, the version goose 1.50.1 builds
+// against: `#[serde(tag = "type", rename_all = "snake_case")]` on
+// McpServer, `#[serde(untagged)]` on the Stdio arm). So an http entry must
+// carry "type":"http" or it cannot match that arm and falls through to the
+// untagged stdio arm, which then fails for lack of "command" — reported as
+// "enabledExtensions: data did not match any variant of untagged enum
+// McpServer". Verified against goose 1.50.1 directly: an http entry without
+// the tag is rejected with exactly that error, and the same entry with
+// "type":"http" opens a session.
+//
+// Stdio entries must NOT carry the tag, and their Args and Env must be
+// present (even empty, via the pointer trick — see MCPServerConfig's
+// identical doc comment) for the untagged stdio arm to match. Env values
+// are always empty here: goose rejects inline env ("extension env values
+// must be passed via envKeys referencing stored secrets, not inline env")
+// and resolves EnvKeys from the container's own environment instead.
+type UntaggedMcpServer struct {
+	// Type is set only for the internally-tagged http transport.
+	Type    string         `json:"type,omitempty"`
+	Name    string         `json:"name"`
+	Command string         `json:"command,omitempty"`
+	Args    *[]string      `json:"args,omitempty"`
+	Env     *[]EnvVariable `json:"env,omitempty"`
+	URL     string         `json:"url,omitempty"`
+	Headers *[]HTTPHeader  `json:"headers,omitempty"`
+}
+
+// McpServerType is the "type" discriminator ACP's schema.json requires on
+// every McpServer entry (a Rust internally-tagged enum: "stdio" | "http" |
+// "sse") — confirmed against the real schema
+// (https://github.com/agentclientprotocol/agent-client-protocol,
+// $defs.McpServer) after a hand-guessed shape without this field made
+// goose serve's session/new hang forever rather than return an error.
+type McpServerType string
+
+const (
+	// McpServerStdio is an MCP server launched as a local subprocess.
+	McpServerStdio McpServerType = "stdio"
+	// McpServerHTTP is an MCP server reached over streamable HTTP.
+	McpServerHTTP McpServerType = "http"
+	// McpServerSSE is an MCP server reached over Server-Sent Events.
+	McpServerSSE McpServerType = "sse"
+)
+
+// MCPServerConfig is one entry of session/new's mcpServers array — verified
+// against the real ACP schema (see McpServerType's doc comment), not
+// guessed. Worth remembering when constructing one:
+//
+//   - Env is an array of {name, value} pairs, NOT a JSON object/map — the
+//     schema's McpServerStdio.env is `EnvVariable[]`.
+//   - Command must be an ABSOLUTE path per the schema's own description
+//     ("Absolute path to the MCP server executable") — a bare command name
+//     like "npx" relying on PATH lookup inside the container is not
+//     guaranteed to resolve. executor.go's buildMCPServers hardcodes the
+//     absolute path for the one command it controls (the built-in Paca MCP
+//     server); a user-configured agent_mcp_servers.command value is NOT
+//     currently normalized to an absolute path — see that function's doc
+//     comment.
+//   - Args and Env are REQUIRED by the schema for the stdio variant, even
+//     when empty — confirmed live, the hard way: a stdio entry missing
+//     either field (Go's `omitempty` silently drops an empty-but-non-nil
+//     slice, indistinguishable on the wire from never having set it at
+//     all) makes a real goose serve either hang session/new indefinitely
+//     or return a 200 with a permanently-empty SSE stream, depending on
+//     which field was missing — neither surfaces as a JSON-RPC error.
+//     Both are pointers (not plain slices), the same trick Headers below
+//     already used for the identical http/sse problem, so "present but
+//     empty" (`&[]string{}`) can be told apart from "absent" (`nil`) at
+//     all.
+type MCPServerConfig struct {
+	Type    McpServerType  `json:"type"`
+	Name    string         `json:"name"`
+	Command string         `json:"command,omitempty"`
+	Args    *[]string      `json:"args,omitempty"`
+	Env     *[]EnvVariable `json:"env,omitempty"`
+	URL     string         `json:"url,omitempty"`
+	// Headers is required by the schema for the http/sse variants — an
+	// empty array, not an omitted field, when there are none. A pointer
+	// (not a plain slice) so the zero value stays omitted for stdio
+	// entries (nil pointer) while &[]HTTPHeader{} still serializes as `[]`
+	// for http/sse: Go's `omitempty` on a plain slice can't tell "unset"
+	// apart from "present but empty" — both marshal to nothing — so a
+	// plain `[]HTTPHeader` field could never satisfy "always present for
+	// http/sse, always absent for stdio" the way this one does.
+	Headers *[]HTTPHeader `json:"headers,omitempty"`
+}
+
+// EnvVariable is one entry of MCPServerConfig.Env.
+type EnvVariable struct {
+	Name  string `json:"name"`
+	Value string `json:"value"`
+}
+
+// HTTPHeader is one entry of MCPServerConfig.Headers.
+type HTTPHeader struct {
+	Name  string `json:"name"`
+	Value string `json:"value"`
+}
+
+type newSessionResult struct {
+	SessionID string          `json:"sessionId"`
+	Modes     json.RawMessage `json:"modes,omitempty"`
+	Models    json.RawMessage `json:"models,omitempty"`
+}
+
+// ─── session/load ───────────────────────────────────────────────────────────
+
+// LoadSessionParams are the params for "session/load" — the ACP
+// counterpart to NewSessionParams for resuming an existing session
+// (SessionID) instead of starting a blank one. Same "MCPServers always
+// present-but-empty, real servers travel via Meta.EnabledExtensions"
+// contract as NewSessionParams — see that type's own doc comment.
+type LoadSessionParams struct {
+	SessionID  string            `json:"sessionId"`
+	Cwd        string            `json:"cwd"`
+	MCPServers []MCPServerConfig `json:"mcpServers"`
+	Meta       *NewSessionMeta   `json:"_meta,omitempty"`
+}
+
+// ─── _goose/unstable/session/info (goose-specific extension) ──────────────
+
+// GooseNewSessionDefaultTitle is the title goose gives every fresh session
+// before anything renames it — confirmed empirically (not from the public
+// docs site's own `_goose/unstable/session/info` reference page, which
+// summarizes lossily; re-verified directly against a live container,
+// goose 1.50.1, matching the digest pinned in
+// services/agent-server/Dockerfile, 2026-09-17): session/new followed
+// immediately by "_goose/unstable/session/info" for that session returns
+// exactly this string, with the response's "_meta.userSetName" false. A
+// title still equal to this placeholder means "goose hasn't named this
+// conversation yet" — see Client.SessionInfo's doc comment.
+const GooseNewSessionDefaultTitle = "New Chat"
+
+// sessionInfoResult is "_goose/unstable/session/info"'s result shape,
+// verified the same way as GooseNewSessionDefaultTitle above:
+//
+//	{"session":{"sessionId":"...","cwd":"...","title":"...","updatedAt":"...",
+//	  "_meta":{"messageCount":0,"createdAt":"...","userSetName":false,
+//	  "sessionType":"acp","providerId":"...","modelId":"..."}}}
+//
+// Only Title is modeled — none of the other fields have a use here yet.
+type sessionInfoResult struct {
+	Session struct {
+		Title string `json:"title"`
+	} `json:"session"`
+}
+
+// ─── session/prompt ─────────────────────────────────────────────────────────
+
+type promptParams struct {
+	SessionID string         `json:"sessionId"`
+	Prompt    []ContentBlock `json:"prompt"`
+}
+
+// ContentBlock is a single prompt/response content item. Only Type=="text"
+// was exercised in the spike; initialize's promptCapabilities advertised
+// image support but that path is untested here.
+type ContentBlock struct {
+	Type string `json:"type"`
+	Text string `json:"text,omitempty"`
+}
+
+// TextBlock is a convenience constructor for the one verified ContentBlock shape.
+func TextBlock(text string) ContentBlock { return ContentBlock{Type: "text", Text: text} }
+
+type promptResult struct {
+	// StopReason observed value: "end_turn". Others (e.g. a cancellation or
+	// max-turn-requests reason) are plausible per the ACP spec but not seen
+	// here — surfaced as-is rather than validated against an enum.
+	StopReason string `json:"stopReason"`
+	// Usage is this turn's token accounting — ACP's PromptResponse.usage,
+	// which schema.unstable.json gates "UNSTABLE" but which goose populates
+	// unconditionally regardless of negotiated client capabilities (verified
+	// against aaif-goose/goose's build_prompt_usage, same file/version as
+	// UpdateUsage's doc comment). Omitted (nil) when goose has no total
+	// token count for this turn at all (e.g. the turn never reached a
+	// provider call) — see build_prompt_usage's own
+	// test_build_prompt_usage_requires_total_tokens.
+	Usage *Usage `json:"usage,omitempty"`
+}
+
+// Usage is session/prompt's per-turn token accounting. Reflects only THIS
+// turn's tokens, not a running session total — confirmed against goose's
+// own test, test_build_prompt_usage_uses_current_turn_tokens. Callers that
+// want a conversation-wide total must sum this across every turn themselves
+// (see handler.Handler's persisted "turn_usage" events).
+type Usage struct {
+	TotalTokens  int64 `json:"totalTokens"`
+	InputTokens  int64 `json:"inputTokens"`
+	OutputTokens int64 `json:"outputTokens"`
+}
+
+// ─── session/update notifications ──────────────────────────────────────────
+
+// SessionUpdateKind is the "sessionUpdate" discriminator. Content shape
+// (notably the "content" field) differs by kind — see Event's doc comment —
+// so decode the discriminator first and only then decode the concrete
+// payload.
+type SessionUpdateKind string
+
+const (
+	// UpdateAgentMessageChunk is a streamed piece of the agent's reply text.
+	UpdateAgentMessageChunk SessionUpdateKind = "agent_message_chunk"
+	// UpdateToolCall announces a new tool call the agent has started.
+	UpdateToolCall SessionUpdateKind = "tool_call"
+	// UpdateToolCallUpdate reports a status change for an existing tool call.
+	UpdateToolCallUpdate SessionUpdateKind = "tool_call_update"
+	// UpdateUsage is a token/cost usage snapshot, sent once near the end of
+	// each session/prompt turn. Verified against ACP's stable schema.json
+	// ($defs.UsageUpdate) and aaif-goose/goose's build_usage_updates
+	// (crates/goose/src/acp/server.rs, v1.46.0): its Cost is
+	// totals.accumulated_cost — the SESSION's running total so far, not a
+	// per-turn delta — unlike Usage below (promptResult.Usage), which is
+	// explicitly this-turn-only. Used/Size are a context-window gauge (can
+	// shrink after compaction), not a cumulative token-spend counter — not
+	// useful for a "tokens used" total, which is why this package sums
+	// promptResult.Usage across turns instead of reading Used here.
+	UpdateUsage SessionUpdateKind = "usage_update"
+)
+
+// UsageUpdate is the payload of an UpdateUsage event — see its doc comment
+// on why Cost is cumulative-for-the-session rather than a per-turn delta.
+type UsageUpdate struct {
+	Used int64 `json:"used"`
+	Size int64 `json:"size"`
+	Cost *Cost `json:"cost,omitempty"`
+}
+
+// Cost is UsageUpdate's optional cost field. Goose always reports "USD"
+// (crates/goose/src/acp/server.rs's build_usage_updates hardcodes it) —
+// Currency is still carried rather than assumed, in case that ever changes.
+type Cost struct {
+	Amount   float64 `json:"amount"`
+	Currency string  `json:"currency"`
+}
+
+type sessionUpdateNotification struct {
+	SessionID string                `json:"sessionId"`
+	Update    sessionUpdateEnvelope `json:"update"`
+}
+
+// sessionUpdateEnvelope captures the discriminator and keeps the raw bytes
+// around so the caller can re-decode into the concrete shape for that
+// discriminator. A single flat struct can't represent all variants: e.g.
+// "content" is a single object under agent_message_chunk but an array of a
+// differently-shaped wrapper under tool_call_update.
+type sessionUpdateEnvelope struct {
+	Kind SessionUpdateKind
+	raw  json.RawMessage
+}
+
+func (e *sessionUpdateEnvelope) UnmarshalJSON(data []byte) error {
+	var disc struct {
+		SessionUpdate SessionUpdateKind `json:"sessionUpdate"`
+	}
+	if err := json.Unmarshal(data, &disc); err != nil {
+		return err
+	}
+	e.Kind = disc.SessionUpdate
+	e.raw = append(json.RawMessage(nil), data...)
+	return nil
+}
+
+// AgentMessageChunk is the payload of an UpdateAgentMessageChunk event.
+type AgentMessageChunk struct {
+	Content ContentBlock `json:"content"`
+}
+
+// ToolCall is the payload of an UpdateToolCall event (announces a tool call
+// has started; the result follows in a later ToolCallUpdate with the same
+// ToolCallID).
+type ToolCall struct {
+	ToolCallID string `json:"toolCallId"`
+	Title      string `json:"title"`
+}
+
+// ToolCallUpdate is the payload of an UpdateToolCallUpdate event. Status
+// values observed: "completed", "failed".
+type ToolCallUpdate struct {
+	ToolCallID string            `json:"toolCallId"`
+	Status     string            `json:"status"`
+	Content    []toolCallContent `json:"content"`
+}
+
+type toolCallContent struct {
+	Type    string       `json:"type"`
+	Content ContentBlock `json:"content"`
+}
+
+// Text concatenates the text of every content block in this update — a
+// convenience since ToolCallUpdate.Content's wrapper nesting isn't
+// otherwise pleasant to consume.
+func (u ToolCallUpdate) Text() string {
+	out := ""
+	for _, c := range u.Content {
+		out += c.Content.Text
+	}
+	return out
+}

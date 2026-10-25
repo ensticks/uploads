@@ -1,0 +1,54 @@
+{
+	"common": {
+		"notFound": "Not found",
+		"somethingWentWrong": "Something went wrong",
+		"retry": "Retry",
+		"noPermissionToView": "You don't have permission to view this",
+		"loadMore": "Загрузить ещё",
+		"loadingMore": "Загрузка…"
+	},
+	"dialog": {
+		"closeLabel": "Закрыть",
+		"closeButton": "Закрыть"
+	},
+	"sidebar": {
+		"title": "Боковая панель",
+		"description": "Показывает мобильную боковую панель.",
+		"toggleLabel": "Переключить боковую панель"
+	},
+	"validation": {
+		"usernameRequired": "Укажите имя пользователя.",
+		"usernameMinLength": "Имя пользователя должно содержать не менее {{min}} символов.",
+		"passwordRequired": "Укажите пароль.",
+		"passwordMinLength": "Пароль должен содержать не менее {{min}} символов.",
+		"newPasswordRequired": "Укажите новый пароль.",
+		"newPasswordMinLength": "Новый пароль должен содержать не менее {{min}} символов.",
+		"newPasswordMustDiffer": "Новый пароль должен отличаться от текущего.",
+		"confirmPasswordRequired": "Подтвердите новый пароль.",
+		"passwordsDoNotMatch": "Пароли не совпадают."
+	},
+	"timeAgo": {
+		"justNow": "только что",
+		"minutes_one": "{{count}} мин. назад",
+		"minutes_few": "{{count}} мин. назад",
+		"minutes_many": "{{count}} мин. назад",
+		"minutes_other": "{{count}} мин. назад",
+		"hours_one": "{{count}} ч назад",
+		"hours_few": "{{count}} ч назад",
+		"hours_many": "{{count}} ч назад",
+		"hours_other": "{{count}} ч назад",
+		"days_one": "{{count}} дн. назад",
+		"days_few": "{{count}} дн. назад",
+		"days_many": "{{count}} дн. назад",
+		"days_other": "{{count}} дн. назад"
+	},
+	"pagination": {
+		"navLabel": "Постраничная навигация",
+		"previous": "Предыдущая страница",
+		"next": "Следующая страница",
+		"page": "Страница {{page}}",
+		"pageOfTotal": "Страница {{page}} из {{totalPages}}",
+		"rowsPerPage": "Строк на странице",
+		"range": "{{from}}–{{to}} из {{total}}"
+	}
+}

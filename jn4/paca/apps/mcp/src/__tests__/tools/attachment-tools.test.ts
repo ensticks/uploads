@@ -1,0 +1,434 @@
+import { describe, expect, it, vi } from "vitest";
+
+vi.mock("../../utils/index.js", () => ({
+	formatList: vi.fn((items: any[], fn: any) => items.map(fn).join("---")),
+	formatFileSize: vi.fn((bytes: number) => `${bytes} bytes`),
+}));
+
+vi.mock("node:fs/promises", () => ({
+	readFile: vi.fn(),
+}));
+
+import { readFile } from "node:fs/promises";
+import {
+	getAttachmentTools,
+	handleAttachmentTool,
+} from "../../tools/attachment-tools.js";
+
+const attachment = {
+	id: "att-1",
+	file: {
+		file_name: "photo.png",
+		file_size: 1024,
+		content_type: "image/png",
+	},
+	created_by: "user-1",
+	created_at: "2024-01-01T00:00:00Z",
+};
+
+function makeClient(overrides: Record<string, any> = {}) {
+	return {
+		listTaskAttachments: vi
+			.fn()
+			.mockResolvedValue({ items: [attachment], nextCursor: null }),
+		getTaskAttachment: vi.fn().mockImplementation(async (_p, _t, id) => {
+			if (id === attachment.id) return attachment;
+			throw new Error("not found");
+		}),
+		getAttachmentDownloadURL: vi
+			.fn()
+			.mockResolvedValue("https://cdn.example.com/photo.png"),
+		downloadAttachmentContent: vi.fn().mockResolvedValue({
+			buffer: new TextEncoder().encode("hello world").buffer,
+			contentType: "image/png",
+		}),
+		deleteTaskAttachment: vi.fn().mockResolvedValue(undefined),
+		uploadTaskAttachment: vi.fn().mockResolvedValue(attachment),
+		...overrides,
+	} as any;
+}
+
+// ---------------------------------------------------------------------------
+// getAttachmentTools
+// ---------------------------------------------------------------------------
+
+describe("getAttachmentTools", () => {
+	it("returns 5 tools", () => {
+		expect(getAttachmentTools()).toHaveLength(5);
+	});
+
+	it("includes upload, list, download-url, read, and delete tools", () => {
+		const names = getAttachmentTools().map((t) => t.name);
+		expect(names).toContain("upload_task_attachment");
+		expect(names).toContain("list_task_attachments");
+		expect(names).toContain("get_attachment_download_url");
+		expect(names).toContain("read_task_attachment");
+		expect(names).toContain("delete_task_attachment");
+	});
+});
+
+// ---------------------------------------------------------------------------
+// upload_task_attachment
+// ---------------------------------------------------------------------------
+
+describe("upload_task_attachment", () => {
+	it("reads the file and uploads it, inferring name and content type", async () => {
+		vi.mocked(readFile).mockResolvedValue(Buffer.from("PNGDATA") as any);
+		const client = makeClient();
+
+		const result = await handleAttachmentTool(
+			"upload_task_attachment",
+			{ projectId: "p1", taskId: "t1", filePath: "/tmp/photo.png" },
+			client,
+		);
+
+		expect(readFile).toHaveBeenCalledWith("/tmp/photo.png");
+		expect(client.uploadTaskAttachment).toHaveBeenCalledWith("p1", "t1", {
+			fileName: "photo.png",
+			contentType: "image/png",
+			data: expect.any(Buffer),
+		});
+		expect(result.isError).toBeFalsy();
+		expect(result.content[0].text).toContain("Uploaded");
+	});
+
+	it("honors explicit fileName and contentType overrides", async () => {
+		vi.mocked(readFile).mockResolvedValue(Buffer.from("data") as any);
+		const client = makeClient();
+
+		await handleAttachmentTool(
+			"upload_task_attachment",
+			{
+				projectId: "p1",
+				taskId: "t1",
+				filePath: "/tmp/x.bin",
+				fileName: "report.pdf",
+				contentType: "application/pdf",
+			},
+			client,
+		);
+
+		expect(client.uploadTaskAttachment).toHaveBeenCalledWith(
+			"p1",
+			"t1",
+			expect.objectContaining({
+				fileName: "report.pdf",
+				contentType: "application/pdf",
+			}),
+		);
+	});
+
+	it("returns an error when the file cannot be read", async () => {
+		vi.mocked(readFile).mockRejectedValue(new Error("ENOENT"));
+		const client = makeClient();
+
+		const result = await handleAttachmentTool(
+			"upload_task_attachment",
+			{ projectId: "p1", taskId: "t1", filePath: "/tmp/missing" },
+			client,
+		);
+
+		expect(result.isError).toBe(true);
+		expect(client.uploadTaskAttachment).not.toHaveBeenCalled();
+	});
+
+	it("rejects an empty file", async () => {
+		vi.mocked(readFile).mockResolvedValue(Buffer.alloc(0) as any);
+		const client = makeClient();
+
+		const result = await handleAttachmentTool(
+			"upload_task_attachment",
+			{ projectId: "p1", taskId: "t1", filePath: "/tmp/empty.txt" },
+			client,
+		);
+
+		expect(result.isError).toBe(true);
+		expect(client.uploadTaskAttachment).not.toHaveBeenCalled();
+	});
+});
+
+// ---------------------------------------------------------------------------
+// list_task_attachments
+// ---------------------------------------------------------------------------
+
+describe("handleAttachmentTool – list_task_attachments", () => {
+	it("calls viewsClient.listTaskAttachments with projectId and taskId", async () => {
+		const client = makeClient();
+		await handleAttachmentTool(
+			"list_task_attachments",
+			{ projectId: "p1", taskId: "t1" },
+			client,
+		);
+		expect(client.listTaskAttachments).toHaveBeenCalledWith("p1", "t1", {
+			cursor: undefined,
+			pageSize: undefined,
+		});
+	});
+
+	it("includes 'Attachments:' header in the response", async () => {
+		const result = await handleAttachmentTool(
+			"list_task_attachments",
+			{ projectId: "p1", taskId: "t1" },
+			makeClient(),
+		);
+		expect(result.content[0].text).toContain("Attachments:");
+	});
+
+	it("includes attachment file name in the formatted output", async () => {
+		const result = await handleAttachmentTool(
+			"list_task_attachments",
+			{ projectId: "p1", taskId: "t1" },
+			makeClient(),
+		);
+		expect(result.content[0].text).toContain("photo.png");
+	});
+
+	it("throws ZodError when projectId is missing", async () => {
+		await expect(
+			handleAttachmentTool(
+				"list_task_attachments",
+				{ taskId: "t1" },
+				makeClient(),
+			),
+		).rejects.toThrow();
+	});
+});
+
+// ---------------------------------------------------------------------------
+// get_attachment_download_url
+// ---------------------------------------------------------------------------
+
+describe("handleAttachmentTool – get_attachment_download_url", () => {
+	it("calls viewsClient.getAttachmentDownloadURL with all three IDs", async () => {
+		const client = makeClient();
+		await handleAttachmentTool(
+			"get_attachment_download_url",
+			{ projectId: "p1", taskId: "t1", attachmentId: "att-1" },
+			client,
+		);
+		expect(client.getAttachmentDownloadURL).toHaveBeenCalledWith(
+			"p1",
+			"t1",
+			"att-1",
+		);
+	});
+
+	it("returns the download URL in the response text", async () => {
+		const result = await handleAttachmentTool(
+			"get_attachment_download_url",
+			{ projectId: "p1", taskId: "t1", attachmentId: "att-1" },
+			makeClient(),
+		);
+		expect(result.content[0].text).toContain(
+			"https://cdn.example.com/photo.png",
+		);
+	});
+});
+
+// ---------------------------------------------------------------------------
+// read_task_attachment
+// ---------------------------------------------------------------------------
+
+describe("handleAttachmentTool – read_task_attachment", () => {
+	it("returns an image content block for an image attachment", async () => {
+		const client = makeClient();
+		const result = await handleAttachmentTool(
+			"read_task_attachment",
+			{ projectId: "p1", taskId: "t1", attachmentId: "att-1" },
+			client,
+		);
+		expect(client.downloadAttachmentContent).toHaveBeenCalledWith(
+			"p1",
+			"t1",
+			"att-1",
+		);
+		expect(result.content[0].type).toBe("image");
+		expect(result.content[0].mimeType).toBe("image/png");
+		expect(result.content[0].data).toBe(
+			Buffer.from("hello world").toString("base64"),
+		);
+	});
+
+	it("returns a text content block for a text attachment", async () => {
+		const textAttachment = {
+			id: "att-2",
+			file: {
+				file_name: "notes.md",
+				file_size: 11,
+				content_type: "text/markdown",
+			},
+			created_by: "user-1",
+			created_at: "2024-01-01T00:00:00Z",
+		};
+		const client = makeClient({
+			getTaskAttachment: vi.fn().mockResolvedValue(textAttachment),
+			downloadAttachmentContent: vi.fn().mockResolvedValue({
+				buffer: new TextEncoder().encode("hello world").buffer,
+				contentType: "text/markdown",
+			}),
+		});
+		const result = await handleAttachmentTool(
+			"read_task_attachment",
+			{ projectId: "p1", taskId: "t1", attachmentId: "att-2" },
+			client,
+		);
+		expect(result.content[0].type).toBe("text");
+		expect(result.content[0].text).toContain("notes.md");
+		expect(result.content[0].text).toContain("hello world");
+	});
+
+	it("classifies a generic content-type by file extension", async () => {
+		const codeAttachment = {
+			id: "att-3",
+			file: {
+				file_name: "script.py",
+				file_size: 11,
+				content_type: "application/octet-stream",
+			},
+			created_by: "user-1",
+			created_at: "2024-01-01T00:00:00Z",
+		};
+		const client = makeClient({
+			getTaskAttachment: vi.fn().mockResolvedValue(codeAttachment),
+			downloadAttachmentContent: vi.fn().mockResolvedValue({
+				buffer: new TextEncoder().encode("print('hi')").buffer,
+				contentType: "application/octet-stream",
+			}),
+		});
+		const result = await handleAttachmentTool(
+			"read_task_attachment",
+			{ projectId: "p1", taskId: "t1", attachmentId: "att-3" },
+			client,
+		);
+		expect(result.content[0].type).toBe("text");
+		expect(result.content[0].text).toContain("print('hi')");
+	});
+
+	it("classifies a generic content-type by conventional extensionless filename", async () => {
+		const dockerfileAttachment = {
+			id: "att-3b",
+			file: {
+				file_name: "Dockerfile",
+				file_size: 11,
+				content_type: "application/octet-stream",
+			},
+			created_by: "user-1",
+			created_at: "2024-01-01T00:00:00Z",
+		};
+		const client = makeClient({
+			getTaskAttachment: vi.fn().mockResolvedValue(dockerfileAttachment),
+			downloadAttachmentContent: vi.fn().mockResolvedValue({
+				buffer: new TextEncoder().encode("FROM node:20").buffer,
+				contentType: "application/octet-stream",
+			}),
+		});
+		const result = await handleAttachmentTool(
+			"read_task_attachment",
+			{ projectId: "p1", taskId: "t1", attachmentId: "att-3b" },
+			client,
+		);
+		expect(result.content[0].type).toBe("text");
+		expect(result.content[0].text).toContain("FROM node:20");
+	});
+
+	it("returns an error for a binary attachment it can't read", async () => {
+		const pdfAttachment = {
+			id: "att-4",
+			file: {
+				file_name: "report.pdf",
+				file_size: 1024,
+				content_type: "application/pdf",
+			},
+			created_by: "user-1",
+			created_at: "2024-01-01T00:00:00Z",
+		};
+		const client = makeClient({
+			getTaskAttachment: vi.fn().mockResolvedValue(pdfAttachment),
+		});
+		const result = await handleAttachmentTool(
+			"read_task_attachment",
+			{ projectId: "p1", taskId: "t1", attachmentId: "att-4" },
+			client,
+		);
+		expect(result.isError).toBe(true);
+		expect(result.content[0].text).toContain("get_attachment_download_url");
+		expect(client.downloadAttachmentContent).not.toHaveBeenCalled();
+	});
+
+	it("returns an error when the attachment exceeds the size limit", async () => {
+		const bigAttachment = {
+			id: "att-5",
+			file: {
+				file_name: "huge.txt",
+				file_size: 3 * 1024 * 1024,
+				content_type: "text/plain",
+			},
+			created_by: "user-1",
+			created_at: "2024-01-01T00:00:00Z",
+		};
+		const client = makeClient({
+			getTaskAttachment: vi.fn().mockResolvedValue(bigAttachment),
+		});
+		const result = await handleAttachmentTool(
+			"read_task_attachment",
+			{ projectId: "p1", taskId: "t1", attachmentId: "att-5" },
+			client,
+		);
+		expect(result.isError).toBe(true);
+		expect(result.content[0].text).toContain("exceeds");
+		expect(client.downloadAttachmentContent).not.toHaveBeenCalled();
+	});
+
+	it("returns an error when the attachment isn't found", async () => {
+		const client = makeClient();
+		const result = await handleAttachmentTool(
+			"read_task_attachment",
+			{ projectId: "p1", taskId: "t1", attachmentId: "does-not-exist" },
+			client,
+		);
+		expect(result.isError).toBe(true);
+		expect(result.content[0].text).toContain("not found");
+	});
+});
+
+// ---------------------------------------------------------------------------
+// delete_task_attachment
+// ---------------------------------------------------------------------------
+
+describe("handleAttachmentTool – delete_task_attachment", () => {
+	it("calls viewsClient.deleteTaskAttachment with all three IDs", async () => {
+		const client = makeClient();
+		await handleAttachmentTool(
+			"delete_task_attachment",
+			{ projectId: "p1", taskId: "t1", attachmentId: "att-1" },
+			client,
+		);
+		expect(client.deleteTaskAttachment).toHaveBeenCalledWith(
+			"p1",
+			"t1",
+			"att-1",
+		);
+	});
+
+	it("includes 'deleted successfully' in the response", async () => {
+		const result = await handleAttachmentTool(
+			"delete_task_attachment",
+			{ projectId: "p1", taskId: "t1", attachmentId: "att-1" },
+			makeClient(),
+		);
+		expect(result.content[0].text).toContain("deleted successfully");
+		expect(result.content[0].text).toContain("att-1");
+	});
+});
+
+// ---------------------------------------------------------------------------
+// unknown tool
+// ---------------------------------------------------------------------------
+
+describe("handleAttachmentTool – unknown tool", () => {
+	it("throws for an unknown tool name", async () => {
+		await expect(
+			handleAttachmentTool("bad_tool", {}, makeClient()),
+		).rejects.toThrow("Unknown attachment tool");
+	});
+});

@@ -1,0 +1,56 @@
+{
+	"marketplace": {
+		"loading": "Chargement de la marketplace...",
+		"searchPlaceholder": "Rechercher des plugins",
+		"empty": "Aucun plugin trouvé dans la marketplace.",
+		"card": {
+			"installed": "Installé",
+			"updateAvailable": "Mise à jour disponible",
+			"source": "Source",
+			"official": "Plugin officiel Paca",
+			"upgrading": "Mise à niveau...",
+			"upgradeTo": "Mettre à niveau vers {{version}}",
+			"uninstalling": "Désinstallation...",
+			"uninstall": "Désinstaller",
+			"installing": "Installation...",
+			"install": "Installer",
+			"features": {
+				"backend": "Backend",
+				"frontend": "Frontend",
+				"migrations": "Migrations",
+				"mcp": "MCP",
+				"skills": "Compétences"
+			},
+			"errors": {
+				"incompatibleHostVersion": "Ce plugin nécessite Paca {{required}} ou une version ultérieure. Vous utilisez actuellement {{current}}.",
+				"incompatibleHostVersionGeneric": "Ce plugin nécessite une version de Paca plus récente que celle que vous utilisez.",
+				"alreadyUpToDate": "Ce plugin est déjà à jour.",
+				"downgradeNotAllowed": "Impossible d'installer une version antérieure à celle déjà installée.",
+				"notFound": "Ce plugin n'est plus disponible dans la marketplace.",
+				"nameTaken": "Un plugin portant ce nom est déjà installé.",
+				"generic": "Une erreur s'est produite. Veuillez réessayer."
+			},
+			"legacyPermissions": {
+				"badge": "Anciennes permissions",
+				"description": "Ce plugin utilise encore l'ancien modèle de permissions requirePermissions. Il continue de fonctionner, mais il ne peut être ni réinstallé ni mis à niveau tant que son auteur n'a pas publié une version qui utilise requireActions."
+			}
+		}
+	},
+	"preferences": {
+		"empty": "Aucun plugin avec des points d'extension n'est installé.",
+		"actions": {
+			"show": "Afficher",
+			"hide": "Masquer"
+		},
+		"extensionPoints": {
+			"sidebarGeneral": "Barre latérale — Général",
+			"sidebarProject": "Barre latérale — Projet",
+			"taskDetail": "Détail de la tâche",
+			"projectSettingsTab": "Onglet Paramètres du Projet",
+			"customView": "Vue personnalisée",
+			"projectPage": "Page du Projet",
+			"adminPage": "Page d'Administration",
+			"userSettingsTab": "Onglet Paramètres Utilisateur"
+		}
+	}
+}

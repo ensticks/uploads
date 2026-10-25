@@ -1,0 +1,226 @@
+# paca
+
+Paca — self-hosted AI-powered project management, deployed on Kubernetes.
+
+This chart mirrors [`deploy/docker-compose.prod.yml`](https://github.com/Paca-AI/paca/blob/master/deploy/docker-compose.prod.yml)
+component-for-component: PostgreSQL, Valkey (Redis-compatible), RustFS
+(S3-compatible), the Go API, the React web app served via Caddy, a
+Socket.IO realtime hub, an AI agent runner, and a Caddy gateway in front
+of all of it.
+
+For deployment details that go beyond this chart's configuration
+reference — the Kubernetes AI agent sandbox, its RBAC scoping, storage
+class requirements, and TLS/ingress guidance — see the full
+[Kubernetes deployment guide](https://github.com/Paca-AI/paca/blob/master/deploy/helm/README.md).
+
+## Prerequisites
+
+- Kubernetes 1.24+
+- Helm 3.8+ (OCI registry support)
+- A `ReadWriteMany`-capable StorageClass if you want `api.plugins.persistence`
+  enabled (installed plugins shared between the `api` and gateway Pods) —
+  either your cluster's own, or set `nfsProvisioner.enabled: true` to have
+  this chart provide one (see "NFS provisioner" below); either way see the
+  deployment guide linked above for the full picture
+
+## Installing
+
+This chart is published as an OCI artifact, not a traditional `index.yaml`
+repo — install it directly by reference, no `helm repo add` needed:
+
+```console
+helm install paca oci://ghcr.io/paca-ai/charts/paca --version <version>
+```
+
+Every value under `secrets.*` is required for a real deployment (there's
+no auto-generated default) — set them explicitly or point
+`secrets.existingSecret` at a Secret you manage yourself. See the
+Configuration table below and the deployment guide for how to generate
+them.
+
+## Configuration
+
+### Global
+
+| Key | Description | Default |
+|---|---|---|
+| `publicUrl` | Externally reachable base URL for this deployment (e.g. `https://paca.example.com`). Leave empty for a ClusterIP/NodePort-only deployment. | `""` |
+| `imagePullSecrets` | Image pull secrets applied to every Pod this chart creates | `[]` |
+
+### Secrets
+
+Generate strong values yourself, e.g. `openssl rand -hex 32`.
+
+| Key | Description | Default |
+|---|---|---|
+| `secrets.existingSecret` | Name of a Secret you manage yourself instead of the fields below (same key names — see `templates/secret.yaml`) | `""` |
+| `secrets.jwtSecret` | JWT signing secret | `""` |
+| `secrets.adminPassword` | Initial admin account password | `""` |
+| `secrets.encryptionKey` | 64-char hex string encrypting plugin secrets and (when `agentRunner.enabled`) LLM API keys at rest | `""` |
+| `secrets.internalApiKey` | Pre-shared key authenticating `api` <-> `agent-runner`'s internal routes (only required when `agentRunner.enabled`) | `""` |
+| `secrets.postgresPassword` | PostgreSQL password | `""` |
+| `secrets.storageAccessKeyId` | External S3 access key ID — only used when `rustfs.enabled: false`; the bundled RustFS uses `rustfs.secret.rustfs.access_key` instead | `""` |
+| `secrets.storageSecretAccessKey` | External S3 secret access key — same condition as above | `""` |
+
+### PostgreSQL (bundled)
+
+| Key | Description | Default |
+|---|---|---|
+| `postgres.enabled` | Deploy the bundled PostgreSQL. Set `false` and provide `externalDatabaseUrl` to use your own instead. | `true` |
+| `postgres.image.repository` / `.tag` | | `postgres` / `16-alpine` |
+| `postgres.database` / `.username` | | `paca` / `paca` |
+| `postgres.persistence.enabled` / `.size` / `.storageClassName` | | `true` / `10Gi` / `""` |
+| `postgres.resources` | Requests/limits for the PostgreSQL Pod | see `values.yaml` |
+| `externalDatabaseUrl` | Full connection string used instead of the bundled postgres when `postgres.enabled: false` | `""` |
+
+### Valkey (bundled cache / pub-sub)
+
+| Key | Description | Default |
+|---|---|---|
+| `valkey.enabled` | Deploy the bundled Valkey. Set `false` and provide `externalRedisUrl` to use your own instead. | `true` |
+| `valkey.image.repository` / `.tag` | | `valkey/valkey` / `8-alpine` |
+| `valkey.persistence.enabled` / `.size` / `.storageClassName` | | `true` / `5Gi` / `""` |
+| `valkey.resources` | Requests/limits for the Valkey Pod | see `values.yaml` |
+| `externalRedisUrl` | Used instead of the bundled valkey when `valkey.enabled: false` | `""` |
+
+### Object storage
+
+`rustfs` is the upstream [rustfs/rustfs](https://artifacthub.io/packages/helm/rustfs/rustfs)
+chart pulled in as a real dependency, not a template of this chart's own —
+every `rustfs.*` key below is that chart's own schema passed straight
+through (run `helm dependency update` then
+`helm show values charts/rustfs-*.tgz` for the full set this table doesn't
+surface, e.g. `rustfs.mtls`/`rustfs.pools`).
+
+| Key | Description | Default |
+|---|---|---|
+| `rustfs.enabled` | Deploy bundled RustFS. Set `false`, `storage.provider: s3`, and real AWS credentials to use S3 instead. | `true` |
+| `rustfs.image.rustfs.repository` / `.tag` | Tag left empty on purpose — inherits the dependency's pinned `appVersion` (see `Chart.yaml`) | `rustfs/rustfs` / `""` |
+| `rustfs.secret.rustfs.access_key` / `.secret_key` | Credentials for the bundled instance (unrelated to `secrets.storageAccessKeyId` above, which is only for external S3) | `""` / `""` |
+| `rustfs.secret.existingSecret` | Name of a Secret you manage yourself instead of the two fields above (keys `RUSTFS_ACCESS_KEY` / `RUSTFS_SECRET_KEY`) | `""` |
+| `rustfs.storageclass.name` / `.dataStorageSize` | | `""` / `20Gi` |
+| `rustfs.resources` | Requests/limits for the RustFS Pod | see `values.yaml` |
+| `storage.provider` | `rustfs` or `s3` | `rustfs` |
+| `storage.endpoint` | Empty defaults to the bundled RustFS's in-cluster Service address | `""` |
+| `storage.publicUrl` | Empty defaults to `<publicUrl>/storage` | `""` |
+| `storage.region` / `.bucket` / `.useSSL` | | `us-east-1` / `paca` / `false` |
+
+**Upgrading a release still running the bundled MinIO?** Unlike the Docker Compose install path, `helm upgrade` has no automatic guard against this — see [docs/deployment/README.md](https://github.com/Paca-AI/paca/blob/master/docs/deployment/README.md#helm-users)'s "Helm users" section before upgrading, or your attachment data will be orphaned on the old release's PVC with no warning.
+
+### NFS provisioner (optional)
+
+Off by default — gives `api.plugins.persistence` below (not object storage
+above) a `ReadWriteMany` StorageClass on clusters whose default one is
+block storage only, e.g. most single-node/bare-metal clusters including
+k3s's own bundled `local-path-provisioner`. Skip this if your cluster
+already has a real RWX class (`efs-csi`, `filestore-csi`, `azurefile`,
+`longhorn`, `rook-ceph`, ...). Same real-dependency passthrough convention
+as `rustfs.*` above — upstream:
+[kvaps/nfs-server-provisioner](https://artifacthub.io/packages/helm/kvaps/nfs-server-provisioner).
+
+Creates a cluster-scoped `StorageClass` and `ClusterRole` (needs
+cluster-level RBAC to install, not just namespace-scoped access), and its
+Pod runs with the `DAC_READ_SEARCH`/`SYS_RESOURCE` Linux capabilities
+added.
+
+| Key | Description | Default |
+|---|---|---|
+| `nfsProvisioner.enabled` | Deploy the bundled NFS provisioner | `false` |
+| `nfsProvisioner.persistence.storageClass` | The ordinary `ReadWriteOnce` StorageClass backing this NFS server's own data volume. Empty uses the cluster's default. | `""` |
+| `nfsProvisioner.persistence.size` | | `1Gi` |
+| `nfsProvisioner.storageClass.name` | Name of the `ReadWriteMany` StorageClass this creates. Cluster-scoped like every StorageClass — give releases sharing a cluster distinct names, or the second `helm install` fails on an already-existing one. `api.plugins.persistence.storageClassName` falls back to this automatically when that's empty and this is enabled. | `nfs` |
+
+### API (Go backend)
+
+| Key | Description | Default |
+|---|---|---|
+| `api.replicaCount` | | `1` |
+| `api.image.repository` / `.tag` / `.pullPolicy` | | `ghcr.io/paca-ai/paca-api` / `latest` / `IfNotPresent` |
+| `api.resources` | Requests/limits for the API Pod | see `values.yaml` |
+| `api.admin.username` | | `admin` |
+| `api.jwt.accessTtl` / `.refreshTtl` / `.refreshSessionTtl` | | `15m` / `168h` / `24h` |
+| `api.cookieSecure` | Set `false` only when TLS isn't terminated anywhere in front of this deployment — otherwise browsers silently drop the auth cookie and login never sticks | `true` |
+| `api.plugins.persistence.enabled` | Shared storage for installed plugins (backend WASM, frontend/MCP/skills bundles) — needs a `ReadWriteMany` StorageClass; set `false` to fall back to a per-Pod `emptyDir` (installed plugins then won't survive a restart or be visible to the gateway) | `true` |
+| `api.plugins.persistence.accessMode` / `.storageClassName` / `.size` | `.storageClassName` empty auto-falls back to `nfsProvisioner`'s StorageClass when that's enabled (see "NFS provisioner" above), else the cluster default | `ReadWriteMany` / `""` / `5Gi` |
+
+### Web (React SPA via Caddy)
+
+| Key | Description | Default |
+|---|---|---|
+| `web.enabled` | Disable to serve the SPA from an external CDN instead | `true` |
+| `web.replicaCount` | | `1` |
+| `web.image.repository` / `.tag` / `.pullPolicy` | | `ghcr.io/paca-ai/paca-web` / `latest` / `IfNotPresent` |
+| `web.resources` | Requests/limits for the web Pod | see `values.yaml` |
+
+### Realtime (Socket.IO event hub)
+
+| Key | Description | Default |
+|---|---|---|
+| `realtime.replicaCount` | | `1` |
+| `realtime.image.repository` / `.tag` / `.pullPolicy` | | `ghcr.io/paca-ai/paca-realtime` / `latest` / `IfNotPresent` |
+| `realtime.resources` | Requests/limits for the realtime Pod | see `values.yaml` |
+| `realtime.logLevel` | | `info` |
+| `realtime.corsOrigins` | Empty defaults to `publicUrl` (or `http://localhost` when that's also empty) | `""` |
+
+### Agent Runner (AI agent conversation executor + sandbox)
+
+| Key | Description | Default |
+|---|---|---|
+| `agentRunner.enabled` | Disable to run Paca without the AI agent feature | `true` |
+| `agentRunner.replicaCount` | | `1` |
+| `agentRunner.image.repository` / `.tag` / `.pullPolicy` | | `ghcr.io/paca-ai/paca-agent-runner` / `latest` / `IfNotPresent` |
+| `agentRunner.resources` | Requests/limits for the agent-runner Pod | see `values.yaml` |
+| `agentRunner.allowedAgentIds` | `"*"` for every agent, or a comma-separated list of agent UUIDs to stage a gradual rollout | `"*"` |
+| `agentRunner.workerConcurrency` | | `10` |
+| `agentRunner.chatSandboxIdleTimeoutMinutes` | | `3` |
+| `agentRunner.logLevel` | | `info` |
+| `agentRunner.sandbox.backend` | `kubernetes` (one Job per conversation) or `docker` (needs a mounted Docker socket — most managed clusters don't have one) | `kubernetes` |
+| `agentRunner.sandbox.image.repository` / `.tag` | | `ghcr.io/paca-ai/paca-agent-server-goose` / `latest` |
+| `agentRunner.sandbox.namespace` | Namespace sandbox Jobs/Pods run in. Empty defaults to this release's own namespace — see the deployment guide's RBAC section before changing this | `""` |
+| `agentRunner.sandbox.podReadyTimeout` | Positive Go duration for Kubernetes Pod-IP startup, including node provisioning (`SANDBOX_POD_READY_TIMEOUT`); separate from HTTP readiness | `5m` |
+| `agentRunner.sandbox.cpuLimit` / `.memoryLimit` | Requests == limits on every sandbox Pod's primary container | `2` / `4Gi` |
+| `agentRunner.sandbox.imagePullSecrets` | Needed when `sandbox.image` is pulled from a private registry | `[]` |
+
+### Gateway (Caddy reverse proxy)
+
+| Key | Description | Default |
+|---|---|---|
+| `gateway.replicaCount` | | `1` |
+| `gateway.image.repository` / `.tag` / `.pullPolicy` | | `caddy` / `2-alpine` / `IfNotPresent` |
+| `gateway.resources` | Requests/limits for the gateway Pod | see `values.yaml` |
+| `gateway.service.type` | `ClusterIP` (pair with `ingress.enabled`) or `LoadBalancer` (standalone, no ingress controller needed) | `ClusterIP` |
+| `gateway.service.port` | | `80` |
+
+### Ingress (optional)
+
+| Key | Description | Default |
+|---|---|---|
+| `ingress.enabled` | | `false` |
+| `ingress.className` / `.annotations` | | `""` / `{}` |
+| `ingress.host` | Required when `ingress.enabled` | `""` |
+| `ingress.tls.enabled` | | `false` |
+| `ingress.tls.secretName` | Defaults to `<release-name>-tls` when empty | `""` |
+
+## Source Code
+
+* <https://github.com/Paca-AI/paca>
+
+### Sandbox startup on autoscaled clusters
+
+The Kubernetes backend waits up to five minutes for a sandbox Pod IP so a new
+node can be provisioned when existing nodes lack capacity. Set
+`agentRunner.sandbox.podReadyTimeout` (for example `6m`) to adjust this budget;
+`60s` restores the previous wait. Invalid or non-positive durations fail runner
+startup. Docker is unaffected. The same budget applies to conversation Jobs and
+static environment Pods.
+
+Caller cancellation and earlier deadlines still win. Static environment commands
+have a separate ten-minute API reply deadline and an eleven-minute runner
+operation deadline. Leave room within those budgets for agent-server HTTP
+readiness (up to two minutes) and optional DinD readiness (up to 90 seconds).
+With DinD, those waits leave at most six minutes and 30 seconds for the Pod-IP
+wait before allowing for other work. Keep the setting below that ceiling: `6m`
+leaves 30 seconds for other startup work and reply delivery. Increasing the
+Pod-IP setting does not increase these outer deadlines. Deploy
+the updated API and agent-runner together to use the longer static-environment
+reply budget.

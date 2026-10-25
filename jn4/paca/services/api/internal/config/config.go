@@ -1,0 +1,211 @@
+// Package config defines the typed configuration model for the API service.
+package config
+
+import "time"
+
+// Config holds all runtime configuration for the service.
+type Config struct {
+	Server     ServerConfig
+	Database   DatabaseConfig
+	Redis      RedisConfig
+	Cache      CacheConfig
+	JWT        JWTConfig
+	Admin      AdminConfig
+	Storage    StorageConfig
+	Security   SecurityConfig
+	Plugins    PluginsConfig
+	Release    ReleaseConfig
+	AIAgentURL string // base URL of the ai-agent service, e.g. http://ai-agent:8080
+	// AIAgentInternalKey authenticates server-to-server calls into ai-agent's
+	// internal-only routes (see services/ai-agent's _require_internal_key) —
+	// must match ai-agent's own INTERNAL_API_KEY.
+	AIAgentInternalKey string
+	// SSHBastionHost/PortForwardHost are purely descriptive, deployment-wide
+	// values this service never itself acts on — agent-runner is what
+	// actually relays SSH connections and port forwards (see
+	// docs/ai-agent/environment-management.md's "Port Forwarding" and
+	// "Terminal / SSH Access" sections). They're duplicated here, read from
+	// the exact same SSH_BASTION_HOST/PORT_FORWARD_HOST env vars already set
+	// on agent-runner, solely so GET /environments/config
+	// (handler.EnvironmentHandler.GetConfig) can hand the frontend a real
+	// `ssh` command and a real port-forward host instead of a placeholder —
+	// see that handler's own doc comment. Empty means the operator hasn't
+	// set the matching env var there either, which the frontend treats as
+	// "not configured."
+	SSHBastionHost  string
+	PortForwardHost string
+	Env             string // development | production
+}
+
+// ReleaseConfig holds settings for the "new version available" check that the
+// home screen surfaces. The API queries the GitHub releases/latest endpoint of
+// the upstream project and (optionally) the fork, caching the result.
+type ReleaseConfig struct {
+	// Version is the version of the running build, e.g. "v0.9.4".
+	// Injected via the PACA_VERSION env var; unset builds report "dev" and
+	// never show an update banner.
+	Version string
+	// UpstreamRepo is the "owner/name" whose releases represent the original
+	// project's evolution (default: "Paca-AI/paca").
+	UpstreamRepo string
+	// ForkRepo is the "owner/name" of the fork whose releases represent the
+	// deployer's own versions. Empty disables the fork check.
+	ForkRepo string
+	// CacheTTL is how long a GitHub releases/latest response is cached in
+	// Valkey before a fresh request is made (keeps well under the unauthenticated
+	// rate limit).
+	CacheTTL time.Duration
+	// Timeout is the HTTP timeout for each GitHub request.
+	Timeout time.Duration
+}
+
+// ServerConfig holds HTTP server settings.
+type ServerConfig struct {
+	Port         string
+	CookieSecure bool   // set Secure flag on auth cookies; enable when behind an SSL-terminating proxy
+	PublicURL    string // externally reachable base URL (for example, https://paca.example.com)
+	// CORSAllowedOrigins is the allow-list of frontend origins permitted to
+	// make cross-origin requests. A single "*" (the default, for backward
+	// compatibility with existing deployments that don't set CORS_ORIGINS)
+	// reflects Access-Control-Allow-Origin: * for every request; any other
+	// value is an exact-match allow-list. Configure via the comma-separated
+	// CORS_ORIGINS environment variable, e.g. "https://paca.example.com".
+	CORSAllowedOrigins []string
+	// AuthRateLimit is how many requests per minute one client IP may make
+	// to each credential endpoint under /auth (password login, password set,
+	// SSO login/callback); token refresh gets 3x that. 0 disables the
+	// limits. Configure via AUTH_RATE_LIMIT_PER_MINUTE (default 20).
+	AuthRateLimit int
+}
+
+// AdminConfig holds the default administrator credentials seeded on first startup.
+type AdminConfig struct {
+	Username string
+	Password string
+}
+
+// DatabaseConfig holds the primary database connection settings.
+type DatabaseConfig struct {
+	DSN string
+}
+
+// RedisConfig holds Redis connection settings.
+type RedisConfig struct {
+	URL string
+}
+
+// CacheConfig holds TTL settings for the different cache categories.
+//
+// Each TTL controls how long the corresponding data is served from Valkey/Redis
+// before a fresh database read is made.  Set a TTL to zero to disable caching
+// for that category entirely.
+//
+// Environment variables (loaded by config.Load):
+//
+//	CACHE_PROJECT_TTL  – project + member data          (default: 5m)
+//	CACHE_CONFIG_TTL   – task types, statuses, custom
+//	                     field definitions, and roles    (default: 10m)
+//	CACHE_SPRINT_TTL   – sprints and views               (default: 2m)
+type CacheConfig struct {
+	// ProjectTTL is the cache duration for project detail and member list data.
+	ProjectTTL time.Duration
+	// ConfigTTL is the cache duration for infrequently-changing project
+	// configuration: task types, task statuses, custom field definitions, and
+	// project roles.  Global roles also use this TTL.
+	ConfigTTL time.Duration
+	// SprintTTL is the cache duration for sprint and view configuration data.
+	SprintTTL time.Duration
+}
+
+// JWTConfig holds JWT signing and expiry settings.
+type JWTConfig struct {
+	Secret            string
+	AccessTTL         time.Duration
+	RefreshTTL        time.Duration // persistent session (remember me = true)
+	RefreshSessionTTL time.Duration // ephemeral session (remember me = false)
+}
+
+// StorageConfig holds object-storage settings.
+// When Provider is "s3" the service connects to AWS S3 using the Region field.
+// When Provider is anything else (default: "rustfs") it targets the Endpoint
+// URL as a self-hosted, S3-compatible store.
+// The bucket is created automatically on startup if it does not exist.
+type StorageConfig struct {
+	Provider        string // "s3" | "rustfs"  (default: "rustfs")
+	Endpoint        string // self-hosted S3-compatible URL, e.g. "rustfs:9000"; ignored for AWS S3
+	PublicURL       string // public-facing base URL for presigned URLs, e.g. "http://localhost/storage"
+	Region          string // AWS region; used for S3; also supplied to the self-hosted store (can be any value)
+	Bucket          string
+	AccessKeyID     string
+	SecretAccessKey string
+	UseSSL          bool // set true when Endpoint is HTTPS
+}
+
+// PluginsConfig holds runtime settings for the plugin subsystem.
+type PluginsConfig struct {
+	// Store selects where WASM plugin binaries are loaded from.
+	// Accepted values: "local" (default) or "s3".
+	// When "local", WASMDir is the root directory on the local filesystem.
+	// When "s3", the Storage bucket and prefix are reused (STORAGE_BUCKET /
+	// PLUGINS_S3_PREFIX).
+	Store string
+
+	// WASMDir is the local filesystem directory that contains plugin WASM
+	// binaries.  Each plugin is expected at {WASMDir}/{pluginName}/backend.wasm.
+	// Only used when Store is "local".  Defaults to "./plugins/local/backend".
+	WASMDir string
+
+	// FrontendDir is the local filesystem directory that contains extracted
+	// frontend assets for installed plugins.
+	// Each plugin is expected at {FrontendDir}/{pluginName}/assets/remoteEntry.js.
+	FrontendDir string
+
+	// MCPDir is the local filesystem directory that contains extracted MCP
+	// bundles for installed plugins.  Served at /plugins-mcp/<pluginName>/.
+	// Each plugin is expected at {MCPDir}/{pluginName}/mcp.js.
+	MCPDir string
+
+	// SkillsDir is the local filesystem directory that contains extracted
+	// Agent Skills bundles for installed plugins.  Served at
+	// /plugins-skills/<pluginName>/.  Each skill is expected at
+	// {SkillsDir}/{pluginName}/{skillName}/SKILL.md.
+	SkillsDir string
+
+	// S3Prefix is the S3 key prefix used when Store is "s3".
+	// Plugin WASM binaries are fetched from {S3Prefix}/{pluginName}/backend.wasm.
+	S3Prefix string
+
+	// MarketplaceCatalogURL points to a public JSON catalog in a GitHub repository
+	// (for example, the raw URL of paca-plugins/catalog/plugins.json).
+	MarketplaceCatalogURL string
+
+	// MarketplaceTimeout is the HTTP timeout used when fetching marketplace
+	// metadata and artifacts.
+	MarketplaceTimeout time.Duration
+
+	// Limits holds resource limits enforced on plugin WASM execution.
+	Limits PluginLimitsConfig
+}
+
+// PluginLimitsConfig holds resource limits enforced on plugin WASM module
+// execution. Mirrors platform/plugin.ResourceLimits; see that type's field
+// docs for why each limit exists.
+type PluginLimitsConfig struct {
+	// MaxCallDuration is the maximum time allowed for a single plugin
+	// function call.
+	MaxCallDuration time.Duration
+	// MaxMemoryPages is the maximum number of 64-KiB WASM linear-memory pages
+	// a plugin module may allocate.
+	MaxMemoryPages uint32
+	// MaxRequestBodyBytes is the maximum size of an inbound HTTP request body
+	// that may be proxied to a plugin route, and of an event payload
+	// dispatched to a plugin. 0 means "no limit".
+	MaxRequestBodyBytes int64
+}
+
+// SecurityConfig holds secrets used by first-party and plugin features.
+type SecurityConfig struct {
+	// EncryptionKey is a 32-byte AES-256 key (hex-encoded) used to encrypt
+	// sensitive data at rest.
+	EncryptionKey string
+}

@@ -1,0 +1,632 @@
+{
+	"users": {
+		"header": {
+			"title": "ユーザー管理",
+			"description": "ユーザーアカウントと割り当てられたロールを確認・管理します。",
+			"newUser": "新規ユーザー"
+		},
+		"stats": {
+			"userCount_one": "{{count}}人のユーザー",
+			"userCount_other": "{{count}}人のユーザー",
+			"inSystem": "システム内",
+			"mustChangePassword": "パスワード変更が必要"
+		},
+		"empty": {
+			"title": "ユーザーが見つかりません",
+			"description": "最初のユーザーを作成して始めましょう。",
+			"createUser": "ユーザーを作成"
+		},
+		"errors": {
+			"loadFailed": "ユーザーの読み込みに失敗しました",
+			"tryAgain": "ページを更新してもう一度お試しください。"
+		},
+		"noPermission": {
+			"title": "ユーザーを表示する権限がありません",
+			"description": "上のボタンから新しいユーザーを作成することはできます。"
+		},
+		"table": {
+			"columnUser": "ユーザー",
+			"columnRole": "ロール",
+			"columnCreated": "作成日",
+			"pwdResetBadge": "パスワード再設定",
+			"youBadge": "あなた",
+			"noFullName": "—",
+			"resetPasswordAction": "パスワードをリセット",
+			"editAction": "ユーザーを編集",
+			"changeRoleAction": "ロールを変更",
+			"deleteAction": "ユーザーを削除",
+			"pwdResetHint": "このユーザーは次回サインイン時に新しいパスワードを設定する必要があります",
+			"columnActions": "操作"
+		},
+		"formDialog": {
+			"createdTitle": "ユーザーを作成しました",
+			"createdDescriptionSuffix": "を作成しました。以下の仮パスワードを共有してください — ユーザーは初回ログイン時に変更を求められます。",
+			"temporaryPasswordLabel": "仮パスワード",
+			"hidePassword": "パスワードを非表示",
+			"showPassword": "パスワードを表示",
+			"copyPassword": "パスワードをコピー",
+			"passwordNotShownAgain": "このパスワードは再表示されません。今すぐコピーしてください。",
+			"done": "完了",
+			"editTitle": "ユーザーを編集",
+			"createTitle": "ユーザーを作成",
+			"editDescription": "ユーザーの表示名とメールアドレスを更新します。",
+			"createDescription": "安全な仮パスワードが自動的に生成されます。ユーザーは初回ログイン時に変更を求められます。",
+			"roleStepDescription": "{{username}} は {{role}} ロールで作成されました。そのままにするか、別のロールを選択してください。",
+			"stepIndicator": "{{step}} / {{total}}",
+			"usernameLabel": "ユーザー名",
+			"usernamePlaceholder": "例: john.doe",
+			"fullNameLabel": "氏名",
+			"fullNamePlaceholder": "例: John Doe",
+			"emailLabel": "メールアドレス",
+			"emailOptionalHint": "（任意 — パスワード設定用のリンクを記載したウェルカムメールを送信します）",
+			"emailPlaceholder": "例: john.doe@example.com",
+			"roleStep": {
+				"title": "ロール"
+			},
+			"cancel": "キャンセル",
+			"continue": "続ける",
+			"saving": "保存中…",
+			"creating": "作成中…",
+			"saveChanges": "変更を保存",
+			"createUser": "ユーザーを作成",
+			"errors": {
+				"fullNameRequired": "氏名を入力してください。",
+				"invalidEmail": "有効なメールアドレスを入力してください。",
+				"usernameTaken": "このユーザー名は既に使用されています。",
+				"emailTaken": "このメールアドレスは既に使用されています。",
+				"userNotFound": "ユーザーが見つかりません。既に削除された可能性があります。",
+				"forbidden": "この操作を実行する権限がありません。",
+				"noDefaultRole": "新しいアカウントに付与する既定のロールがありません。グローバルロールのページで設定してから、もう一度お試しください。",
+				"internalError": "サーバーで問題が発生しました。もう一度お試しください。",
+				"generic": "問題が発生しました。"
+			}
+		},
+		"roleDialog": {
+			"title": "ロールを変更",
+			"description": "{{username}} のロールを選択してください。次のリクエストから適用されます。",
+			"assign": "ロールを割り当て",
+			"assigning": "割り当て中…",
+			"fullAccessWarning": "このロールにはフルアクセス権があります。ユーザーやロールの管理を含め、すべての操作が可能です。",
+			"selfWarning": "これはご自身のアカウントです。ロールを変更すると、このページにアクセスできなくなる場合があります。",
+			"errors": {
+				"roleNotFound": "そのロールは存在しなくなりました。このダイアログを閉じてもう一度お試しください。"
+			}
+		},
+		"resetPasswordDialog": {
+			"title": "パスワードをリセット",
+			"descriptionSuccessPrefix": "",
+			"descriptionSuccessSuffix": "さんのパスワードをリセットしました。以下の仮パスワードを共有してください — 再表示はされません。",
+			"descriptionConfirmPrefix": "強力な仮パスワードを生成し、",
+			"descriptionConfirmSuffix": "さんに割り当てます。次回ログイン時に変更が求められます。",
+			"temporaryPasswordLabel": "仮パスワード",
+			"hidePassword": "パスワードを非表示",
+			"showPassword": "パスワードを表示",
+			"copyPassword": "パスワードをコピー",
+			"notShownAgain": "⚠ このパスワードは閉じた後は再表示されません。",
+			"done": "完了",
+			"cancel": "キャンセル",
+			"resetting": "リセット中…",
+			"resetButton": "パスワードをリセット",
+			"errors": {
+				"userNotFound": "このユーザーは既に存在しません。",
+				"forbidden": "このユーザーのパスワードをリセットする権限がありません。",
+				"internalError": "問題が発生しました。もう一度お試しください。",
+				"generic": "問題が発生しました。"
+			}
+		},
+		"deleteDialog": {
+			"title": "ユーザーを削除",
+			"confirmTextPrefix": "本当に削除しますか",
+			"confirmTextSuffix": "？このアカウントは完全に削除されます。",
+			"cannotBeUndone": "この操作は取り消せません。",
+			"cancel": "キャンセル",
+			"deleting": "削除中…",
+			"confirmButton": "ユーザーを削除",
+			"errors": {
+				"userNotFound": "このユーザーは既に存在しません。",
+				"forbidden": "このユーザーを削除する権限がありません。",
+				"internalError": "問題が発生しました。もう一度お試しください。",
+				"generic": "問題が発生しました。"
+			}
+		},
+		"filters": {
+			"searchPlaceholder": "名前、ユーザー名、メールで検索…",
+			"searchLabel": "ユーザーを検索",
+			"roleLabel": "ロールで絞り込み",
+			"allRoles": "すべてのロール",
+			"clearSearch": "検索をクリア",
+			"resultsCount": "結果: {{count}}",
+			"clearAll": "フィルターをクリア"
+		},
+		"noMatch": {
+			"title": "一致するユーザーがいません",
+			"description": "別の検索語やロールフィルターをお試しください。",
+			"clear": "フィルターをクリア"
+		}
+	},
+	"globalRoles": {
+		"header": {
+			"title": "グローバルロール",
+			"description": "システム全体のロールと、ユーザーに付与される権限を管理します。",
+			"newRole": "新規ロール"
+		},
+		"stats": {
+			"roleCount_one": "{{count}}個のロール",
+			"roleCount_other": "{{count}}個のロール",
+			"defined": "定義済み",
+			"permissionGrants": "全ロールでの権限付与数"
+		},
+		"empty": {
+			"title": "ロールがまだ定義されていません",
+			"description": "最初のロールを作成してユーザー権限の管理を始めましょう。",
+			"createRole": "ロールを作成"
+		},
+		"errors": {
+			"loadFailed": "ロールの読み込みに失敗しました",
+			"tryAgain": "ページを更新してもう一度お試しください。"
+		},
+		"noPermission": {
+			"title": "ロールを表示する権限がありません",
+			"description": "上のボタンから新しいロールを作成することはできます。"
+		},
+		"table": {
+			"columnName": "名前",
+			"columnDescription": "説明",
+			"columnDefault": "既定",
+			"noPermissionsAssigned": "権限が割り当てられていません",
+			"default": "既定",
+			"setDefaultAction": "既定のロールに設定",
+			"editAction": "ロールを編集",
+			"deleteAction": "ロールを削除",
+			"deleteDefaultDisabled": "既定のロールは削除できません。先に別のロールを既定に設定してください。",
+			"builtIn": "組み込みロール",
+			"noDescription": "説明なし"
+		},
+		"formDialog": {
+			"editTitle": "ロールを編集",
+			"createTitle": "ロールを作成",
+			"editDescription": "ロール名と権限の付与を更新します。",
+			"createDescription": "新しいシステム全体のロールを定義し、権限を設定します。",
+			"roleNameLabel": "ロール名",
+			"roleNamePlaceholder": "例: SECURITY_ADMIN",
+			"permissionsLabel": "権限",
+			"enabledCount_one": "{{count}}件有効",
+			"enabledCount_other": "{{count}}件有効",
+			"cancel": "キャンセル",
+			"saving": "保存中…",
+			"saveChanges": "変更を保存",
+			"createRole": "ロールを作成"
+		},
+		"deleteDialog": {
+			"title": "ロールを削除",
+			"confirmTextPrefix": "本当に削除しますか",
+			"confirmTextSuffix": "？このロールに割り当てられているすべてのユーザー割り当ても削除されます。",
+			"cannotBeUndone": "この操作は取り消せません。",
+			"cancel": "キャンセル",
+			"deleting": "削除中…",
+			"confirmButton": "ロールを削除",
+			"errors": {
+				"roleNotFound": "このロールは既に存在しません。",
+				"isDefault": "既定のロールは削除できません。先に別のロールを既定に設定してください。",
+				"forbidden": "このロールを削除する権限がありません。",
+				"internalError": "問題が発生しました。もう一度お試しください。",
+				"generic": "問題が発生しました。"
+			}
+		},
+		"permissions": {
+			"globalRolesRead": {
+				"label": "グローバルロールの閲覧",
+				"description": "グローバルロールの定義を表示します"
+			},
+			"globalRolesWrite": {
+				"label": "グローバルロールの編集",
+				"description": "グローバルロールの定義を作成・更新します"
+			},
+			"globalRolesAssign": {
+				"label": "グローバルロールの割り当て",
+				"description": "ユーザーにグローバルロールを割り当てます"
+			},
+			"usersRead": {
+				"label": "ユーザーの閲覧",
+				"description": "ユーザープロフィールと一覧を表示します"
+			},
+			"usersWrite": {
+				"label": "ユーザーの編集",
+				"description": "ユーザーアカウントを作成・更新します"
+			},
+			"usersDelete": {
+				"label": "ユーザーの削除",
+				"description": "ユーザーアカウントを削除します"
+			},
+			"projectsRead": {
+				"label": "全プロジェクトの閲覧",
+				"description": "ワークスペース内のすべてのプロジェクトを表示します"
+			},
+			"projectsCreate": {
+				"label": "プロジェクトの作成",
+				"description": "新しいプロジェクトを作成します"
+			},
+			"projectsWrite": {
+				"label": "プロジェクトの編集",
+				"description": "プロジェクトの詳細を更新します"
+			},
+			"projectsDelete": {
+				"label": "プロジェクトの削除",
+				"description": "プロジェクトを完全に削除します"
+			},
+			"projectMembersRead": {
+				"label": "プロジェクトメンバーの閲覧",
+				"description": "すべてのプロジェクトのメンバーを表示します"
+			},
+			"projectMembersWrite": {
+				"label": "プロジェクトメンバーの編集",
+				"description": "すべてのプロジェクトでメンバーの追加・削除・更新を行います"
+			},
+			"projectRolesRead": {
+				"label": "プロジェクトロールの閲覧",
+				"description": "すべてのプロジェクトで定義されたロールを表示します"
+			},
+			"projectRolesWrite": {
+				"label": "プロジェクトロールの編集",
+				"description": "すべてのプロジェクトでロールを作成・更新します"
+			},
+			"settingsWrite": {
+				"label": "ワークスペース設定の書き込み",
+				"description": "ワークスペースのロゴ、ファビコン、プライマリカラーを更新する"
+			},
+			"settingsSsoWrite": {
+				"label": "SSO プロバイダーの管理",
+				"description": "ユーザーがサインインに使う ID プロバイダーを設定します。他のユーザーとしてサインインできるため、完全な管理者権限と同等に扱ってください。"
+			},
+			"agentsRead": {
+				"label": "エージェントの閲覧",
+				"description": "ワークスペースレベルの AI エージェントを表示"
+			},
+			"agentsWrite": {
+				"label": "エージェントの管理",
+				"description": "ワークスペースレベルの AI エージェントを作成・編集・削除"
+			},
+			"pluginsRead": {
+				"label": "プラグインの閲覧",
+				"description": "インストール済みのプラグインを表示"
+			},
+			"pluginsWrite": {
+				"label": "プラグインの管理",
+				"description": "プラグインのインストール・更新・有効化・削除"
+			},
+			"serviceAccountsRead": {
+				"label": "サービスアカウントの閲覧",
+				"description": "サービスアカウントとその API キーを表示"
+			},
+			"serviceAccountsWrite": {
+				"label": "サービスアカウントの管理",
+				"description": "サービスアカウントの作成・編集・削除と、API キーの発行・失効"
+			}
+		},
+		"permissionGroups": {
+			"globalRoles": "グローバルロール",
+			"users": "ユーザー",
+			"agents": "AI エージェント",
+			"projects": "プロジェクト",
+			"plugins": "プラグイン",
+			"settings": "設定",
+			"serviceAccounts": "サービスアカウント"
+		},
+		"defaultDialog": {
+			"title": "既定のロールを設定",
+			"description": "新しいユーザーと新しいグローバルエージェントは {{role}} ロールで開始します。既存のアカウントのロールは変わりません。",
+			"fullAccessWarning": "このロールはすべての権限を付与するため、今後作成するすべてのアカウントがフルアクセスで開始します。意図した設定かどうか確認してください。",
+			"cancel": "キャンセル",
+			"confirm": "既定にする",
+			"confirming": "保存中…",
+			"errors": {
+				"roleNotFound": "このロールは既に存在しません。",
+				"forbidden": "既定のロールを変更する権限がありません。",
+				"generic": "問題が発生しました。もう一度お試しください。"
+			}
+		}
+	},
+	"rolePicker": {
+		"current": "現在",
+		"fullAccess": "フルアクセス",
+		"loadFailed": "ロールを読み込めませんでした。",
+		"retry": "再試行",
+		"empty": "ロールはまだ作成されていません。",
+		"default": "既定"
+	},
+	"plugins": {
+		"title": "プラグイン設定",
+		"description": "全ユーザー向けのシステム全体のプラグインパネルの順序と表示設定を管理します。",
+		"tabs": {
+			"marketplace": "マーケットプレイス",
+			"layout": "拡張ポイントレイアウト"
+		},
+		"marketplace": {
+			"title": "マーケットプレイス",
+			"description": "公開のpaca-pluginsカタログからプラグインをインストール・アンインストールします。"
+		},
+		"layout": {
+			"title": "拡張ポイントレイアウト",
+			"description": "ドラッグして各拡張ポイント内のプラグインパネルを並べ替えます。表示設定を切り替えて、全ユーザーに対するパネルの表示・非表示を制御します。"
+		}
+	},
+	"changelog": {
+		"title": "新着情報",
+		"description": "Paca の最新リリースの改善点やハイライトをチェックしましょう。",
+		"current": "現在のバージョン",
+		"error": "現在、変更履歴を読み込めませんでした。しばらくしてからもう一度お試しください。",
+		"empty": "まだリリースノートはありません。"
+	},
+	"agents": {
+		"searchPlaceholder": "名前またはハンドルでエージェントを検索…",
+		"header": {
+			"title": "グローバルエージェント",
+			"description": "ホームページや管理ページでチャットし、任意のプロジェクトに招待できるAIエージェントを管理します。",
+			"newAgent": "新規エージェント"
+		},
+		"empty": {
+			"title": "グローバルエージェントはまだありません",
+			"description": "グローバルエージェントを作成すると、チャットやプロジェクトへの招待に利用できるようになります。",
+			"createAgent": "エージェントを作成"
+		},
+		"noPermission": {
+			"title": "You don't have permission to view agents",
+			"description": "You can still create new agents using the button above."
+		}
+	},
+	"settings": {
+		"title": "ワークスペース設定",
+		"description": "このワークスペースのブランディングとサインインのオプションです。",
+		"images": {
+			"title": "ロゴとファビコン",
+			"logo": {
+				"label": "ロゴ",
+				"change": "ロゴを変更",
+				"remove": "ロゴを削除",
+				"uploading": "アップロード中…"
+			},
+			"favicon": {
+				"label": "ファビコン",
+				"change": "ファビコンを変更",
+				"remove": "ファビコンを削除",
+				"uploading": "アップロード中…"
+			},
+			"errors": {
+				"invalidType": "PNG、JPEG、WEBP、GIF形式の画像を選択してください。",
+				"tooLarge": "画像は5MB以下にしてください。",
+				"uploadFailed": "画像のアップロードに失敗しました。もう一度お試しください。",
+				"removeFailed": "画像の削除に失敗しました。もう一度お試しください。"
+			}
+		},
+		"general": {
+			"title": "一般",
+			"brandNameLabel": "ブランド名",
+			"brandNamePlaceholder": "Paca",
+			"colorsLabel": "プライマリカラー",
+			"colorsDescription": "アプリ全体のボタンやハイライトに使うアクセントカラーを選択します。ライトモードとダークモードに合わせて自動的に調整されます。",
+			"colorPresets": {
+				"green": "グリーン",
+				"blue": "ブルー",
+				"teal": "ティール",
+				"indigo": "インディゴ",
+				"purple": "パープル",
+				"pink": "ピンク",
+				"red": "レッド",
+				"orange": "オレンジ"
+			},
+			"save": "変更を保存",
+			"saved": "保存しました",
+			"errors": {
+				"updateFailed": "保存に失敗しました。もう一度お試しください。"
+			}
+		},
+		"sso": {
+			"title": "シングルサインオン (SSO)",
+			"description": "Google、Microsoft Entra ID、Okta、Keycloak などの OpenID Connect ID プロバイダーでサインインできるようにします。",
+			"add": "プロバイダーを追加",
+			"empty": "SSO プロバイダーはまだありません。ユーザーはユーザー名とパスワードでサインインします。",
+			"enabled": "有効",
+			"disabled": "無効",
+			"edit": "{{name}} を編集",
+			"delete": "{{name}} を削除",
+			"copy": "コピー",
+			"dialog": {
+				"createTitle": "SSO プロバイダーを追加",
+				"editTitle": "SSO プロバイダーを編集",
+				"description": "ID プロバイダーに Paca を OpenID Connect クライアントとして登録し、発行された情報を入力してください。",
+				"cancel": "キャンセル",
+				"save": "保存"
+			},
+			"fields": {
+				"displayName": "表示名",
+				"displayNamePlaceholder": "社内 SSO",
+				"slug": "スラッグ",
+				"slugHint": "サインイン URL とコールバック URL に使われます。変更するとプロバイダーに登録したコールバック URL が使えなくなります。",
+				"callbackUrl": "コールバック URL",
+				"callbackUrlHint": "これを ID プロバイダーのリダイレクト URI として登録してください。",
+				"issuerUrl": "発行者 URL",
+				"issuerUrlHint": "OpenID Connect の発行者 (issuer) です。Paca サーバーからディスカバリードキュメントにアクセスできる必要があります。",
+				"clientId": "クライアント ID",
+				"clientSecret": "クライアントシークレット",
+				"clientSecretKeepHint": "シークレットは保存済みです。変更しない場合は空欄のままにしてください。",
+				"scopes": "スコープ",
+				"scopesHint": "スペース区切り。「openid」は常に含まれます。",
+				"allowedDomains": "許可するメールドメイン",
+				"allowedDomainsHint": "カンマ区切り。空欄にするとすべてのドメインを許可します。確認済みのメールアドレスのみ受け付けます。",
+				"enabled": "有効",
+				"enabledHint": "サインインページにこのプロバイダーを表示します。",
+				"autoProvision": "アカウントを自動作成",
+				"autoProvisionHint": "初めてのユーザーにはデフォルトロールで新しいアカウントが作成されます。",
+				"linkByEmail": "既存アカウントをメールで紐付け",
+				"linkByEmailHint": "確認済みメールアドレスが既存アカウントと一致する初回ユーザーは、そのアカウントでサインインします。",
+				"linkByEmailWarning": "完全に信頼できるプロバイダーでのみ有効にしてください。プロバイダーを制御できる人は、管理者を含め、メールアドレスが一致する任意のアカウントとしてサインインできます。"
+			},
+			"deleteDialog": {
+				"title": "SSO プロバイダーを削除",
+				"description": "「{{name}}」を削除しますか？このプロバイダーではサインインできなくなり、作成されたアカウントとの紐付けも解除されます。アカウント自体は残ります。",
+				"confirm": "削除"
+			},
+			"errors": {
+				"slugTaken": "このスラッグは別のプロバイダーで使用されています。",
+				"discoveryFailed": "発行者の OpenID Connect ディスカバリードキュメントにアクセスできませんでした。発行者 URL を確認してください。",
+				"invalid": "無効な項目があります。スラッグ、発行者 URL、クライアント ID、メールドメインを確認してください。",
+				"saveFailed": "プロバイダーを保存できませんでした。もう一度お試しください。",
+				"loadFailed": "SSO プロバイダーを読み込めませんでした。",
+				"deleteFailed": "プロバイダーを削除できませんでした。もう一度お試しください。"
+			}
+		}
+	},
+	"serviceAccounts": {
+		"searchPlaceholder": "名前または説明で検索…",
+		"header": {
+			"title": "サービスアカウント",
+			"description": "連携・CI・自動化のための、独自の API キーとロールを持つ人以外のアカウントです。",
+			"newAccount": "新しいサービスアカウント"
+		},
+		"empty": {
+			"title": "サービスアカウントはまだありません",
+			"description": "連携に専用の ID と API キーを持たせるには、作成してください。",
+			"create": "サービスアカウントを作成"
+		},
+		"errors": {
+			"loadFailed": "サービスアカウントを読み込めませんでした",
+			"tryAgain": "ページを更新して、もう一度お試しください。"
+		},
+		"noPermission": {
+			"title": "サービスアカウントを表示する権限がありません",
+			"description": "ワークスペース管理者にアクセスを依頼してください。"
+		},
+		"table": {
+			"columnAccount": "アカウント",
+			"columnActions": "操作",
+			"noDescription": "説明なし",
+			"changeRoleAction": "ロールを変更",
+			"editAction": "サービスアカウントを編集",
+			"deleteAction": "サービスアカウントを削除",
+			"columnRole": "ロール"
+		},
+		"formDialog": {
+			"createTitle": "新しいサービスアカウント",
+			"editTitle": "サービスアカウントを編集",
+			"createDescription": "権限なしで作成されます。API キーを作成してから、ロールを付与してください。",
+			"editDescription": "名前・説明・アバターを変更します。API キーとロールは別に管理します。",
+			"nameLabel": "名前",
+			"namePlaceholder": "例: CI デプロイボット",
+			"descriptionLabel": "説明",
+			"descriptionPlaceholder": "このアカウントの用途は？",
+			"cancel": "キャンセル",
+			"create": "作成",
+			"creating": "作成中…",
+			"save": "保存",
+			"saving": "保存中…",
+			"avatar": {
+				"change": "アバターを変更",
+				"remove": "アバターを削除",
+				"uploading": "アップロード中…",
+				"errors": {
+					"invalidType": "PNG・JPEG・WebP・GIF の画像を使用してください。",
+					"tooLarge": "画像は 5 MB 以下にしてください。",
+					"uploadFailed": "アバターをアップロードできませんでした。もう一度お試しください。",
+					"removeFailed": "アバターを削除できませんでした。もう一度お試しください。"
+				}
+			},
+			"errors": {
+				"nameInvalid": "名前は 1〜100 文字で入力してください。",
+				"descriptionTooLong": "説明が長すぎます（最大 1000 文字）。",
+				"notFound": "このサービスアカウントは存在しません。",
+				"generic": "問題が発生しました。もう一度お試しください。"
+			}
+		},
+		"deleteDialog": {
+			"title": "サービスアカウントを削除",
+			"description": "「{{name}}」を削除しますか？ API キーは直ちに使えなくなり、ロールとプロジェクトのメンバーシップも削除されます。この操作は元に戻せません。",
+			"cancel": "キャンセル",
+			"confirm": "削除",
+			"deleting": "削除中…",
+			"error": "サービスアカウントを削除できませんでした。もう一度お試しください。"
+		},
+		"keys": {
+			"nameLabel": "キー名",
+			"namePlaceholder": "例: GitHub Actions",
+			"expiryLabel": "有効期限",
+			"expiryOptional": "（任意）",
+			"create": "キーを作成",
+			"creating": "作成中…",
+			"empty": "API キーはまだありません。",
+			"revokeAria": "キー {{name}} を失効",
+			"reveal": {
+				"title": "新しい API キーをコピーしてください",
+				"description": "完全なキーが表示されるのはこの一度だけです。安全な場所に保管してください。紛失した場合は新しく作成してください。",
+				"copyAria": "キーをコピー",
+				"copied": "クリップボードにコピーしました",
+				"done": "完了"
+			},
+			"errors": {
+				"nameRequired": "キーに名前を付けてください。",
+				"nameTooLong": "キー名が長すぎます（最大 100 文字）。",
+				"createFailed": "キーを作成できませんでした。API キーではなく、ご自身のアカウントでサインインして、もう一度お試しください。",
+				"revokeFailed": "キーを失効できませんでした。もう一度お試しください。",
+				"copyFailed": "クリップボードにコピーできませんでした。キーを選択して手動でコピーしてください。"
+			},
+			"revoke": {
+				"title": "API キーを失効",
+				"description": "「{{name}}」を失効しますか？ このキーを使っているものは直ちに動作しなくなります。この操作は元に戻せません。",
+				"cancel": "キャンセル",
+				"confirm": "キーを失効",
+				"revoking": "失効中…"
+			},
+			"count": "API キー: {{count}}",
+			"newKey": "新しいキー",
+			"createFirst": "最初のキーを作成",
+			"createDialog": {
+				"title": "API キーを作成",
+				"description": "このキーはこのアカウントとして認証します。作成直後に一度だけ表示されます。",
+				"cancel": "キャンセル"
+			},
+			"row": {
+				"created": "{{date}} に作成",
+				"expires": "{{date}} に期限切れ",
+				"noExpiry": "無期限",
+				"lastUsed": "最終使用 {{date}}",
+				"neverUsed": "未使用"
+			}
+		},
+		"roleDialog": {
+			"title": "ロールを変更",
+			"description": "{{name}} に付与するワークスペースのロールを選択してください。これらのロールが許可する操作のみ実行できます。",
+			"assign": "ロールを保存",
+			"assigning": "保存中…",
+			"fullAccessWarning": "このロールはすべての権限を付与します。このアカウントの API キーを持つ者は全権限を持つことになります。"
+		},
+		"detail": {
+			"notFound": {
+				"title": "サービスアカウントが見つかりません",
+				"description": "削除された可能性があります。"
+			},
+			"roles": {
+				"description": "このアカウントがワークスペースで実行できる操作です。新しいアカウントにはロールがありません。",
+				"none": "ロールなし: このアカウントはまだ何も実行できません。",
+				"change": "ロールを変更",
+				"noneHint": "ロールを付与すると操作できるようになります。",
+				"readOnly": "このアカウントのロールを表示できますが、変更はできません。"
+			},
+			"badge": "サービスアカウント",
+			"tabs": {
+				"overview": "概要",
+				"apiKeys": "API キー",
+				"roles": "ロール"
+			},
+			"overview": {
+				"descriptionHint": "アカウント一覧とプロジェクトへの招待時に表示されます。",
+				"saveChanges": "変更を保存",
+				"saved": "保存しました",
+				"saveFailed": "変更を保存できませんでした。もう一度お試しください。",
+				"idLabel": "ID",
+				"createdLabel": "作成日",
+				"updatedLabel": "更新日",
+				"deleteTitle": "このサービスアカウントを削除",
+				"deleteHint": "API キーは使えなくなり、ロールとプロジェクトのメンバーシップが削除されます。"
+			}
+		}
+	}
+}

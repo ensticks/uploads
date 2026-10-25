@@ -1,0 +1,56 @@
+{
+	"marketplace": {
+		"loading": "マーケットプレイスを読み込み中...",
+		"searchPlaceholder": "プラグインを検索",
+		"empty": "マーケットプレイスにプラグインが見つかりませんでした。",
+		"card": {
+			"installed": "インストール済み",
+			"updateAvailable": "更新があります",
+			"source": "ソース",
+			"official": "Paca 公式プラグイン",
+			"upgrading": "アップグレード中...",
+			"upgradeTo": "{{version}}にアップグレード",
+			"uninstalling": "アンインストール中...",
+			"uninstall": "アンインストール",
+			"installing": "インストール中...",
+			"install": "インストール",
+			"features": {
+				"backend": "バックエンド",
+				"frontend": "フロントエンド",
+				"migrations": "マイグレーション",
+				"mcp": "MCP",
+				"skills": "スキル"
+			},
+			"errors": {
+				"incompatibleHostVersion": "このプラグインには Paca {{required}} 以降が必要です（現在のバージョン: {{current}}）。",
+				"incompatibleHostVersionGeneric": "このプラグインには、現在お使いのバージョンより新しいPacaが必要です。",
+				"alreadyUpToDate": "このプラグインはすでに最新です。",
+				"downgradeNotAllowed": "インストール済みのバージョンより古いバージョンはインストールできません。",
+				"notFound": "このプラグインはマーケットプレイスで利用できなくなりました。",
+				"nameTaken": "この名前のプラグインはすでにインストールされています。",
+				"generic": "エラーが発生しました。もう一度お試しください。"
+			},
+			"legacyPermissions": {
+				"badge": "旧式の権限を使用",
+				"description": "このプラグインは旧式の権限モデル requirePermissions を使用しています。動作は続きますが、作者が requireActions を使うバージョンを公開するまで、再インストールもアップグレードもできません。"
+			}
+		}
+	},
+	"preferences": {
+		"empty": "拡張ポイントを持つプラグインはインストールされていません。",
+		"actions": {
+			"show": "表示",
+			"hide": "非表示"
+		},
+		"extensionPoints": {
+			"sidebarGeneral": "サイドバー — 一般",
+			"sidebarProject": "サイドバー — プロジェクト",
+			"taskDetail": "タスク詳細",
+			"projectSettingsTab": "プロジェクト設定タブ",
+			"customView": "カスタムビュー",
+			"projectPage": "プロジェクトページ",
+			"adminPage": "管理者ページ",
+			"userSettingsTab": "ユーザー設定タブ"
+		}
+	}
+}

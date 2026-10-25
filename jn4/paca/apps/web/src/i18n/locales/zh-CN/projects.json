@@ -1,0 +1,2532 @@
+{
+	"project": {
+		"notFound": "未找到项目或访问被拒绝。",
+		"settingsPage": {
+			"title": "设置",
+			"subtitle": "配置项目设置、角色和权限",
+			"nav": {
+				"general": "通用",
+				"roles": "角色",
+				"taskStatuses": "任务状态",
+				"taskTypes": "任务类型",
+				"customFields": "自定义字段",
+				"jev": "Jev AI",
+				"dangerZone": "危险区域",
+				"plugins": "插件",
+				"export": "导出"
+			},
+			"pluginTab": {
+				"noPermission": {
+					"title": "您没有权限查看此标签页",
+					"description": "请项目所有者或管理员为您授予访问 {{pluginName}} 的权限。"
+				}
+			}
+		}
+	},
+	"agents": {
+		"createDialog": {
+			"title": "创建 AI 智能体",
+			"step1Description": "设置智能体的身份",
+			"step2Description": "配置驱动智能体的 AI 模型",
+			"step3DescriptionGlobal": "{{name}} 已使用默认全局角色创建。可保持不变、选择其他角色，或将其移除。",
+			"step3DescriptionProject": "选择智能体在此项目中的角色",
+			"stepIndicator": "{{step}} / {{total}}",
+			"startFromPreset": "从预设开始",
+			"nameLabel": "名称",
+			"handleLabel": "Handle",
+			"handleHint": "自动根据名称生成，用于评论中的 @提及。",
+			"projectRoleLabel": "项目角色",
+			"projectRoleHint": "控制智能体在此项目中可以读取和修改的内容。",
+			"agentTypeLabel": "智能体类型",
+			"agentTypeLLM": "LLM（API 密钥）",
+			"agentTypeLLMHint": "Paca 直接调用模型 API，并在托管 Paca 的服务器上的沙箱容器中运行智能体。",
+			"agentTypeACP": "ACP（本地 CLI）",
+			"agentTypeACPHint": "委托给您自己运行的编码 CLI — Claude Code、Codex、Gemini CLI 或自定义 ACP 服务器。",
+			"agentTypeProviderCLI": "供应商 CLI",
+			"agentTypeProviderCLIHint": "在 Paca 托管的静态环境中运行 Claude Code、Codex、Cursor 或 Gemini CLI，控制方式与 LLM 智能体相同。",
+			"agentTypeProviderCLIGlobalDisabledHint": "仅适用于项目智能体。请从项目的智能体页面创建此智能体。",
+			"modelSection": "模型",
+			"providerLabel": "提供方",
+			"modelLabel": "模型",
+			"customOption": "自定义…",
+			"apiKeyLabel": "API 密钥",
+			"hideApiKey": "隐藏 API 密钥",
+			"showApiKey": "显示 API 密钥",
+			"apiKeyHint": "加密存储 — 不会在 API 响应中暴露。",
+			"baseUrlLabel": "基础 URL",
+			"environmentSection": "环境",
+			"acpSection": "ACP 服务器",
+			"acpProviderLabel": "提供方",
+			"acpProviderClaudeCode": "Claude Code",
+			"acpProviderCodex": "Codex",
+			"acpProviderGeminiCli": "Gemini CLI",
+			"acpProviderGoose": "Goose",
+			"acpProviderCustom": "自定义…",
+			"acpCommandLabel": "命令",
+			"acpCommandPlaceholder": "npx -y my-acp-server",
+			"acpCommandHint": "用于启动您的 ACP 服务器的、以空格分隔的命令。",
+			"acpGuidance": "工具、MCP 服务器和技能不在此处配置 — 它们来自您自己的 ACP 客户端本地设置，使用您自己的 git/gh 凭据运行（克隆、push 和创建 PR 都能原生工作）。创建此智能体后，我们将指导您连接本地桥接、安装 Paca 技能并配置 MCP 服务器。",
+			"cliSection": "供应商 CLI",
+			"cliProviderLabel": "CLI 供应商",
+			"cliProviderClaudeCode": "Claude Code",
+			"cliProviderCodex": "Codex",
+			"cliProviderGeminiCli": "Gemini CLI",
+			"cliProviderCursorAgent": "Cursor",
+			"cliModelLabel": "模型",
+			"cliModelPlaceholder": "例如 sonnet、gpt-5.2-codex",
+			"cliGuidance": "您在下方配置的 MCP 服务器会在每次对话中同步到该 CLI 自己的配置中 — Goose 只是用这个 CLI 来运行智能体，并不管理它的工具。技能同步目前仅适用于 Claude Code。",
+			"cliEnvironmentHint": "必填 — 该 CLI 的登录状态需要在多次对话间保持，而这只有静态环境才能提供。",
+			"environmentPlaceholder": "选择一个环境",
+			"cliAuthModeLabel": "身份验证",
+			"cliLoginModeHint": "该 CLI 需要在智能体环境的终端中进行一次性的自身登录 — 此智能体类型目前尚不支持 API 密钥认证。",
+			"cliLoginCommandLabel": "登录命令",
+			"cliOpenTerminal": "打开终端",
+			"cliVerifyLogin": "验证登录",
+			"systemPromptLabel": "系统提示词",
+			"optional": "（可选）",
+			"charsCount": "{{count}} 个字符",
+			"createFailed": "创建智能体失败，请重试。",
+			"handleTaken": "该 Handle 已被占用，请返回并选择其他 Handle。",
+			"defaultEnvironmentInvalid": "该环境已不可用，请返回并选择其他环境。",
+			"defaultFolderInvalid": "该文件夹已不可用，请返回并选择其他文件夹。",
+			"cancel": "取消",
+			"continue": "继续",
+			"back": "返回",
+			"creating": "正在创建…",
+			"createAgent": "创建智能体",
+			"finish": "完成",
+			"namePlaceholder": "Dev Bot",
+			"systemPromptPlaceholder": "你是一名高级软件工程师…"
+		},
+		"card": {
+			"configure": "配置",
+			"delete": "删除",
+			"restricted": "Restricted",
+			"acpStatusConnected": "在线",
+			"acpStatusDisconnected": "离线",
+			"deleteDialog": {
+				"title": "删除 {{name}}？",
+				"description": "这将永久删除该智能体并将其从项目中移除。正在进行的对话将被终止。",
+				"descriptionGlobal": "这将永久删除该智能体，并将其从已邀请加入的所有项目中移除。正在进行的对话将被终止。",
+				"deleteFailed": "删除智能体失败，请重试。",
+				"cancel": "取消",
+				"delete": "删除"
+			}
+		},
+		"page": {
+			"searchPlaceholder": "按名称或标识搜索智能体…",
+			"title": "AI 智能体",
+			"subtitle": "处理任务并与团队沟通的自主智能体",
+			"newAgent": "新建智能体",
+			"empty": {
+				"title": "暂无智能体",
+				"description": "添加一个 AI 智能体来自动处理任务、审查代码、编写文档等。",
+				"createFirstAgent": "创建您的第一个智能体"
+			},
+			"noPermission": {
+				"title": "You don't have permission to view agents",
+				"description": "Ask a project admin to grant you the agents.read permission."
+			}
+		},
+		"acpSetup": {
+			"dialogTitle": "连接您的本地 ACP 桥接",
+			"dialogDescription": "{{name}} 已就绪 — 请在您自己的电脑上完成以下步骤，使其上线。",
+			"panelTitle": "本地桥接",
+			"panelDescription": "在您自己的电脑上运行该智能体的 ACP 服务器，并在此处连接。",
+			"statusConnected": "已连接",
+			"statusDisconnected": "未连接",
+			"step1Title": "安装 ACP 桥接",
+			"step1Description": "将预编译的二进制文件下载到你的 PATH 中 — 无需 Python、uv 或 Go。",
+			"step2Title": "运行本地桥接",
+			"step2Description": "生成一个令牌，然后在您的项目文件夹中运行此命令。",
+			"noTokenYet": "生成令牌以显示运行命令。",
+			"generateToken": "生成令牌",
+			"regenerateToken": "重新生成令牌",
+			"generating": "正在生成…",
+			"generateFailed": "无法生成令牌，请重试。",
+			"tokenWarning": "请立即复制 — 它不会再次显示。",
+			"claudeSetupTokenHint": "Claude Code 还需要单独进行一次登录 — 请在启动下面的桥接程序之前运行此命令，否则桥接程序将没有可用于身份验证的凭据：",
+			"claudeOauthExportHint": "此命令只会打印令牌 — 请复制它并导出，以便桥接程序能够真正使用它：",
+			"localAuthExportHint": "{{provider}} 在桥接程序启动前也需要进行自己的本地身份验证，否则将没有可用于身份验证的凭据：",
+			"copy": "复制",
+			"copied": "已复制！",
+			"stepSkillMcpTitle": "安装技能并连接 MCP 服务器",
+			"stepSkillMcpDescription": "生成一次该代理自己的 MCP 密钥，然后运行下面的两个命令 — 这样工具调用会记录为代理的活动，而非您的活动。",
+			"stepSkillMcpSkillLabel": "安装技能：",
+			"stepSkillMcpConnectLabel": "连接 MCP 服务器：",
+			"step3NotAvailable": "自动安装目前适用于 Claude Code、Gemini CLI 和 Codex。{{provider}} 尚无已知的自定义提示词安装程序 — 即使没有它，下方的 Paca MCP 工具仍然可以使用。",
+			"step3ViewContent": "查看技能说明",
+			"step4NoKeyYet": "生成密钥以显示设置命令。",
+			"step4GenerateButton": "生成密钥",
+			"step4RegenerateButton": "重新生成密钥",
+			"step4Generating": "正在生成…",
+			"step4GenerateFailed": "无法生成密钥，请重试。",
+			"step4KeyWarning": "请立即复制 — 它不会再次显示，并且之前的密钥将立即失效。",
+			"step4GenericHint": "注册 MCP 服务器的具体步骤因 CLI 而异 — {{provider}} 通常会从自己的配置文件中读取。请使用此命令作为参考：",
+			"customProviderLabel": "您的自定义 ACP 服务器",
+			"done": "完成"
+		},
+		"detail": {
+			"tabs": {
+				"overview": "概览",
+				"mcpServers": "MCP 服务器",
+				"skills": "技能",
+				"envVars": "环境变量",
+				"globalRole": "全局角色",
+				"activity": "动态"
+			},
+			"globalRole": {
+				"title": "全局角色",
+				"description": "决定此智能体在全局范围内可执行的操作，例如从首页和管理页面的聊天中。它在某个项目内可执行的操作取决于其在该项目中的角色。",
+				"none": "无全局角色",
+				"noneHint": "此智能体没有全局权限。",
+				"assign": "分配角色",
+				"change": "更改角色",
+				"assigning": "正在分配…",
+				"remove": "移除角色",
+				"removing": "正在移除…",
+				"removeConfirm": "移除此智能体的全局角色？它将失去该角色授予的权限。",
+				"cancel": "取消",
+				"readOnly": "您可以查看此智能体的全局角色，但无权更改。",
+				"unknownRole": "已分配全局角色。您无权查看角色，因此不显示其名称。",
+				"fullAccessWarning": "此角色拥有完全访问权限。智能体将可执行所有操作，包括管理用户和角色。",
+				"errors": {
+					"generic": "无法更新角色，请重试。",
+					"forbidden": "您无权更改全局角色。",
+					"roleNotFound": "该角色已不存在。请刷新页面后重试。"
+				}
+			},
+			"avatar": {
+				"change": "更换头像",
+				"remove": "移除头像",
+				"uploading": "上传中…",
+				"errors": {
+					"invalidType": "请选择 PNG、JPEG、WEBP 或 GIF 格式的图片。",
+					"tooLarge": "图片大小不能超过 5 MB。",
+					"uploadFailed": "头像上传失败，请重试。",
+					"removeFailed": "头像移除失败，请重试。"
+				}
+			},
+			"overview": {
+				"nameLabel": "名称",
+				"llmConfiguration": "LLM 配置",
+				"providerLabel": "提供方",
+				"modelLabel": "模型",
+				"customOption": "自定义…",
+				"apiKeyUpdateLabel": "更新 API 密钥",
+				"apiKeyUpdateHint": "（留空以保留当前密钥）",
+				"baseUrlLabel": "基础 URL",
+				"gitCommitterIdentity": "Git 提交者身份",
+				"gitCommitterHint": "该智能体提交代码时使用的姓名和邮箱。",
+				"committerNameLabel": "提交者姓名",
+				"committerEmailLabel": "提交者邮箱",
+				"dockerEnabledLabel": "Docker 访问权限",
+				"dockerEnabledHint": "为该代理在其沙盒内提供一个私有的 Docker 守护进程。默认关闭——仅为实际需要运行 Docker 命令的代理启用此选项,因为它会增加每次对话的启动时间。",
+				"parallelismLimitLabel": "并行数量上限",
+				"parallelismLimitHint": "该代理最多可以同时运行多少个对话。超出的任务会在队列中等待,直到有空位释放——默认值为 1,这样各个工单会依次处理,而不会在同一个工作目录中相互冲突。",
+				"parallelismLimitFixedHint": "该代理固定为 1——它在单一共享目录中工作(ACP 代理的本地检出目录,或静态默认环境),因此一次只能安全运行一个对话。",
+				"environmentSection": "环境",
+				"defaultEnvironmentLabel": "默认环境",
+				"defaultEnvironmentHint": "将此智能体的对话连接到静态环境，而不是每次都创建一个一次性沙盒。",
+				"noDefaultEnvironment": "临时环境",
+				"defaultFolderLabel": "默认文件夹",
+				"defaultFolderHint": "该智能体的对话将在默认环境内的哪个文件夹中工作。",
+				"defaultEnvironmentInvalid": "该环境已不可用，请选择其他环境。",
+				"defaultFolderInvalid": "该文件夹已不可用，请选择其他文件夹。",
+				"noDefaultFolder": "无默认文件夹",
+				"saveChanges": "保存更改",
+				"saved": "已保存",
+				"saveFailed": "保存失败，请重试。",
+				"systemPromptLabel": "系统提示词",
+				"acpConfiguration": "ACP 配置",
+				"acpProviderLabel": "提供方",
+				"acpProviderClaudeCode": "Claude Code",
+				"acpProviderCodex": "Codex",
+				"acpProviderGeminiCli": "Gemini CLI",
+				"acpProviderGoose": "Goose",
+				"acpProviderCustom": "自定义…",
+				"acpCommandLabel": "命令",
+				"acpCommandHint": "用于启动您的 ACP 服务器的、以空格分隔的命令。",
+				"acpGuidanceBanner": "该智能体的工具、MCP 服务器和技能是在您本地的 ACP 客户端中配置的，使用您自己的 git/gh 凭据运行 — 而非在 Paca 中配置。",
+				"cliConfiguration": "供应商 CLI 配置",
+				"cliProviderLabel": "CLI 供应商",
+				"cliProviderClaudeCode": "Claude Code",
+				"cliProviderCodex": "Codex",
+				"cliProviderGeminiCli": "Gemini CLI",
+				"cliProviderCursorAgent": "Cursor",
+				"cliModelLabel": "模型",
+				"cliModelPlaceholder": "例如 sonnet、gpt-5.2-codex",
+				"cliGuidanceBanner": "下方配置的 MCP 服务器会在每次对话中同步到该 CLI 自己的配置中 — Goose 只是运行这个 CLI，并不管理它的工具。技能同步目前仅适用于 Claude Code。",
+				"cliLoginPanelTitle": "CLI 登录",
+				"cliLoginPanelDescription": "验证该智能体的 CLI 当前是否已登录，或打开其环境的终端进行登录。",
+				"cliLoginOpenTerminal": "打开终端",
+				"cliLoginVerify": "验证登录",
+				"cliLoginVerifiedNow": "已通过身份验证。",
+				"cliLoginNotAuthenticated": "尚未通过身份验证 — 请通过终端登录，然后重新验证。",
+				"cliLoginVerifyFailed": "无法检查登录状态，请重试。",
+				"cliLoginLastVerified": "上次验证时间：{{date}}。",
+				"cliLoginNoEnvironment": "该智能体尚未设置环境 — 请先在上方选择一个环境。",
+				"descriptionLabel": "描述",
+				"descriptionPlaceholder": "此代理的用途是什么？",
+				"descriptionHint": "在自动模式下，当 Jev 决定由哪个代理处理聊天或是否为其分配任务时会显示此内容。提供商和模型会自动添加。"
+			},
+			"mcp": {
+				"serverCount_one": "已配置 {{count}} 个服务器",
+				"serverCount_other": "已配置 {{count}} 个服务器",
+				"addServer": "添加服务器",
+				"empty": {
+					"title": "尚未添加 MCP 服务器",
+					"addFirstServer": "添加您的第一个服务器"
+				},
+				"addDialog": {
+					"title": "添加 MCP 服务器",
+					"description": "连接一个 MCP 服务器以扩展智能体的能力。",
+					"serverNameLabel": "服务器名称",
+					"transportLabel": "传输方式",
+					"commandLabel": "命令",
+					"argsLabel": "参数",
+					"argsHint": "（以空格分隔）",
+					"urlLabel": "URL",
+					"cancel": "取消",
+					"addServer": "添加服务器"
+				},
+				"system": {
+					"title": "系统 MCP 服务器",
+					"description": "由 Paca 提供给所有智能体，无法编辑。",
+					"pacaDetail": "Paca 内置工具（项目、任务、文档）"
+				}
+			},
+			"envVars": {
+				"count_one": "已配置 {{count}} 个变量",
+				"count_other": "已配置 {{count}} 个变量",
+				"addVariable": "添加变量",
+				"empty": {
+					"title": "尚未添加环境变量",
+					"addFirst": "添加您的第一个变量"
+				},
+				"addDialog": {
+					"title": "添加环境变量",
+					"description": "密钥值在静态存储时会被加密，并在运行时注入到智能体的沙箱环境中。保存后将无法再次查看该值。",
+					"keyLabel": "键",
+					"keyPlaceholder": "GITHUB_TOKEN",
+					"keyHint": "（字母、数字、下划线，必须以字母或下划线开头）",
+					"valueLabel": "值",
+					"cancel": "取消",
+					"addVariable": "添加变量",
+					"keyTaken": "该智能体已存在使用此键的环境变量。",
+					"keyReserved": "该键已被沙箱本身保留，请选择其他键。",
+					"addFailed": "添加环境变量失败，请重试。"
+				}
+			},
+			"skills": {
+				"skillCount_one": "已附加 {{count}} 项技能",
+				"skillCount_other": "已附加 {{count}} 项技能",
+				"addSkill": "添加技能",
+				"empty": {
+					"title": "暂无技能",
+					"addFirstSkill": "添加第一项技能"
+				},
+				"addDialog": {
+					"title": "添加技能",
+					"description": "为智能体提供专门的指令或能力。",
+					"skillNameLabel": "技能名称",
+					"sourceLabel": "来源",
+					"sourceInline": "内联（在此处编写内容）",
+					"sourceMarketplace": "插件市场",
+					"sourceGithubUrl": "GitHub URL",
+					"skillContentLabel": "技能内容（Markdown）",
+					"urlLabel": "URL",
+					"cancel": "取消",
+					"addSkill": "添加技能",
+					"nameReserved": "该名称已被 Paca 自身的内部脚手架保留，请选择其他名称。",
+					"nameInvalid": "技能名称不能是“.”“..”，也不能包含斜杠。",
+					"addFailed": "添加技能失败，请重试。"
+				},
+				"system": {
+					"title": "系统技能",
+					"description": "随 Paca 内置并对所有智能体可用，无法编辑。"
+				}
+			},
+			"activity": {
+				"commented": "发表了评论",
+				"sourceType": {
+					"task": "任务",
+					"doc": "文档"
+				},
+				"empty": {
+					"title": "暂无动态",
+					"description": "该代理执行的任务和文档动态将显示在此处。"
+				},
+				"emptyFiltered": {
+					"title": "没有匹配的动态",
+					"description": "请尝试调整筛选条件或搜索内容。"
+				},
+				"filters": {
+					"title": "筛选",
+					"type": "类型",
+					"dateRange": "日期范围",
+					"searchPlaceholder": "搜索动态…",
+					"dateFrom": "起始日期",
+					"dateTo": "结束日期",
+					"clearAll": "清除筛选"
+				}
+			},
+			"system": {
+				"badge": "系统"
+			}
+		},
+		"conversationView": {
+			"stop": "停止",
+			"notFound": "未找到对话",
+			"noPermission": {
+				"title": "You don't have permission to view this conversation",
+				"description": "Ask a project admin to grant you the conversations.read permission."
+			},
+			"chatSession": "聊天会话",
+			"taskSession": "任务会话",
+			"pr": "PR",
+			"connect": "连接",
+			"conversationEnded": "此对话已结束。",
+			"textOnlyMessage": "仅支持文本消息。",
+			"chatNoPermission": "你没有权限在此对话中发送消息。",
+			"cliProviderNeedsEnvironment": "此智能体使用 CLI 提供方，需要默认环境，但目前没有可用的默认环境。请联系项目管理员为该智能体设置默认环境。",
+			"failed": "对话失败",
+			"noOutput": "代理未生成任何输出。",
+			"loadingOlder": "加载中…",
+			"newBelow_one": "{{count}} 条新消息",
+			"newBelow_other": "{{count}} 条新消息"
+		},
+		"busyDialog": {
+			"title": "代理正忙",
+			"description": "该代理当前已在运行 {{running}}/{{limit}} 个对话。将此消息加入队列,一旦有空位就会自动开始;也可以选择立即发送。",
+			"folderDescription": "另一个对话已经在这个环境文件夹中工作。将此消息加入队列,一旦该对话结束就会自动开始;也可以选择立即发送。",
+			"cancel": "取消",
+			"queue": "加入队列",
+			"force": "立即发送",
+			"cancelledError": "消息未发送。"
+		},
+		"thread": {
+			"composerPlaceholder": "给代理发消息…",
+			"welcomeHeading": "今天我能帮你做些什么？",
+			"messageInputAriaLabel": "消息输入框",
+			"voiceInput": "语音输入",
+			"startVoiceInputAriaLabel": "开始语音输入",
+			"stopDictation": "停止语音输入",
+			"stopVoiceInputAriaLabel": "停止语音输入",
+			"sendMessage": "发送消息",
+			"stopGeneratingAriaLabel": "停止生成",
+			"assistantWorkingAriaLabel": "代理正在处理",
+			"environmentInitializing": "正在设置环境…",
+			"thinking": "正在思考…",
+			"copy": "复制",
+			"refresh": "刷新",
+			"more": "更多",
+			"edit": "编辑",
+			"previous": "上一个",
+			"next": "下一个",
+			"exportAsMarkdown": "导出为 Markdown",
+			"scrollToBottom": "滚动到底部",
+			"cancel": "取消",
+			"update": "更新",
+			"reasoning": "推理",
+			"reasoningWithDuration": "推理（{{duration}}秒）",
+			"toolCallCount_one": "{{count}} 次工具调用",
+			"toolCallCount_other": "{{count}} 次工具调用",
+			"usedTool": "使用的工具",
+			"cancelledTool": "已取消的工具",
+			"resultLabel": "结果：",
+			"errorLabel": "错误：",
+			"cancelledReasonLabel": "取消原因：",
+			"approvedByUser": "用户已批准",
+			"deniedByUser": "用户拒绝执行该工具",
+			"allow": "允许",
+			"alwaysAllow": "始终允许",
+			"deny": "拒绝",
+			"alwaysDeny": "始终拒绝",
+			"confirm": "确认",
+			"back": "返回",
+			"attachmentPreview": "附件预览",
+			"attachmentTypeImage": "图片",
+			"attachmentTypeDocument": "文档",
+			"attachmentTypeFile": "文件",
+			"removeFile": "移除文件",
+			"imageAttachmentPreviewTitle": "图片附件预览",
+			"attachmentAriaLabel": "{{type}}附件",
+			"attachmentAriaLabelError": "{{type}}附件，上传失败",
+			"attachmentAriaLabelUploading": "{{type}}附件，正在上传",
+			"contextInjection": {
+				"attachContext": "附加上下文",
+				"contextSearchPlaceholder": "搜索任务、文档、对话、自动化…",
+				"removeContextItem": "移除{{title}}",
+				"addCurrent": "附加{{title}}",
+				"contextTypeTask": "任务",
+				"contextTypeDoc": "文档",
+				"contextTypeConversation": "对话",
+				"contextTypeAutomation": "自动化",
+				"contextTypeAnnotation": "评论",
+				"noContextResults": "未找到结果",
+				"contextSearchMinChars": "请输入至少2个字符进行搜索"
+			}
+		}
+	},
+	"environments": {
+		"status": {
+			"creating": "创建中",
+			"starting": "启动中",
+			"running": "运行中",
+			"stopping": "停止中",
+			"stopped": "已停止",
+			"suspended": "已暂停",
+			"error": "错误",
+			"deleting": "删除中"
+		},
+		"page": {
+			"title": "环境",
+			"subtitle": "具名的长期运行沙盒，您的智能体可以在多次对话之间连接使用",
+			"newEnvironment": "新建环境",
+			"restricted": "Restricted",
+			"empty": {
+				"title": "暂无环境",
+				"description": "创建一个静态环境，让文件和后台进程在多次对话之间保持运行，而不是每次都使用一次性沙盒。",
+				"createFirstEnvironment": "创建您的第一个环境"
+			},
+			"noPermission": {
+				"title": "You don't have permission to view environments",
+				"description": "Ask a project admin to grant you the environments.read permission."
+			}
+		},
+		"createDialog": {
+			"title": "创建环境",
+			"description": "一个具名的长期运行沙盒，您的智能体可以连接使用。",
+			"nameLabel": "名称",
+			"namePlaceholder": "staging",
+			"dockerEnabledLabel": "Docker 访问权限",
+			"dockerEnabledHint": "为该环境提供专属的私有 Docker 守护进程，使智能体可以在其中构建和运行容器。默认关闭——环境创建后无法更改。",
+			"advanced": "高级选项",
+			"imageLabel": "镜像",
+			"imagePlaceholder": "使用默认值 (agent-server)",
+			"imageHint": "大多数用户无需更改此项 — 留空时默认使用平台固定的 agent-server 镜像。",
+			"resourcesHint": "留空以使用平台默认值(2 vCPU、内存 4Gi、磁盘 20GB)。",
+			"cpuLimitInvalid": "CPU 至少为 0.1(100m)。",
+			"memoryLimitInvalid": "内存至少为 256Mi。",
+			"diskLimitInvalid": "磁盘必须为正整数(GB)。",
+			"nameRequired": "请为环境命名。",
+			"createFailed": "创建环境失败，请重试。",
+			"cancel": "取消",
+			"creating": "创建中…",
+			"create": "创建环境"
+		},
+		"picker": {
+			"placeholder": "选择环境…",
+			"temporary": "临时环境",
+			"createNew": "创建新环境…",
+			"folderPlaceholder": "选择文件夹…",
+			"folderCreateNew": "创建新文件夹…"
+		},
+		"detail": {
+			"tabs": {
+				"overview": "概览",
+				"folders": "文件夹",
+				"portForwards": "端口转发"
+			},
+			"busy": "该环境正在启动、停止或重启，请稍后重试。",
+			"actionFailed": "操作失败，请重试。",
+			"overview": {
+				"connect": "连接",
+				"start": "启动",
+				"stop": "停止",
+				"delete": "删除",
+				"sleepsIn_one": "{{count}} 分钟后休眠",
+				"sleepsIn_other": "{{count}} 分钟后休眠",
+				"keptAliveBySSH": "因存在活跃的 SSH 会话而保持唤醒",
+				"vitals": {
+					"cpu": "CPU",
+					"cpuValue": "{{value}} vCPU",
+					"memory": "内存",
+					"disk": "磁盘",
+					"diskValue": "{{value}} GB",
+					"lastActive": "最近活动"
+				},
+				"configuration": "配置",
+				"nameLabel": "名称",
+				"backendLabel": "后端",
+				"imageLabel": "镜像",
+				"defaultImage": "默认 (agent-server)",
+				"dockerEnabledLabel": "Docker 访问权限",
+				"dockerEnabledOn": "已启用",
+				"dockerEnabledOff": "已禁用",
+				"idleTimeoutLabel": "空闲超时(分钟)",
+				"idleTimeoutHint": "环境在无操作达到此分钟数后会自动停止。",
+				"portsPendingRestart": "已添加或删除了端口转发。请重启环境以应用更改。",
+				"portsPendingRestartLink": "查看端口转发",
+				"saveChanges": "保存更改",
+				"saved": "已保存",
+				"nameRequired": "请为环境命名。",
+				"saveFailed": "保存失败，请重试。",
+				"deleteDialog": {
+					"title": "删除 {{name}}?",
+					"description": "此操作将永久删除该环境及其容器和卷，且无法撤销。",
+					"deleteFailed": "删除环境失败，请重试。",
+					"cancel": "取消",
+					"delete": "删除"
+				}
+			},
+			"folders": {
+				"count_one": "已配置 {{count}} 个文件夹",
+				"count_other": "已配置 {{count}} 个文件夹",
+				"addFolder": "添加文件夹",
+				"noPermission": {
+					"title": "You don't have access to this environment",
+					"description": "Ask a project admin to grant you access before you can view its folders."
+				},
+				"deleteFailed": "删除文件夹失败，请重试。",
+				"empty": {
+					"title": "尚未添加文件夹",
+					"addFirstFolder": "添加您的第一个文件夹"
+				},
+				"addDialog": {
+					"title": "添加文件夹",
+					"description": "添加此环境中的智能体可以使用的工作目录。",
+					"pathLabel": "路径",
+					"pathPlaceholder": "/home/paca/workspaces/my-project",
+					"pathHint": "必须是绝对路径。",
+					"browse": "浏览…",
+					"browsing": {
+						"empty": "此文件夹为空",
+						"notRunning": "启动环境后即可浏览其文件。"
+					},
+					"pathTaken": "该环境中已存在使用此路径的文件夹。",
+					"pathInvalid": "路径必须是绝对路径(以 / 开头)。",
+					"addFailed": "添加文件夹失败,请重试。",
+					"cancel": "取消",
+					"addFolder": "添加文件夹"
+				}
+			},
+			"portForwards": {
+				"description": "公开此环境内的任意端口——通常是你自己的开发服务器——并分配一个专用地址。",
+				"count_one": "{{count}} 个端口转发",
+				"count_other": "{{count}} 个端口转发",
+				"add": "添加端口转发",
+				"noPermission": {
+					"title": "You don't have access to this environment",
+					"description": "Ask a project admin to grant you access before you can view its port forwards."
+				},
+				"deleteFailed": "删除端口转发失败，请重试。",
+				"containerPort": "容器端口 {{port}}",
+				"unassigned": "尚未分配",
+				"open": "打开",
+				"restart": "重启",
+				"pendingRestartRunning": "已添加或删除了端口转发。请重启环境以应用更改。",
+				"pendingRestartStopped": "已添加或删除了端口转发。更改将在该环境下次启动时应用。",
+				"empty": {
+					"title": "尚无端口转发",
+					"addFirst": "添加一个端口转发"
+				},
+				"addDialog": {
+					"title": "添加端口转发",
+					"description": "将一个容器端口公开到专用的外部端口。如果环境已在运行，应用此更改需要重启。",
+					"portLabel": "容器端口",
+					"portHint": "你的进程在环境内监听的端口(例如 3000)。",
+					"labelLabel": "标签",
+					"labelPlaceholder": "开发服务器",
+					"cancel": "取消",
+					"add": "添加",
+					"portTaken": "该容器端口已在此环境中转发。",
+					"portOutOfRange": "端口必须在 1 到 65535 之间。",
+					"addFailed": "添加端口转发失败，请重试。"
+				},
+				"restartDialog": {
+					"title": "重启环境？",
+					"description": "这将重启环境的容器，以应用更新后的端口转发。容器内正在运行的进程将被中断；你的文件是安全的——它们存储在独立的卷中。",
+					"cancel": "取消",
+					"confirm": "重启",
+					"restartFailed": "重启环境失败，请重试。"
+				}
+			},
+			"sshKeys": {
+				"connectHint": "将 <bastion-host> 替换为此部署配置的 SSH 堡垒机地址。",
+				"connectUnavailable": "此部署尚未配置 SSH 访问。",
+				"count_one": "已配置 {{count}} 个密钥",
+				"count_other": "已配置 {{count}} 个密钥",
+				"addKey": "添加密钥",
+				"deleteFailed": "删除 SSH 密钥失败，请重试。",
+				"empty": {
+					"title": "尚未添加 SSH 密钥",
+					"addFirst": "添加您的第一个密钥"
+				},
+				"addDialog": {
+					"title": "添加 SSH 密钥",
+					"description": "授权一个公钥，以便通过 SSH 进行结对编程访问。",
+					"generateHint": "还没有 SSH 密钥？生成一个：",
+					"generateFollowup": "然后将 ~/.ssh/id_ed25519.pub 的内容粘贴到下方。",
+					"labelLabel": "标签",
+					"labelPlaceholder": "我的笔记本电脑",
+					"publicKeyLabel": "公钥",
+					"cancel": "取消",
+					"addKey": "添加密钥",
+					"keyTaken": "该密钥已在此环境中注册。",
+					"keyInvalid": "这看起来不是有效的 SSH 公钥。",
+					"addFailed": "添加 SSH 密钥失败，请重试。"
+				}
+			},
+			"terminal": {
+				"notRunning": "启动环境以打开终端。",
+				"title": "paca@{{slug}} — bash",
+				"titleLoading": "bash",
+				"connecting": "连接中…",
+				"connected": "已连接",
+				"connectionFailed": "连接失败",
+				"disconnected": "已断开连接"
+			}
+		},
+		"connect": {
+			"title": "连接到 {{name}}",
+			"copy": "复制",
+			"copied": "已复制",
+			"tabs": {
+				"webApp": "在网页应用中连接",
+				"ssh": "通过 SSH 连接"
+			},
+			"webApp": {
+				"description": "使用浏览器内终端连接 — 无需本地 SSH 客户端或密钥。",
+				"connect": "连接",
+				"notRunning": "请先启动环境再连接。",
+				"readOnly": "您没有权限在此环境中打开终端。",
+				"restricted": "This environment is restricted — ask a project admin to grant you access before you can open a terminal.",
+				"hint": "将在新的全屏标签页中打开。",
+				"pageTitle": "{{name}} — 终端",
+				"pageTitleLoading": "终端",
+				"closeTab": "关闭"
+			},
+			"ssh": {
+				"step1Title": "添加公钥",
+				"step1Description": "注册你要用于连接的 SSH 密钥对的公钥。",
+				"step2Title": "从终端连接",
+				"step2Description": "在终端中运行以下命令：",
+				"notRunning": "请先启动环境再连接。",
+				"restricted": "This environment is restricted — ask a project admin to grant you access before you can connect via SSH."
+			}
+		}
+	},
+	"docs": {
+		"editorPage": {
+			"notFound": {
+				"title": "未找到文档",
+				"description": "该文档可能已被删除，或链接无效。"
+			},
+			"noPermission": {
+				"title": "You don't have permission to view this document",
+				"description": "Ask a project admin to grant you the docs.read permission."
+			},
+			"unsaved": "未保存",
+			"saving": "正在保存…",
+			"saved": "已保存",
+			"commentsAndActivity": "评论和动态"
+		},
+		"activity": {
+			"created": "创建了此文档",
+			"updated": "更新了该文档",
+			"updatedFields": "更新了 {{fields}}",
+			"deleted": "删除了该文档",
+			"moved": "移动了该文档",
+			"contentChangeDiff": "内容更改差异"
+		}
+	},
+	"roles": {
+		"deleteDialog": {
+			"title": "删除角色",
+			"confirmTextPrefix": "确定要删除",
+			"confirmTextSuffix": "吗？当前分配此角色的所有成员将失去相应访问权限。此操作无法撤销。",
+			"cancel": "取消",
+			"deleteRole": "删除角色",
+			"errors": {
+				"notFound": "该角色已不存在。",
+				"forbidden": "您没有权限删除该角色。",
+				"internalError": "出现错误，请重试。",
+				"generic": "出现错误。"
+			}
+		},
+		"formDialog": {
+			"editTitle": "编辑角色",
+			"createTitle": "新建角色",
+			"editDescription": "更新角色名称并配置其权限授予。",
+			"createDescription": "定义一个新的项目角色，并配置其授予成员的权限。",
+			"roleNameLabel": "角色名称",
+			"roleNamePlaceholder": "例如：PROJECT_REVIEWER",
+			"permissionsLabel": "权限",
+			"fullAccessDescription": "此角色自动包含所有权限，包括将来添加的权限。切换下方任意权限都会将其转换为当前权限的固定集合。",
+			"enabledCount_one": "已启用 {{count}} 项",
+			"enabledCount_other": "已启用 {{count}} 项",
+			"cancel": "取消",
+			"saveChanges": "保存更改",
+			"createRole": "创建角色"
+		},
+		"permissions": {
+			"projectsRead": {
+				"label": "查看项目",
+				"description": "打开项目并查看其基本信息"
+			},
+			"projectsWrite": {
+				"label": "编辑项目",
+				"description": "更新项目名称、描述和设置"
+			},
+			"projectsDelete": {
+				"label": "删除项目",
+				"description": "永久删除此项目"
+			},
+			"membersRead": {
+				"label": "查看成员",
+				"description": "列出并查看项目成员"
+			},
+			"membersWrite": {
+				"label": "管理成员",
+				"description": "添加和移除项目成员（更改其角色需要“分配角色”权限）"
+			},
+			"rolesRead": {
+				"label": "查看角色",
+				"description": "列出并查看项目角色定义"
+			},
+			"rolesWrite": {
+				"label": "管理角色",
+				"description": "创建、编辑和删除项目角色"
+			},
+			"rolesAssign": {
+				"label": "分配角色",
+				"description": "为此项目的成员和智能体授予任意角色，或撤销角色"
+			},
+			"settingsTaskTypesWrite": {
+				"label": "Manage Task Types",
+				"description": "Create, edit, delete, and set the default task type"
+			},
+			"settingsTaskStatusesWrite": {
+				"label": "Manage Task Statuses",
+				"description": "Create, edit, delete, reorder, and set the default task status"
+			},
+			"settingsCustomFieldsWrite": {
+				"label": "Manage Custom Fields",
+				"description": "Create, edit, and delete custom field definitions"
+			},
+			"tasksRead": {
+				"label": "查看任务",
+				"description": "浏览并读取项目中的任务"
+			},
+			"tasksWrite": {
+				"label": "编辑任务",
+				"description": "创建、更新和移动任务"
+			},
+			"sprintsRead": {
+				"label": "查看冲刺",
+				"description": "浏览冲刺看板和待办列表"
+			},
+			"sprintsWrite": {
+				"label": "管理冲刺",
+				"description": "创建、更新和结束冲刺"
+			},
+			"viewsRead": {
+				"label": "View Boards",
+				"description": "Browse saved board and list views"
+			},
+			"viewsWrite": {
+				"label": "Manage Boards",
+				"description": "Create, edit, delete, and reorder board and list views"
+			},
+			"docsRead": {
+				"label": "查看文档",
+				"description": "浏览并读取项目中的文档"
+			},
+			"docsWrite": {
+				"label": "编辑文档",
+				"description": "创建、更新和删除文档及文件夹"
+			},
+			"agentsRead": {
+				"label": "查看智能体",
+				"description": "浏览 AI 智能体并查看其配置"
+			},
+			"agentsWrite": {
+				"label": "管理智能体",
+				"description": "创建、配置和删除 AI 智能体"
+			},
+			"conversationsRead": {
+				"label": "查看对话",
+				"description": "浏览并查看智能体对话，但无法发起或回复"
+			},
+			"conversationsWrite": {
+				"label": "管理对话",
+				"description": "与智能体发起对话、回复消息，并停止或暂停对话"
+			},
+			"environmentsRead": {
+				"label": "查看环境",
+				"description": "浏览环境并查看其配置"
+			},
+			"environmentsWrite": {
+				"label": "管理环境",
+				"description": "创建、配置和删除环境、SSH 密钥和端口转发"
+			},
+			"environmentsConnect": {
+				"label": "连接到环境",
+				"description": "在运行中的环境内打开交互式终端会话"
+			},
+			"annotationsRead": {
+				"label": "View Annotations",
+				"description": "View page comments pinned via the browser extension"
+			},
+			"annotationsWrite": {
+				"label": "Manage Annotations",
+				"description": "Create, edit, and delete page annotations"
+			},
+			"annotationsResolve": {
+				"label": "Resolve Annotations",
+				"description": "Mark a page annotation resolved or reopen it, without authoring or deleting one"
+			},
+			"workflowsRead": {
+				"label": "查看自动化",
+				"description": "浏览自动化及其配置"
+			},
+			"workflowsWrite": {
+				"label": "管理自动化",
+				"description": "创建、编辑、启用和删除自动化"
+			},
+			"activitiesRead": {
+				"label": "查看动态日志",
+				"description": "查看此项目中记录的所有动态"
+			},
+			"projectExport": {
+				"label": "导出项目数据",
+				"description": "导出此项目的任务（含评论和活动）和文档"
+			}
+		},
+		"permissionGroups": {
+			"project": "项目",
+			"members": "成员",
+			"settings": "Settings",
+			"tasks": "任务",
+			"sprints": "冲刺",
+			"views": "Views",
+			"documents": "文档",
+			"aiAgents": "AI 智能体",
+			"conversations": "对话",
+			"environments": "环境",
+			"annotations": "Annotations",
+			"workflows": "自动化",
+			"plugins": "插件"
+		}
+	},
+	"settings": {
+		"general": {
+			"title": "通用",
+			"avatar": {
+				"change": "更换头像",
+				"remove": "移除头像",
+				"uploading": "上传中…",
+				"errors": {
+					"invalidType": "请选择 PNG、JPEG、WEBP 或 GIF 格式的图片。",
+					"tooLarge": "图片大小不能超过 5 MB。",
+					"uploadFailed": "头像上传失败，请重试。",
+					"removeFailed": "头像移除失败，请重试。"
+				}
+			},
+			"projectNameLabel": "项目名称",
+			"projectNamePlaceholder": "我的精彩项目",
+			"taskIdPrefixLabel": "任务编号前缀",
+			"taskIdPrefixHint": "例如：PACA → PACA-1、PACA-2…",
+			"taskIdPrefixPlaceholder": "PROJ",
+			"descriptionLabel": "描述",
+			"descriptionPlaceholder": "描述一下这个项目是关于什么的…",
+			"saveChanges": "保存更改",
+			"saved": "已保存 ✓",
+			"noPermission": "您没有权限编辑此项目。",
+			"errors": {
+				"nameTaken": "已存在同名项目。",
+				"nameInvalid": "项目名称为空或无效。",
+				"prefixInvalid": "前缀必须为 1–10 个大写字母/数字（例如 PACA）。",
+				"updateFailed": "更新项目失败，请重试。"
+			}
+		},
+		"roles": {
+			"title": "项目角色",
+			"description": "管理此项目成员的角色和权限。",
+			"newRole": "新建角色",
+			"editRole": "编辑角色",
+			"deleteRole": "删除角色",
+			"rolesDefined_one": "个已定义角色",
+			"rolesDefined_other": "个已定义角色",
+			"permissionGrants": "项跨所有角色的权限授予",
+			"empty": {
+				"title": "尚未定义任何角色",
+				"description": "创建您的第一个角色，开始为成员分配权限。",
+				"createRole": "创建角色"
+			},
+			"table": {
+				"name": "名称",
+				"description": "描述",
+				"created": "创建时间"
+			},
+			"systemRolesNote": "来自工作区的共享角色只能在工作区的角色设置中修改。",
+			"noPermission": {
+				"title": "You don't have permission to view roles",
+				"description": "Ask a project admin to grant you the project.roles.read permission."
+			},
+			"noDescription": "无描述"
+		},
+		"taskStatuses": {
+			"title": "任务状态",
+			"description": "定义此项目中任务流转的工作流状态。",
+			"newStatus": "新建状态",
+			"reorderFailed": "保存新顺序失败，请重试。",
+			"reorderInvalid": "状态列表已在别处更改。请刷新页面后重试。",
+			"empty": {
+				"title": "未定义状态",
+				"description": "创建状态以定义此项目中任务的工作流。",
+				"createStatus": "创建状态"
+			},
+			"table": {
+				"name": "名称",
+				"category": "类别",
+				"default": "默认"
+			},
+			"default": "默认",
+			"setAsDefault": "设为默认状态",
+			"editStatus": "编辑状态",
+			"deleteStatus": "删除状态",
+			"deleteDefaultDisabled": "无法删除默认状态。请先将其他状态设为默认。",
+			"noPermission": {
+				"title": "You don't have permission to view task statuses",
+				"description": "Ask a project admin to grant you the project.settings.task_statuses.read permission."
+			}
+		},
+		"taskTypes": {
+			"title": "任务类型",
+			"description": "使用自定义类型（如 Bug、功能、故事）对任务进行分类。",
+			"newType": "新建类型",
+			"empty": {
+				"title": "未定义任务类型",
+				"description": "创建类型以按种类对任务分类 — 例如 Bug、功能、故事。",
+				"createType": "创建类型"
+			},
+			"table": {
+				"icon": "图标",
+				"name": "名称",
+				"description": "描述",
+				"default": "默认"
+			},
+			"default": "默认",
+			"setAsDefault": "设为默认类型",
+			"editType": "编辑类型",
+			"deleteType": "删除类型",
+			"deleteDefaultDisabled": "无法删除默认类型。请先将其他类型设为默认。",
+			"noPermission": {
+				"title": "You don't have permission to view task types",
+				"description": "Ask a project admin to grant you the project.settings.task_types.read permission."
+			}
+		},
+		"customFields": {
+			"title": "自定义字段",
+			"description": "定义项目级的自定义任务字段，为任务扩展符合您工作流程的额外数据。",
+			"newField": "新建自定义字段",
+			"empty": {
+				"title": "暂无自定义字段",
+				"description": "自定义字段可让您捕获特定于工作流程的数据 — 冲刺、严重程度级别、发布标签等。",
+				"createFirstField": "创建第一个字段"
+			},
+			"table": {
+				"displayName": "显示名称",
+				"fieldKey": "字段键",
+				"type": "类型",
+				"required": "必填",
+				"useInSearch": "用于搜索"
+			},
+			"yes": "是",
+			"no": "否",
+			"editField": "编辑字段",
+			"deleteField": "删除字段",
+			"cancel": "取消",
+			"saveChanges": "保存更改",
+			"displayNameLabel": "显示名称",
+			"displayNamePlaceholder": "例如：发布标签",
+			"fieldKeyLabel": "字段键",
+			"fieldKeyHint": "用作 API 和数据导出中的标识符。",
+			"fieldKeyImmutableHint": "字段键创建后不可更改。",
+			"fieldTypeLabel": "字段类型",
+			"fieldTypeImmutableHint": "字段类型创建后不可更改。",
+			"optionsLabel": "选项",
+			"addOptionPlaceholder": "添加选项…",
+			"addOption": "添加",
+			"optionColorLabel": "选项颜色",
+			"noColor": "无颜色",
+			"requiredLabel": "必填",
+			"requiredHint": "用户在创建或编辑任务时必须填写此字段。",
+			"useInSearchLabel": "用于搜索",
+			"useInSearchHint": "任务搜索也会匹配此字段的值。",
+			"fieldTypes": {
+				"text": "文本",
+				"number": "数字",
+				"date": "日期",
+				"checkbox": "复选框",
+				"select": "单选",
+				"multiSelect": "多选",
+				"url": "URL",
+				"longText": "长文本"
+			},
+			"createDialog": {
+				"title": "创建自定义字段",
+				"description": "定义一个新字段，用于捕获此项目中任务的额外数据。",
+				"createField": "创建字段",
+				"errors": {
+					"keyTaken": "该项目中已存在使用此键的字段。",
+					"keyInvalid": "字段键为空或无效。",
+					"nameInvalid": "显示名称为空或无效。",
+					"createFailed": "创建字段失败，请重试。"
+				}
+			},
+			"editDialog": {
+				"title": "编辑自定义字段",
+				"description": "更新字段设置。",
+				"errors": {
+					"nameInvalid": "显示名称为空或无效。",
+					"saveFailed": "保存更改失败，请重试。"
+				}
+			},
+			"deleteDialog": {
+				"title": "删除自定义字段",
+				"confirmTextPrefix": "删除",
+				"confirmTextSuffix": "？此字段中存储的任务数据将丢失。此操作无法撤销。",
+				"deleteFailed": "删除字段失败，请重试。",
+				"deleteField": "删除字段"
+			},
+			"noPermission": {
+				"title": "You don't have permission to view custom fields",
+				"description": "Ask a project admin to grant you the project.settings.custom_fields.read permission."
+			},
+			"rowsLabel": "可见行数",
+			"rowsHint": "编辑时显示的行数（{{min}}–{{max}}）。"
+		},
+		"jev": {
+			"title": "Jev AI",
+			"description": "配置 AI 决策引擎 Jev 为此项目提供协助的方式。",
+			"credentials": {
+				"title": "提供商凭据",
+				"description": "连接你自己的 Jev 兼容提供商——默认的 TypeSafe、OpenJev,或实现相同 API 的其他主机——以启用以下功能。",
+				"configuredBadge": "已配置",
+				"notConfiguredBadge": "未配置",
+				"apiKeyLabel": "API 密钥",
+				"apiKeyPlaceholder": "输入 API 密钥",
+				"apiKeyConfiguredPlaceholder": "留空以保留当前密钥",
+				"baseUrlLabel": "主机(可选)",
+				"baseUrlPlaceholder": "https://api.typesafe.ai(默认)",
+				"modelLabel": "模型(可选)",
+				"modelPlaceholder": "jev-latest(默认)",
+				"saveButton": "保存凭据",
+				"testButton": "测试连接",
+				"advancedLabel": "高级",
+				"testSuccess": "连接成功",
+				"testFailed": "无法连接,请检查凭据后重试。"
+			},
+			"autofill": {
+				"title": "任务自动填充",
+				"description": "创建任务时，Jev 会为创建者留空的以下字段自动填值。",
+				"enabledLabel": "启用自动填充",
+				"enabledHint": "任务创建后不久，Jev 会为空白字段建议取值。",
+				"excludedFieldsLabel": "Jev 可以设置的字段",
+				"excludedFieldsHint": "关闭某个字段后，Jev 将永远不会自动设置该字段。",
+				"fieldImportance": "重要程度",
+				"fieldTaskType": "任务类型",
+				"fieldStoryPoints": "故事点",
+				"fieldTags": "标签",
+				"fieldEpic": "史诗"
+			},
+			"autoAssign": {
+				"title": "任务自动分配",
+				"description": "让 Jev 为使用自动分配的任务选择负责人。",
+				"scopeLabel": "Jev 可分配给谁",
+				"scopeAll": "所有成员",
+				"scopeHuman": "仅人类成员",
+				"scopeHumanHint": "排除 AI 智能体。"
+			},
+			"saveChanges": "保存更改",
+			"saved": "已保存 ✓",
+			"noPermission": "您没有权限编辑此项目。",
+			"errors": {
+				"updateFailed": "更新设置失败，请重试。"
+			},
+			"notConfigured": {
+				"title": "尚未配置 Jev",
+				"description": "在上方添加提供商凭据以解锁任务自动填充和自动分配功能。"
+			}
+		},
+		"dangerZone": {
+			"title": "危险区域",
+			"deleteProjectTitle": "删除此项目",
+			"deleteProjectDescription": "永久删除该项目及其所有数据。此操作无法撤销。",
+			"deleteProjectButton": "删除项目",
+			"deleteDialog": {
+				"title": "删除项目",
+				"confirmTextPrefix": "这将永久删除",
+				"confirmTextSuffix": "及其所有数据，包括成员、角色和互动记录。此操作无法撤销。",
+				"typeToConfirmPrefix": "请输入",
+				"typeToConfirmSuffix": "以确认",
+				"deleteFailed": "删除项目失败，请重试。",
+				"cancel": "取消",
+				"deletePermanently": "永久删除"
+			}
+		},
+		"export": {
+			"title": "导出",
+			"description": "下载项目数据。导出文件在后台生成，并保留 7 天。",
+			"recent": {
+				"title": "最近的导出",
+				"empty": "暂无导出记录。"
+			},
+			"status": {
+				"pending": "排队中",
+				"processing": "生成中…",
+				"completed": "已就绪",
+				"failed": "失败",
+				"expired": "已过期"
+			},
+			"rows": "任务数：{{count}}",
+			"availableUntil": "可下载至 {{date}}",
+			"download": "下载",
+			"failedMessage": "无法生成导出文件，请重试。",
+			"errors": {
+				"inProgress": "此项目已有正在进行的导出。",
+				"requestFailed": "无法开始导出，请重试。",
+				"downloadFailed": "无法下载导出文件，请重试。",
+				"expired": "此导出已过期，请重新申请。"
+			},
+			"noPermission": {
+				"title": "你没有导出此项目的权限",
+				"description": "请联系项目所有者或管理员授予导出权限。"
+			},
+			"archive": {
+				"title": "项目数据（ZIP）",
+				"description": "所有任务导出为 CSV，其评论和活动导出为单独的 CSV 文件，文档导出为 Markdown 文件。",
+				"button": "导出项目",
+				"inProgress": "正在导出…"
+			}
+		}
+	},
+	"taskStatuses": {
+		"deleteDialog": {
+			"title": "删除状态",
+			"confirmTextPrefix": "删除",
+			"confirmTextSuffix": "？使用此状态的任务将失去其状态。此操作无法撤销。",
+			"deleteFailed": "删除状态失败，请重试。",
+			"isDefault": "无法删除默认状态。请先将其他状态设为默认。",
+			"inUseByAutomation": "此状态正被某条自动化规则使用。请先更新或删除该规则。",
+			"cancel": "取消",
+			"deleteStatus": "删除状态"
+		},
+		"formDialog": {
+			"editTitle": "编辑状态",
+			"createTitle": "创建状态",
+			"editDescription": "更新此工作流状态。",
+			"createDescription": "为项目工作流添加一个新状态。",
+			"nameLabel": "名称",
+			"namePlaceholder": "例如：审核中",
+			"categoryLabel": "类别",
+			"colorLabel": "颜色",
+			"customColorTitle": "自定义颜色",
+			"cancel": "取消",
+			"saveChanges": "保存更改",
+			"createStatus": "创建状态",
+			"errors": {
+				"nameInvalid": "状态名称为空或无效。",
+				"categoryInvalid": "选择的类别无效。",
+				"saveFailed": "保存状态失败，请重试。"
+			}
+		}
+	},
+	"team": {
+		"title": "团队",
+		"subtitle": "管理项目成员和角色",
+		"addMember": "添加成员",
+		"memberCount_one": "{{count}} 名成员",
+		"memberCount_other": "{{count}} 名成员",
+		"empty": {
+			"title": "暂无成员",
+			"description": "为此项目添加队友或 AI 智能体以开始使用。",
+			"addFirstMember": "添加第一位成员"
+		},
+		"addMemberDialog": {
+			"title": "添加成员",
+			"description": "选择一名用户并为其分配此项目中的角色。",
+			"userLabel": "用户",
+			"change": "更改",
+			"searchPlaceholder": "按姓名或用户名搜索…",
+			"noUsersMatch": "没有符合搜索条件的用户。",
+			"noUsersAvailable": "没有可添加的用户。",
+			"loadingMore": "加载中…",
+			"roleLabel": "角色",
+			"cancel": "取消",
+			"addMember": "添加成员",
+			"errors": {
+				"addFailed": "添加成员失败，请重试。",
+				"alreadyAdded": "该用户或智能体已是该项目的成员。",
+				"roleForbidden": "你没有权限分配其中某个角色。",
+				"roleNotFound": "该角色已不存在，请选择其他角色。"
+			},
+			"modeUser": "用户",
+			"modeAgent": "AI 智能体",
+			"agentLabel": "智能体",
+			"noAgentsAvailable": "没有可邀请的全局智能体。",
+			"modeServiceAccount": "服务账号",
+			"serviceAccountLabel": "服务账号",
+			"noServiceAccountsAvailable": "没有可添加的服务账号。",
+			"searchAgentsPlaceholder": "按名称或用户名搜索…",
+			"noAgentsMatch": "没有符合搜索条件的智能体。",
+			"searchServiceAccountsPlaceholder": "按名称或描述搜索…",
+			"noServiceAccountsMatch": "没有符合搜索条件的服务账号。"
+		},
+		"roleChip": {
+			"changeRole": "更改角色",
+			"dialogDescription": "为 {{name}} 选择角色。成员至少保留一个角色。",
+			"assign": "分配角色",
+			"assigning": "分配中…",
+			"errors": {
+				"memberNotFound": "该成员已不再属于该项目。",
+				"roleForbidden": "你没有权限分配或移除其中某个角色。",
+				"roleNotFound": "该角色已不存在。",
+				"changeFailed": "更改角色失败。"
+			}
+		},
+		"memberRow": {
+			"removeMember": "移除成员",
+			"agentBadge": "代理",
+			"actions": "成员操作",
+			"serviceAccountBadge": "服务账号"
+		},
+		"removeDialog": {
+			"title": "移除成员",
+			"removePrefix": "移除",
+			"fromInfix": "从",
+			"confirmSuffix": "中移除？该成员将立即失去访问权限。",
+			"removeFailed": "移除成员失败，请重试。",
+			"cancel": "取消",
+			"remove": "移除"
+		},
+		"noPermission": {
+			"title": "You don't have permission to view members",
+			"description": "Ask a project admin to grant you the project.members.read permission."
+		},
+		"descriptionChip": {
+			"edit": "编辑描述",
+			"title": "描述",
+			"hint": "在自动模式下，当 Jev 决定是否为此人分配任务时会显示此内容。",
+			"placeholder": "此人负责什么工作？",
+			"save": "保存",
+			"saveFailed": "保存描述失败。"
+		},
+		"filters": {
+			"searchPlaceholder": "按姓名或用户名搜索…",
+			"searchLabel": "搜索成员",
+			"roleLabel": "按角色筛选",
+			"allRoles": "全部",
+			"clearSearch": "清除搜索",
+			"showingOf": "显示 {{shown}} / {{total}}"
+		},
+		"noMatch": {
+			"title": "没有匹配的成员",
+			"description": "请尝试其他搜索词或角色筛选。",
+			"clear": "清除筛选"
+		}
+	},
+	"aiChat": {
+		"chatWithAgent": "与 AI 智能体聊天",
+		"newConversation": "新建对话",
+		"agentLabel": "智能体",
+		"selectAgentPlaceholder": "选择一个智能体…",
+		"selectAgentFirst": "请先选择一个智能体。",
+		"noAgentsAvailable": "暂无可用的智能体。",
+		"autoAgent": "自动",
+		"resolvingAgent": "正在选择代理…"
+	},
+	"taskTypes": {
+		"deleteDialog": {
+			"title": "删除任务类型",
+			"confirmTextPrefix": "删除",
+			"confirmTextSuffix": "？使用此类型的任务将失去其类型分配。此操作无法撤销。",
+			"deleteFailed": "删除任务类型失败，请重试。",
+			"isDefault": "无法删除默认类型。请先将其他类型设为默认。",
+			"isSystem": "系统类型无法删除。",
+			"cancel": "取消",
+			"deleteType": "删除类型"
+		},
+		"formDialog": {
+			"editTitle": "编辑任务类型",
+			"createTitle": "创建任务类型",
+			"editDescription": "更新此任务类型。",
+			"createDescription": "为此项目添加一个新类型以对任务进行分类。",
+			"nameLabel": "名称",
+			"namePlaceholder": "例如：Bug、功能、故事",
+			"iconLabel": "图标",
+			"optional": "（可选）",
+			"clear": "清除",
+			"colorLabel": "颜色",
+			"customColorTitle": "自定义颜色",
+			"descriptionLabel": "描述",
+			"descriptionPlaceholder": "描述何时使用此类型…",
+			"cancel": "取消",
+			"saveChanges": "保存更改",
+			"createType": "创建类型",
+			"errors": {
+				"nameInvalid": "类型名称为空或无效。",
+				"nameReserved": "该名称已被内置类型保留。",
+				"saveFailed": "保存任务类型失败，请重试。",
+				"isSystem": "系统类型无法编辑。"
+			}
+		}
+	},
+	"taskDetail": {
+		"common": {
+			"empty": "空",
+			"dash": "—",
+			"unassigned": "未分配",
+			"none": "无"
+		},
+		"notFound": {
+			"title": "未找到任务",
+			"description": "该任务可能已被删除，或链接无效。",
+			"ariaLabel": "任务详情",
+			"backToProject": "返回项目",
+			"projectFallback": "项目"
+		},
+		"noPermission": {
+			"title": "You don't have permission to view this task",
+			"description": "Ask a project admin to grant you the tasks.read permission."
+		},
+		"header": {
+			"created": "创建于 {{date}}",
+			"copied": "已复制！",
+			"share": "分享",
+			"taskActions": "任务操作",
+			"delete": "删除",
+			"closeTaskDetail": "关闭任务详情",
+			"deleteDialog": {
+				"title": "删除任务？",
+				"description": "这将永久删除“{{title}}”及其所有数据。此操作无法撤销。",
+				"cancel": "取消",
+				"delete": "删除"
+			}
+		},
+		"properties": {
+			"title": "属性",
+			"status": "状态",
+			"dates": "日期",
+			"type": "类型",
+			"assignees": "负责人",
+			"importance": "重要程度",
+			"none": "无",
+			"storyPoints": "故事点",
+			"tags": "标签",
+			"reporter": "报告人",
+			"sprint": "冲刺",
+			"productBacklog": "产品待办列表",
+			"sprintNotStarted": "(未开始)",
+			"epic": "史诗",
+			"viewEpic": "查看史诗",
+			"removeEpic": "移除史诗",
+			"parent": "父任务",
+			"viewParent": "查看父任务",
+			"removeParent": "移除父任务",
+			"addFields": "添加字段",
+			"autoAssign": "自动",
+			"sprintGroup": {
+				"active": "进行中",
+				"planned": "即将开始",
+				"completed": "已完成"
+			}
+		},
+		"description": {
+			"title": "描述",
+			"writeWithAI": "用 AI 撰写",
+			"writeWithAIDialog": {
+				"searchAgents": "搜索智能体…",
+				"title": "用 AI 撰写",
+				"description": "选择一个智能体来撰写任务描述。",
+				"noAgents": "此项目尚未配置智能体。",
+				"cancel": "取消",
+				"starting": "正在启动...",
+				"writeButton": "撰写描述"
+			}
+		},
+		"subtasks": {
+			"title": "子任务",
+			"addButton": "添加子任务",
+			"titlePlaceholder": "子任务标题…",
+			"empty": "暂无子任务",
+			"loadMore": "加载更多子任务",
+			"loadingMore": "正在加载…"
+		},
+		"links": {
+			"title": "关联任务",
+			"addButton": "添加关联",
+			"openTask": "打开任务",
+			"removeLink": "移除关联",
+			"empty": "暂无关联任务",
+			"errors": {
+				"alreadyExists": "该关联已存在。",
+				"cannotLinkSelf": "任务不能关联自身。",
+				"crossProject": "只能关联同一项目内的任务。",
+				"createFailed": "添加关联失败，请重试。",
+				"notFound": "该关联已被移除。",
+				"deleteFailed": "移除关联失败，请重试。"
+			}
+		},
+		"attachments": {
+			"title": "附件",
+			"uploadLabel": "上传附件",
+			"dropZoneTitle": "将文件拖放到此处上传",
+			"dropZoneSubtitle": "或点击浏览",
+			"previewLabel": "预览 {{fileName}}",
+			"downloadLabel": "下载 {{fileName}}",
+			"deleteLabel": "删除 {{fileName}}",
+			"unitBytes_one": "{{count}} B",
+			"unitBytes_other": "{{count}} B",
+			"unitKilobytes": "{{value}} KB",
+			"unitMegabytes": "{{value}} MB",
+			"errors": {
+				"invalid": "该文件无法上传，请选择其他文件。",
+				"uploadFailed": "文件上传失败，请重试。",
+				"notFound": "该附件已被删除。",
+				"deleteFailed": "删除附件失败，请重试。"
+			}
+		},
+		"addFieldDialog": {
+			"title": "创建自定义字段",
+			"displayNameLabel": "显示名称",
+			"displayNamePlaceholder": "例如：发布标签",
+			"fieldKeyLabel": "字段键",
+			"fieldKeyPlaceholder": "release_tag",
+			"fieldTypeLabel": "字段类型",
+			"requiredLabel": "必填",
+			"cancel": "取消",
+			"creating": "正在创建…",
+			"createField": "创建字段",
+			"fieldTypes": {
+				"text": "文本",
+				"number": "数字",
+				"date": "日期",
+				"checkbox": "复选框",
+				"select": "单选",
+				"multiSelect": "多选",
+				"url": "URL",
+				"longText": "长文本"
+			}
+		},
+		"addTaskLinkModal": {
+			"title": "关联任务",
+			"relationship": "关系",
+			"searchPlaceholder": "按标题或编号搜索任务...",
+			"loadingTasks": "正在加载任务…",
+			"noTasksFound": "未找到任务",
+			"loadError": "无法加载任务。请重试。",
+			"linkTypes": {
+				"blocks": {
+					"label": "阻塞",
+					"description": "此任务必须在另一任务之前完成"
+				},
+				"isBlockedBy": {
+					"label": "被阻塞于",
+					"description": "此任务需等待另一任务完成后才能开始"
+				},
+				"relatesTo": {
+					"label": "相关",
+					"description": "这些任务相关但无依赖关系"
+				},
+				"duplicates": {
+					"label": "重复于",
+					"description": "此任务与另一任务重复"
+				}
+			}
+		},
+		"propertyField": {
+			"dateEditor": {
+				"datePlaceholder": "日期",
+				"clearDate": "清除日期",
+				"startDate": "开始日期",
+				"dueDate": "截止日期"
+			},
+			"storyPointsEditor": {
+				"decrease": "减少故事点",
+				"increase": "增加故事点"
+			},
+			"tagsEditor": {
+				"addTag": "添加标签",
+				"addTagPlaceholder": "添加标签..."
+			},
+			"multiSelectEditor": {
+				"addOption": "添加选项"
+			}
+		},
+		"panel": {
+			"priority": "优先级",
+			"assignee": "负责人",
+			"assigned": "已分配",
+			"sprint": "冲刺",
+			"created": "创建时间",
+			"updated": "更新时间"
+		},
+		"activity": {
+			"none": "无",
+			"system": "系统",
+			"created": "创建了此任务",
+			"deleted": "删除了此任务",
+			"updated": "更新了此任务",
+			"changedStatus": "将状态从“{{oldVal}}”改为“{{newVal}}”",
+			"setStatus": "将状态设置为“{{newVal}}”",
+			"clearedStatus": "清除了状态",
+			"changedType": "将类型从“{{oldVal}}”改为“{{newVal}}”",
+			"setType": "将类型设置为“{{newVal}}”",
+			"clearedType": "清除了类型",
+			"renamed": "将标题从“{{oldVal}}”改为“{{newVal}}”",
+			"setTitle": "将标题设置为“{{newVal}}”",
+			"changedPriority": "将优先级从 {{oldVal}} 改为 {{newVal}}",
+			"setPriority": "将优先级设置为 {{newVal}}",
+			"changedAssignee": "将负责人从 {{oldName}} 改为 {{newName}}",
+			"assignedTo": "分配给了 {{newName}}",
+			"removedAssignee": "移除了负责人 {{oldName}}",
+			"changedReporter": "将报告人从 {{oldName}} 改为 {{newName}}",
+			"setReporter": "将报告人设置为 {{newName}}",
+			"removedReporter": "移除了报告人 {{oldName}}",
+			"movedSprint": "从冲刺“{{oldSprint}}”移动到“{{newSprint}}”",
+			"addedToSprint": "添加到冲刺“{{newSprint}}”",
+			"removedFromSprint": "从冲刺“{{oldSprint}}”移除",
+			"setParentTask": "设置了父任务",
+			"removedParentTask": "移除了父任务",
+			"changedDueDate": "将截止日期从 {{oldVal}} 改为 {{newVal}}",
+			"setDueDate": "将截止日期设置为 {{newVal}}",
+			"removedDueDate": "移除了截止日期",
+			"changedStartDate": "将开始日期从 {{oldVal}} 改为 {{newVal}}",
+			"setStartDate": "将开始日期设置为 {{newVal}}",
+			"removedStartDate": "移除了开始日期",
+			"updatedDescription": "更新了描述",
+			"updatedTags": "更新了标签",
+			"updatedCustomFields": "更新了自定义字段",
+			"updatedField": "更新了 {{field}}",
+			"addedAttachment": "添加了附件",
+			"addedAttachmentNamed": "添加了附件：{{fileName}}",
+			"removedAttachment": "移除了附件",
+			"removedAttachmentNamed": "移除了附件：{{fileName}}",
+			"linkTypeBlocks": "阻塞",
+			"linkTypeRelatedTo": "相关于",
+			"linkTypeDuplicates": "重复于",
+			"addedTaskLink": "添加了任务关联（{{linkType}}）",
+			"removedTaskLink": "移除了任务关联",
+			"startedAiSession": "启动了一个 AI 会话",
+			"watchSession": "查看会话",
+			"madeChange": "进行了更改",
+			"descriptionChangeDiff": "描述更改差异",
+			"autoAssignSkippedLowConfidence": "无法确定地选出负责人（置信度 {{confidence}}%）— 任务仍未分配",
+			"autoAssignSkipped": "跳过了自动分配 — 任务仍未分配"
+		},
+		"searchableList": {
+			"searchPlaceholder": "搜索…",
+			"noResults": "没有匹配项"
+		}
+	},
+	"portForwardDetail": {
+		"notFound": {
+			"title": "未找到端口转发",
+			"description": "此端口转发可能已被删除，或链接无效。",
+			"ariaLabel": "端口转发详情",
+			"backToEnvironment": "返回环境"
+		},
+		"noPermission": {
+			"title": "You don't have access to this environment",
+			"description": "Ask a project admin to grant you access before you can view this port forward."
+		},
+		"tabs": {
+			"overview": "概览",
+			"comments": "评论"
+		},
+		"overview": {
+			"containerPort": "容器端口 {{port}}",
+			"hostPort": "主机端口",
+			"unassigned": "尚未分配",
+			"createdAt": "创建于 {{date}}",
+			"open": "打开",
+			"delete": "删除",
+			"deleteDialog": {
+				"title": "删除端口转发？",
+				"description_one": "这也将删除通过此端口转发发表的 {{count}} 条评论。此操作无法撤销。",
+				"description_other": "这也将删除通过此端口转发发表的 {{count}} 条评论。此操作无法撤销。",
+				"cancel": "取消",
+				"confirm": "删除"
+			}
+		},
+		"comments": {
+			"empty": "还没有评论。安装 Paca 浏览器扩展程序即可直接在此端口转发预览的元素上添加评论。",
+			"status": {
+				"open": "待处理",
+				"resolved": "已解决"
+			},
+			"replyCount_one": "{{count}} 条回复",
+			"replyCount_other": "{{count}} 条回复",
+			"resolve": "标记为已解决",
+			"reopen": "重新打开",
+			"createTask": "创建任务",
+			"taskCreated": "任务已创建",
+			"errors": {
+				"alreadyHasTask": "该评论已创建过任务。",
+				"creationInProgress": "该评论的任务创建正在进行中。",
+				"createTaskFailed": "创建任务失败，请重试。"
+			}
+		}
+	},
+	"commentDetail": {
+		"notFound": {
+			"title": "未找到评论",
+			"description": "此评论可能已被删除，或链接无效。",
+			"ariaLabel": "评论详情",
+			"backToPortForward": "返回端口转发"
+		},
+		"noPermission": {
+			"title": "You don't have permission to view this comment",
+			"description": "Ask a project admin to grant you the annotations.read permission."
+		},
+		"header": {
+			"createdAt": "评论于 {{date}}"
+		},
+		"context": {
+			"title": "上下文",
+			"pagePath": "页面",
+			"elementSelector": "元素选择器",
+			"accessibleName": "无障碍名称",
+			"consoleErrors": "控制台错误",
+			"noConsoleErrors": "未捕获到控制台错误",
+			"failedRequests": "失败的请求",
+			"noFailedRequests": "未捕获到失败的请求"
+		},
+		"thread": {
+			"replyPlaceholder": "写下回复…",
+			"reply": "回复",
+			"errors": {
+				"bodyEmpty": "回复不能为空。",
+				"replyFailed": "发布回复失败，请重试。"
+			}
+		},
+		"actions": {
+			"create": "创建",
+			"createConversation": "创建对话",
+			"copyLink": "复制链接",
+			"linkCopied": "已复制！"
+		}
+	},
+	"epicPicker": {
+		"searchPlaceholder": "搜索史诗…",
+		"noEpicsFound": "未找到匹配的史诗",
+		"noEpicsYet": "该项目暂无史诗",
+		"loadingMore": "加载中…"
+	},
+	"board": {
+		"common": {
+			"none": "无"
+		},
+		"view": {
+			"noTasks": "暂无任务",
+			"loading": "正在加载…",
+			"viewMore": "查看更多",
+			"expandColumn": "展开列",
+			"collapseColumn": "折叠列"
+		},
+		"taskCard": {
+			"unassigned": "未分配",
+			"priorityLabel": "优先级",
+			"reporterTitle": "报告人",
+			"epicLabel": "史诗",
+			"noEpic": "无史诗",
+			"storyPointsTitle": "故事点",
+			"moveLeft": "移动到上一列",
+			"moveRight": "移动到下一列"
+		},
+		"taskContextMenu": {
+			"open": "打开任务",
+			"moveTo": "移动到",
+			"status": "状态",
+			"assignee": "指派人",
+			"unassigned": "未分配",
+			"type": "类型",
+			"priority": "优先级",
+			"epic": "史诗",
+			"noEpic": "无史诗",
+			"copyId": "复制任务 ID ({{id}})",
+			"copyLink": "复制链接",
+			"delete": "删除任务"
+		},
+		"listGroup": {
+			"columnHeaders": {
+				"id": "编号",
+				"title": "标题"
+			},
+			"loading": "正在加载…",
+			"viewMore": "查看更多",
+			"startSprint": "开始冲刺",
+			"newSprint": "新建冲刺",
+			"noTasks": "暂无任务"
+		},
+		"taskRow": {
+			"columnHeaders": {
+				"type": "类型",
+				"importance": "重要程度",
+				"storyPoints": "故事点",
+				"status": "状态",
+				"assignee": "负责人",
+				"reporter": "报告人",
+				"startDate": "开始日期",
+				"dueDate": "截止日期",
+				"epic": "史诗",
+				"created": "创建时间",
+				"tags": "标签"
+			},
+			"unassigned": "未分配",
+			"noEpic": "无史诗"
+		},
+		"addTaskRow": {
+			"addTask": "添加任务",
+			"placeholder": "任务标题…",
+			"cancel": "取消",
+			"create": "创建"
+		},
+		"taskTypeSelector": {
+			"noType": "—"
+		},
+		"backlog": {
+			"title": "产品待办列表",
+			"description": "所有未分配到冲刺的工作项。"
+		}
+	},
+	"conversationsPage": {
+		"back": "返回",
+		"title": "对话",
+		"triggerChat": "聊天",
+		"triggerWriteDescription": "编写描述",
+		"triggerTask": "任务",
+		"triggerAutomation": "自动化",
+		"usageTitle": "{{tokens}} 个令牌 · {{cost}}",
+		"prOpened": "PR 已创建",
+		"moreActions": "更多操作",
+		"rename": {
+			"menuLabel": "重命名",
+			"dialogTitle": "重命名对话",
+			"placeholder": "对话名称",
+			"cancel": "取消",
+			"confirm": "重命名",
+			"renaming": "重命名中…",
+			"error": "无法重命名对话，请重试。"
+		},
+		"delete": {
+			"menuLabel": "删除",
+			"dialogTitle": "删除对话？",
+			"dialogDescription": "此操作将永久删除“{{title}}”及其历史记录，且无法撤销。",
+			"cancel": "取消",
+			"confirm": "删除",
+			"error": "无法删除对话，请重试。"
+		},
+		"filters": {
+			"searchAgents": "搜索智能体…",
+			"title": "筛选",
+			"agent": "代理",
+			"status": "状态",
+			"type": "类型",
+			"dateRange": "日期范围",
+			"searchPlaceholder": "搜索消息…",
+			"dateFrom": "起始日期",
+			"dateTo": "结束日期",
+			"clearAll": "清除筛选"
+		},
+		"list": {
+			"noPermission": {
+				"title": "You don't have permission to view conversations",
+				"description": "Ask a project admin to grant you the conversations.read permission."
+			},
+			"empty": {
+				"title": "暂无对话",
+				"description": "当任务分配给某个智能体或有人向其发送消息时，对话将开始。"
+			},
+			"emptyFiltered": {
+				"title": "没有匹配的对话",
+				"description": "请尝试调整或清除筛选条件。"
+			}
+		},
+		"detail": {
+			"empty": {
+				"title": "未选择对话",
+				"description": "从列表中选择一个对话即可查看。"
+			}
+		}
+	},
+	"layout": {
+		"shell": {
+			"newSprint": "新建冲刺",
+			"renameView": "重命名视图",
+			"deleteView": "删除视图",
+			"searchTasksPlaceholder": "搜索任务…",
+			"pluginNotAvailable": "插件不可用",
+			"viewErrors": {
+				"isLastView": "这是最后一个视图，无法删除。",
+				"deleteFailed": "删除视图失败，请重试。",
+				"reorderInvalid": "视图列表已在别处更改，请刷新页面后重试。",
+				"reorderFailed": "视图排序失败，请重试。"
+			}
+		},
+		"viewSettings": {
+			"viewSettingsAriaLabel": "视图设置",
+			"title": "视图设置",
+			"onlyVisibleToYou": "仅自己可见",
+			"chooseFields": "选择字段",
+			"back": "← 返回",
+			"clearFilters": "清除筛选",
+			"display": "显示",
+			"filters": "筛选",
+			"noSelection": "—",
+			"titleField": "标题",
+			"fieldsLabel": "字段",
+			"columnByLabel": "按列分组",
+			"swimlanesLabel": "泳道",
+			"sortByLabel": "排序方式",
+			"fieldSumLabel": "字段汇总",
+			"initialSizeLabel": "初始数量",
+			"perPageLabel": "每页数量",
+			"sprintsLabel": "冲刺",
+			"statusesLabel": "状态",
+			"assigneesLabel": "负责人",
+			"taskTypesLabel": "任务类型",
+			"startDateLabel": "开始日期",
+			"dueDateLabel": "截止日期",
+			"importanceLabel": "重要程度",
+			"storyPointsLabel": "故事点",
+			"tagsLabel": "标签",
+			"reset": "重置",
+			"saving": "正在保存…",
+			"save": "保存",
+			"saveOnlyForMe": "仅为自己保存",
+			"saveForEveryone": "保存给所有人",
+			"sprintFilter": {
+				"noSprints": "暂无冲刺",
+				"allSprints": "所有冲刺"
+			},
+			"statusFilter": {
+				"noStatuses": "暂无状态",
+				"allStatuses": "所有状态",
+				"clear": "清除",
+				"all": "全部"
+			},
+			"assigneeFilter": {
+				"allAssignees": "所有负责人",
+				"noMembers": "暂无成员",
+				"unassigned": "未分配"
+			},
+			"taskTypeFilter": {
+				"normalTypes": "普通类型",
+				"allNormalTypesDynamic": "所有普通类型（动态）",
+				"systemTypes": "系统类型",
+				"noTaskTypes": "暂无任务类型"
+			},
+			"customFieldFilter": {
+				"allValues": "所有值",
+				"noOptions": "无选项",
+				"min": "最小值",
+				"max": "最大值",
+				"containsPlaceholder": "包含…"
+			},
+			"importanceFilter": {
+				"allLevels": "所有级别"
+			},
+			"tagsFilter": {
+				"addTag": "添加标签",
+				"addTagPlaceholder": "添加标签..."
+			}
+		},
+		"roadmap": {
+			"taskColumnLabel": "任务",
+			"noTasksToDisplay": "没有可显示的任务",
+			"noDatesSet": "未设置日期",
+			"dateRangeTooltip": "{{start}} → {{end}}",
+			"startDateTooltip": "开始：{{date}}",
+			"dueDateTooltip": "截止：{{date}}",
+			"loading": "正在加载…",
+			"viewMore": "查看更多"
+		},
+		"newViewPopover": {
+			"addView": "添加视图",
+			"addViewAriaLabel": "添加视图",
+			"title": "新建视图",
+			"viewNameLabel": "视图名称",
+			"defaultName": "新建{{layout}}",
+			"layoutLabel": "布局",
+			"creating": "正在创建…",
+			"createView": "创建视图",
+			"layouts": {
+				"board": "看板",
+				"table": "表格",
+				"roadmap": "路线图",
+				"plugin": "插件"
+			}
+		},
+		"renameViewDialog": {
+			"title": "重命名视图",
+			"cancel": "取消",
+			"renaming": "正在重命名…",
+			"rename": "重命名"
+		},
+		"startSprintModal": {
+			"title": "开始冲刺",
+			"alreadyActiveWarning": "\"{{name}}\" 在此项目中已处于活动状态。开始此冲刺不会停止它。",
+			"nameLabel": "名称",
+			"goalLabel": "目标",
+			"optional": "（可选）",
+			"goalPlaceholder": "此次冲刺应达成什么目标？",
+			"startDateLabel": "开始日期",
+			"endDateLabel": "结束日期",
+			"error": "开始冲刺失败，请重试。",
+			"cancel": "取消",
+			"starting": "正在启动…",
+			"startSprint": "开始冲刺"
+		},
+		"timeline": {
+			"title": "时间线",
+			"description": "在路线图上展示史诗和长期规划。"
+		},
+		"sprintDetail": {
+			"notFound": "未找到冲刺或访问被拒绝。",
+			"statusActive": "进行中",
+			"statusPlanned": "草稿",
+			"statusCompleted": "已完成",
+			"description": "{{status}}的冲刺",
+			"descriptionWithStartDate": "{{status}}的冲刺 · 开始于 {{date}}",
+			"editSprint": "编辑冲刺",
+			"startSprint": "开始冲刺",
+			"editSprintModal": {
+				"title": "编辑冲刺",
+				"nameLabel": "名称",
+				"goalLabel": "目标",
+				"optional": "(可选)",
+				"goalPlaceholder": "此冲刺应达成什么目标?",
+				"startDateLabel": "开始日期",
+				"dueDateLabel": "截止日期",
+				"dateRangeError": "截止日期不能早于开始日期。",
+				"error": "更新冲刺失败,请重试。",
+				"cancel": "取消",
+				"saving": "保存中…",
+				"save": "保存更改",
+				"delete": "删除冲刺",
+				"deleteError": "无法删除冲刺，请重试。"
+			},
+			"completeSprint": "完成冲刺",
+			"completeSprintModal": {
+				"title": "完成冲刺",
+				"willBeMovedTo_one": "{{count}} 个未完成任务将被移动到：",
+				"willBeMovedTo_other": "{{count}} 个未完成任务将被移动到：",
+				"noIncompleteTasks": "此冲刺中没有剩余的未完成任务。",
+				"productBacklog": "产品待办列表",
+				"unassignedHint": "任务将从所有冲刺中取消分配",
+				"cancel": "取消",
+				"completing": "正在完成…",
+				"completeSprint": "完成冲刺",
+				"alreadyComplete": "此冲刺已经完成。",
+				"completeFailed": "完成冲刺失败，请重试。"
+			},
+			"deleteSprintModal": {
+				"title": "删除冲刺？",
+				"message": "冲刺“{{name}}”将被永久删除。其任务将返回产品待办列表。此操作无法撤销。",
+				"cancel": "取消",
+				"confirm": "删除冲刺",
+				"deleting": "正在删除…"
+			}
+		},
+		"conversation": {
+			"agentsFallback": "智能体"
+		}
+	},
+	"priority": {
+		"none": "无",
+		"low": "低",
+		"medium": "中",
+		"high": "高",
+		"critical": "紧急"
+	},
+	"viewUtils": {
+		"groups": {
+			"backlog": "待办列表",
+			"unassigned": "未分配",
+			"noReporter": "无报告人",
+			"noType": "无类型",
+			"none": "无",
+			"yes": "是",
+			"no": "否"
+		},
+		"columnBy": {
+			"status": "状态",
+			"sprint": "冲刺",
+			"assignee": "负责人",
+			"importance": "重要程度",
+			"type": "类型",
+			"reporter": "报告人"
+		},
+		"sortBy": {
+			"manual": "手动",
+			"importance": "重要程度",
+			"storyPoints": "故事点",
+			"title": "标题",
+			"created": "创建时间",
+			"startDate": "开始日期",
+			"dueDate": "截止日期"
+		},
+		"swimlanes": {
+			"none": "无",
+			"assignee": "负责人",
+			"importance": "重要程度",
+			"type": "类型"
+		},
+		"fieldSum": {
+			"count": "数量",
+			"storyPoints": "故事点"
+		},
+		"fields": {
+			"assignee": "负责人",
+			"status": "状态",
+			"importance": "重要程度",
+			"storyPoints": "故事点",
+			"type": "类型",
+			"epic": "史诗",
+			"reporter": "报告人",
+			"startDate": "开始日期",
+			"dueDate": "截止日期",
+			"created": "创建时间",
+			"tags": "标签"
+		}
+	},
+	"automation": {
+		"list": {
+			"title": "自动化",
+			"subtitle": "通过触发器、条件和操作对任务事件做出响应",
+			"newAutomation": "新建自动化",
+			"empty": {
+				"title": "暂无自动化",
+				"description": "创建一个自动化，通过条件和操作对任务事件做出响应。",
+				"createFirst": "创建你的第一个自动化"
+			},
+			"noDescription": "暂无描述",
+			"updated": "更新于 {{time}}",
+			"noPermission": {
+				"title": "You don't have permission to view automations",
+				"description": "Ask a project admin to grant you the workflows.read permission."
+			}
+		},
+		"status": {
+			"active": "已启用",
+			"inactive": "已停用"
+		},
+		"createDialog": {
+			"title": "新建自动化",
+			"nameLabel": "名称",
+			"namePlaceholder": "例如：Bug 分诊",
+			"descriptionLabel": "描述",
+			"descriptionPlaceholder": "关于此自动化的可选说明…",
+			"cancel": "取消",
+			"create": "创建"
+		},
+		"deleteDialog": {
+			"title": "删除自动化",
+			"body": "确定要删除“{{name}}”吗？此操作无法撤销。",
+			"cancel": "取消",
+			"confirm": "删除"
+		},
+		"builder": {
+			"toggleActiveLabel": "切换此自动化的启用状态",
+			"genericError": "出了点问题，请重试。",
+			"taskLessTriggerConnectionError": "该触发器未设置目标任务，因此只能连接到“调用 API”或“触发 AI 代理”操作 — 条件和其他操作都需要一个任务才能运行。",
+			"collapseSidebar": "收起面板",
+			"expandSidebar": "展开面板",
+			"tabGraph": "图谱",
+			"tabRuns": "运行历史",
+			"tabDependencyMap": "依赖关系图"
+		},
+		"palette": {
+			"title": "添加节点",
+			"addTrigger": "添加触发器",
+			"addCondition": "添加条件",
+			"addAction": "添加操作",
+			"builtIn": "内置",
+			"plugins": "插件",
+			"triggerGroups": {
+				"taskEvents": "任务事件",
+				"sprintEvents": "冲刺事件",
+				"scheduleWebhook": "定时计划和 Webhook"
+			}
+		},
+		"nodeKind": {
+			"trigger": "触发器",
+			"condition": "条件",
+			"action": "操作"
+		},
+		"canvas": {
+			"deleteEdge": "删除连接",
+			"deleteNode": "删除节点"
+		},
+		"triggerTypes": {
+			"status_changed": "状态变更时",
+			"task_created": "任务创建时",
+			"assignee_changed": "负责人变更时",
+			"priority_changed": "优先级变更时",
+			"tag_added": "添加标签时",
+			"due_date_reached": "到达截止日期时",
+			"predecessor_done": "前置任务完成时",
+			"cron": "定时计划",
+			"api_trigger": "Webhook",
+			"sprint_created": "冲刺创建时",
+			"sprint_started": "冲刺开始时",
+			"sprint_completed": "冲刺完成时",
+			"sprint_deleted": "冲刺删除时"
+		},
+		"actionTypes": {
+			"update_task": "更新任务",
+			"trigger_ai_agent": "触发 AI 代理",
+			"call_api": "调用 API",
+			"wait": "等待",
+			"update_sprint": "更新冲刺",
+			"complete_sprint": "完成冲刺"
+		},
+		"nodeConfig": {
+			"save": "保存",
+			"cancel": "取消",
+			"remove": "删除节点",
+			"removeConfirmTitle": "删除节点",
+			"removeConfirmBody": "这将从图谱中删除该节点及其所有连接。",
+			"removeConfirmAction": "删除",
+			"genericFormHint": "此节点类型来自尚未声明配置架构的插件，因此其设置以原始 JSON 形式编辑。若插件在其清单中声明了 configSchema，则会在此显示界面字段。",
+			"trigger": {
+				"anyStatus": "任意状态",
+				"noConfigNeeded": "此触发器无需配置——事件发生时会自动触发。",
+				"statusLabel": "状态",
+				"tagLabel": "标签",
+				"anyTag": "任意标签",
+				"dueDateOffsetLabel": "偏移量（分钟）",
+				"dueDateOffsetHint": "0 = 截止日期当天，负数 = 提前，正数 = 延后",
+				"watchedTasksLabel": "关注的任务",
+				"watchedTasksHint": "当这些任务全部进入“已完成”状态时触发",
+				"addWatchedTaskPlaceholder": "添加要关注的任务…",
+				"targetTaskLabel": "目标任务（可选）",
+				"targetTaskHint": "当上方所有关注任务都完成后，该自动化所作用的任务 — 与其前置任务不同，会根据自身当前状态重新评估。如果只需连接到不需要任务的“调用 API”或“触发 AI 代理”操作，可以留空。",
+				"selectTaskPlaceholder": "选择一个任务…",
+				"searchTaskPlaceholder": "搜索任务…",
+				"noTasksFound": "未找到匹配的任务",
+				"noTasksYet": "该项目中暂无任务",
+				"loadingMore": "加载中…",
+				"clearTargetTask": "清除目标任务",
+				"cronExpressionLabel": "Cron 表达式",
+				"cronExpressionPlaceholder": "*/15 * * * *",
+				"cronExpressionHint": "标准 5 段式 Cron（分 时 日 月 星期），按 UTC 计算",
+				"cronTargetTaskHint": "每次按计划触发时，该自动化所作用的任务。如果只需连接到不需要任务的“调用 API”或“触发 AI 代理”操作，可以留空。",
+				"apiTriggerTargetTaskHint": "每次调用下方 Webhook 时，该自动化所作用的任务。如果只需连接到不需要任务的“调用 API”或“触发 AI 代理”操作，可以留空。",
+				"webhookUrlLabel": "Webhook 地址",
+				"webhookTokenLabel": "Webhook 令牌",
+				"generateTokenButton": "生成令牌",
+				"regenerateTokenButton": "重新生成令牌",
+				"tokenShownOnceWarning": "请立即复制此令牌 — 之后将不再显示。",
+				"copy": "复制",
+				"copied": "已复制",
+				"noTokenYet": "尚未生成令牌"
+			},
+			"condition": {
+				"branchesTitle": "分支",
+				"addBranch": "添加分支",
+				"branchLabel": "分支标签",
+				"elseLabel": "否则（未匹配任何分支）",
+				"removeBranch": "删除分支",
+				"field": "字段",
+				"operator": "运算符",
+				"value": "值",
+				"addGroup": "添加组",
+				"addCondition": "添加条件",
+				"removeCondition": "删除",
+				"logicAnd": "与",
+				"logicOr": "或",
+				"logicNot": "非",
+				"fields": {
+					"status_id": "状态",
+					"task_type_id": "任务类型",
+					"importance": "优先级",
+					"assignee_ids": "负责人",
+					"tags": "标签",
+					"custom_field": "自定义字段",
+					"title": "标题",
+					"story_points": "故事点",
+					"sprint_id": "冲刺",
+					"parent_task_id": "父任务",
+					"reporter_id": "报告人",
+					"start_date": "开始日期",
+					"due_date": "截止日期",
+					"sprint_name": "冲刺名称",
+					"sprint_status": "冲刺状态",
+					"sprint_goal": "冲刺目标",
+					"sprint_start_date": "冲刺开始日期",
+					"sprint_end_date": "冲刺结束日期"
+				}
+			},
+			"action": {
+				"memberLabel": "负责人",
+				"agentLabel": "代理",
+				"statusLabel": "状态",
+				"importanceLabel": "优先级",
+				"tagLabel": "标签",
+				"fieldKeyLabel": "字段",
+				"valueLabel": "值",
+				"messageLabel": "给代理的指示",
+				"messagePlaceholder": "例如：总结此任务并建议一个优先级。",
+				"methodLabel": "方法",
+				"urlLabel": "URL",
+				"urlPlaceholder": "https://example.com/webhook",
+				"headersLabel": "请求头",
+				"headerKeyPlaceholder": "请求头名称",
+				"headerValuePlaceholder": "值",
+				"addHeader": "添加请求头",
+				"bodyLabel": "请求体",
+				"waitMinutesLabel": "等待时间（分钟）",
+				"waitMinutesHint": "在继续下一个节点之前，在此暂停多长时间。",
+				"updateSprintHint": "仅更改下方填写的字段——冲刺的其余部分保持不变。",
+				"sprintNameLabel": "名称",
+				"sprintStartDateLabel": "开始日期",
+				"sprintEndDateLabel": "结束日期",
+				"sprintGoalLabel": "目标",
+				"sprintStatusLabel": "状态",
+				"sprintStatusUnchanged": "保持不变",
+				"sprintStatusPlanned": "草稿",
+				"sprintStatusActive": "进行中",
+				"sprintStatusCompleted": "已完成",
+				"completeSprintHint": "将冲刺标记为已完成，并移动其未完成的任务。",
+				"moveToSprintLabel": "将未完成的任务移动到",
+				"moveToSprintBacklog": "待办列表",
+				"moveToSprintHint": "此冲刺中未完成的任务在冲刺完成时会移动到这里。",
+				"variablesHint": "支持 {{task.title}}、{{sprint.name}} 等来自当前运行的 {{variable}} 占位符。",
+				"updateTaskHint": "只有下方启用的字段会被更改——任务的其余部分保持不变。",
+				"addFieldToUpdate": "添加要更新的字段…",
+				"customFieldsLabel": "自定义字段",
+				"enableField": "设置{{field}}",
+				"titleLabel": "标题",
+				"storyPointsLabel": "故事点",
+				"sprintLabel": "冲刺",
+				"parentTaskLabel": "父任务",
+				"reporterLabel": "报告人",
+				"startDateLabel": "开始日期",
+				"dueDateLabel": "截止日期",
+				"tagsLabel": "标签",
+				"tagsPlaceholder": "添加标签…",
+				"assigneesLabel": "负责人",
+				"noSprint": "无冲刺",
+				"pluginConditionLabel": "插件条件",
+				"pluginConditionHint": "将此分支的匹配委托给插件提供的条件，而不是比较任务字段。",
+				"selectPluginPlaceholder": "选择插件条件…",
+				"addCustomField": "添加自定义字段…"
+			},
+			"target": {
+				"label": "作用对象",
+				"kinds": {
+					"self": "此任务",
+					"parent": "父任务",
+					"children": "子任务",
+					"blocks": "阻塞的任务",
+					"is_blocked_by": "被阻塞的任务",
+					"relates_to": "相关任务",
+					"duplicates": "重复的任务",
+					"is_duplicated_by": "被重复的任务",
+					"other": "其他任务…"
+				},
+				"matchMode": {
+					"any": "任意匹配",
+					"all": "全部匹配"
+				}
+			},
+			"description": {
+				"dueDateAt": "截止日期当天",
+				"dueDateBefore": "截止日期前 {{minutes}} 分钟",
+				"dueDateAfter": "截止日期后 {{minutes}} 分钟",
+				"branches": "{{count}} 个分支",
+				"priority": "优先级：{{level}}",
+				"fieldValue": "{{field}} → {{value}}",
+				"unassigned": "未指派",
+				"notConfigured": "未配置",
+				"elseShort": "否则",
+				"pluginConditionMatched": "匹配",
+				"branchFallback": "分支 {{n}}",
+				"cronSchedule": "运行时间：{{expression}}",
+				"webhookReady": "已配置 Webhook",
+				"callApiSummary": "{{method}} {{host}}",
+				"jevNoulTrue": "是"
+			},
+			"jev": {
+				"answerTypeLabel": "回答类型",
+				"answerTypes": {
+					"choice": "选择 — 从多个选项中选一个",
+					"score": "评分 — 按等级评估",
+					"noul": "是 / 否"
+				},
+				"answerTypeChangeHint": "为之前回答类型连接的分支将不再使用——保存后请重新连接。",
+				"instructionsLabel": "向 Jev 提出的问题",
+				"instructionsPlaceholder": {
+					"choice": "例如：应由哪个团队处理此事？",
+					"score": "例如：此问题看起来有多严重？",
+					"noul": "例如：客户正在要求退款。"
+				},
+				"optionsTitle": "选项",
+				"optionKeyPlaceholder": "键",
+				"optionDescriptionPlaceholder": "何时选择此选项",
+				"addOption": "添加选项",
+				"levelsTitle": "级别（从低到高）",
+				"levelPlaceholder": "描述此级别",
+				"addLevel": "添加级别",
+				"confidenceThresholdLabel": "置信度阈值",
+				"trueThresholdLabel": "“真”阈值",
+				"thresholdHint": "低于此值时，工作流将走 Else 分支，而不采信该答案。"
+			}
+		},
+		"runHistory": {
+			"title": "运行历史",
+			"empty": "暂无运行记录",
+			"status": {
+				"running": "运行中",
+				"completed": "已完成",
+				"failed": "失败"
+			},
+			"stepStatus": {
+				"completed": "已完成",
+				"failed": "失败",
+				"skipped": "已跳过（已应用）"
+			},
+			"startedAt": "开始于 {{time}}",
+			"viewSteps": "查看步骤"
+		},
+		"dependencyMap": {
+			"title": "依赖关系图",
+			"subtitle": "只读视图，展示所有等待其他任务完成的自动化",
+			"empty": "尚未配置前置任务依赖关系",
+			"watchedTasks": "等待 {{count}} 个任务"
+		},
+		"conditionTypes": {
+			"jev_condition": "Jev 条件"
+		}
+	},
+	"activityLog": {
+		"title": "动态",
+		"subtitle": "此项目中发生的一切",
+		"today": "今天",
+		"yesterday": "昨天",
+		"deletedEntity": "此项已被删除",
+		"noPermission": {
+			"title": "你无法查看动态日志",
+			"description": "请向项目经理申请“查看动态日志”权限。"
+		},
+		"empty": {
+			"title": "暂无动态",
+			"description": "此项目中的更改将显示在这里。"
+		},
+		"emptyFiltered": {
+			"title": "没有匹配的动态",
+			"description": "请尝试移除部分筛选条件或更改搜索词。"
+		},
+		"filters": {
+			"title": "筛选",
+			"searchPlaceholder": "搜索动态…",
+			"type": "类型",
+			"people": "成员",
+			"source": "来源",
+			"dateRange": "日期范围",
+			"dateFrom": "从",
+			"dateTo": "至",
+			"clearAll": "全部清除"
+		},
+		"entityTypes": {
+			"task": "任务",
+			"doc": "文档",
+			"sprint": "迭代",
+			"view": "视图",
+			"automation": "自动化",
+			"environment": "环境",
+			"member": "成员",
+			"role": "角色",
+			"agent": "智能体",
+			"project": "项目"
+		},
+		"origins": {
+			"user": "用户",
+			"agent": "智能体",
+			"automation": "自动化",
+			"jev": "Jev",
+			"annotation": "批注",
+			"system": "系统"
+		},
+		"detail": {
+			"asRole": "角色为 {{role}}",
+			"roleChange": "{{from}} → {{to}}",
+			"renamedFrom": "原名“{{name}}”",
+			"member": "对象：{{name}}"
+		},
+		"projectFields": {
+			"name": "名称",
+			"description": "描述",
+			"task_id_prefix": "任务 ID 前缀",
+			"is_public": "可见性",
+			"settings": "设置",
+			"jev_config": "Jev 配置"
+		},
+		"types": {
+			"sprint_created": "创建了迭代",
+			"sprint_updated": "更新了迭代",
+			"sprint_deleted": "删除了迭代",
+			"sprint_completed": "完成了迭代",
+			"view_created": "创建了视图",
+			"view_updated": "更新了视图",
+			"view_deleted": "删除了视图",
+			"automation_created": "创建了自动化",
+			"automation_updated": "更新了自动化",
+			"automation_deleted": "删除了自动化",
+			"automation_activated": "启用了自动化",
+			"automation_deactivated": "停用了自动化",
+			"automation_node_added": "添加了步骤到",
+			"automation_node_removed": "移除了步骤自",
+			"automation_edge_added": "连接了步骤于",
+			"automation_edge_removed": "断开了步骤于",
+			"environment_created": "创建了环境",
+			"environment_updated": "更新了环境",
+			"environment_deleted": "删除了环境",
+			"environment_started": "启动了环境",
+			"environment_stopped": "停止了环境",
+			"environment_restarted": "重启了环境",
+			"environment_ssh_key_added": "添加了 SSH 密钥“{{label}}”到",
+			"environment_ssh_key_removed": "移除了 SSH 密钥“{{label}}”自",
+			"environment_access_granted": "授予了访问权限：",
+			"environment_access_revoked": "撤销了访问权限：",
+			"environment_port_forward_added": "转发了端口 {{port}}：",
+			"environment_port_forward_removed": "停止转发端口 {{port}}：",
+			"annotation_created": "添加了批注于",
+			"annotation_resolved": "解决了批注于",
+			"annotation_reopened": "重新打开了批注于",
+			"annotation_commented": "回复了批注于",
+			"member_added": "添加了成员",
+			"member_role_changed": "更改了角色：",
+			"member_updated": "更新了成员",
+			"member_removed": "移除了成员",
+			"role_created": "创建了角色",
+			"role_updated": "更新了角色",
+			"role_deleted": "删除了角色",
+			"project_updated": "更新了设置：",
+			"project_task_type_created": "创建了任务类型“{{name}}”于",
+			"project_task_type_updated": "更新了任务类型“{{name}}”于",
+			"project_task_type_deleted": "删除了任务类型“{{name}}”于",
+			"project_task_type_default_set": "将“{{name}}”设为默认任务类型于",
+			"project_task_status_created": "创建了状态“{{name}}”于",
+			"project_task_status_updated": "更新了状态“{{name}}”于",
+			"project_task_status_deleted": "删除了状态“{{name}}”于",
+			"project_task_status_default_set": "将“{{name}}”设为默认状态于",
+			"project_task_status_reordered": "重新排序了状态于",
+			"project_custom_field_created": "创建了字段“{{name}}”于",
+			"project_custom_field_updated": "更新了字段“{{name}}”于",
+			"project_custom_field_deleted": "删除了字段“{{name}}”于",
+			"project_agent_created": "添加了智能体",
+			"project_agent_updated": "更新了智能体",
+			"project_agent_deleted": "移除了智能体",
+			"comment": "评论了",
+			"fallback": "执行了 {{type}}："
+		}
+	}
+}

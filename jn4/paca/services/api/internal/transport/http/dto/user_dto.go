@@ -1,0 +1,100 @@
+// Package dto defines request and response shapes for user endpoints.
+package dto
+
+import (
+	"time"
+
+	"github.com/google/uuid"
+
+	userdom "github.com/Paca-AI/api/internal/domain/user"
+)
+
+// CreateUserRequest is the body for POST /admin/users.
+// Only users with the users:write permission can create accounts. A new
+// account always gets the default role; assign others with
+// PUT /admin/users/:userId/roles.
+type CreateUserRequest struct {
+	Username string `json:"username"  binding:"required"`
+	Password string `json:"password"  binding:"required,min=8"`
+	FullName string `json:"full_name" binding:"required"`
+	// Email is optional, used for notification delivery (e.g. a mail
+	// plugin's welcome/invite email) — not for login. When set, a
+	// user.created event carrying it is published for plugins to act on.
+	Email string `json:"email" binding:"omitempty"`
+}
+
+// UpdateProfileRequest is the body for PATCH /users/me (self-service update).
+type UpdateProfileRequest struct {
+	FullName string `json:"full_name" binding:"required"`
+	// Email is left unchanged when omitted/empty.
+	Email string `json:"email" binding:"omitempty"`
+}
+
+// AdminUpdateUserRequest is the body for PATCH /admin/users/:userId. It edits
+// the profile only; change a user's roles with PUT /admin/users/:userId/roles.
+type AdminUpdateUserRequest struct {
+	FullName string `json:"full_name" binding:"omitempty"`
+	// Email is left unchanged when omitted/empty.
+	Email string `json:"email" binding:"omitempty"`
+}
+
+// ResetPasswordRequest is the body for PATCH /admin/users/:userId/password.
+type ResetPasswordRequest struct {
+	NewPassword string `json:"new_password" binding:"required,min=8"`
+}
+
+// ChangeMyPasswordRequest is the body for PATCH /users/me/password.
+type ChangeMyPasswordRequest struct {
+	CurrentPassword string `json:"current_password" binding:"required"`
+	NewPassword     string `json:"new_password"     binding:"required,min=8"`
+}
+
+// UserResponse is the public representation of a user (no password hash).
+type UserResponse struct {
+	ID       uuid.UUID `json:"id"`
+	Username string    `json:"username"`
+	FullName string    `json:"full_name"`
+	Email    *string   `json:"email,omitempty"`
+	// Roles are the platform roles attached to the user, sorted by name.
+	Roles              []RoleSummaryResponse `json:"roles"`
+	MustChangePassword bool                  `json:"must_change_password"`
+	// AvatarURL/AvatarThumbURL are presigned GET URLs, populated by the
+	// handler (not this mapper) via attachmentdom.AvatarService — nil when
+	// no avatar has been uploaded.
+	AvatarURL      *string   `json:"avatar_url,omitempty"`
+	AvatarThumbURL *string   `json:"avatar_thumb_url,omitempty"`
+	CreatedAt      time.Time `json:"created_at"`
+}
+
+// CursorUsersResponse is a keyset-paginated page of users. NextCursor is nil
+// when this is the last page.
+type CursorUsersResponse struct {
+	Items      []UserResponse `json:"items"`
+	PageSize   int            `json:"page_size"`
+	NextCursor *string        `json:"next_cursor"`
+}
+
+// PagedUsersResponse wraps a list of users with pagination metadata.
+type PagedUsersResponse struct {
+	Items    []UserResponse `json:"items"`
+	Total    int64          `json:"total"`
+	Page     int            `json:"page"`
+	PageSize int            `json:"page_size"`
+	// MustChangePasswordCount is the count across ALL users, not just Items
+	// (the current page) — so the admin users page's stats bar stays
+	// accurate no matter which page is displayed.
+	MustChangePasswordCount int64 `json:"must_change_password_count"`
+}
+
+// UserFromEntity maps a domain user to a transport response.
+func UserFromEntity(u *userdom.User) UserResponse {
+	return UserResponse{
+		ID:                 u.ID,
+		Username:           u.Username,
+		FullName:           u.FullName,
+		Email:              u.Email,
+		Roles:              RoleSummariesFromEntities(u.Roles),
+		MustChangePassword: u.MustChangePassword,
+		CreatedAt:          u.CreatedAt,
+	}
+}

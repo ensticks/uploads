@@ -1,0 +1,419 @@
+// Package projectsvc_test contains unit tests for the project service layer,
+// including the CachedService decorator.
+package projectsvc_test
+
+import (
+	"context"
+	"errors"
+	"io"
+	"log/slog"
+	"testing"
+	"time"
+
+	"github.com/alicebob/miniredis/v2"
+	"github.com/google/uuid"
+	"github.com/redis/go-redis/v9"
+
+	attachmentdom "github.com/Paca-AI/api/internal/domain/attachment"
+	projectdom "github.com/Paca-AI/api/internal/domain/project"
+	"github.com/Paca-AI/api/internal/platform/cache"
+	projectsvc "github.com/Paca-AI/api/internal/service/project"
+)
+
+// ---------------------------------------------------------------------------
+// helpers
+// ---------------------------------------------------------------------------
+
+func discardLogger() *slog.Logger {
+	return slog.New(slog.NewTextHandler(io.Discard, nil))
+}
+
+func newCacheStore(t *testing.T) *cache.Store {
+	t.Helper()
+	mr := miniredis.RunT(t)
+	client := redis.NewClient(&redis.Options{Addr: mr.Addr()})
+	t.Cleanup(func() { _ = client.Close() })
+	return cache.NewStore(client, "paca:")
+}
+
+const projectTTL = 5 * time.Minute
+
+// ---------------------------------------------------------------------------
+// Stub project service
+// ---------------------------------------------------------------------------
+
+type stubProjectSvc struct {
+	list            func(ctx context.Context, page, pageSize int) ([]*projectdom.Project, int64, error)
+	listAccessible  func(ctx context.Context, userID uuid.UUID, page, pageSize int) ([]*projectdom.Project, int64, error)
+	getByID         func(ctx context.Context, id uuid.UUID) (*projectdom.Project, error)
+	create          func(ctx context.Context, in projectdom.CreateProjectInput) (*projectdom.Project, error)
+	update          func(ctx context.Context, id uuid.UUID, in projectdom.UpdateProjectInput) (*projectdom.Project, error)
+	delete          func(ctx context.Context, id uuid.UUID) error
+	listMembers     func(ctx context.Context, projectID uuid.UUID) ([]*projectdom.ProjectMember, error)
+	addMember       func(ctx context.Context, projectID uuid.UUID, in projectdom.AddMemberInput) (*projectdom.ProjectMember, error)
+	removeMember    func(ctx context.Context, projectID, userID uuid.UUID) error
+	updateJevConfig func(ctx context.Context, projectID uuid.UUID, apiKey, baseURL, model *string) (*projectdom.Project, error)
+
+	getByIDCalls         int
+	listMembersCalls     int
+	updateJevConfigCalls int
+}
+
+func (s *stubProjectSvc) List(ctx context.Context, page, pageSize int) ([]*projectdom.Project, int64, error) {
+	if s.list != nil {
+		return s.list(ctx, page, pageSize)
+	}
+	return nil, 0, nil
+}
+
+func (s *stubProjectSvc) ListAccessible(ctx context.Context, userID uuid.UUID, page, pageSize int) ([]*projectdom.Project, int64, error) {
+	if s.listAccessible != nil {
+		return s.listAccessible(ctx, userID, page, pageSize)
+	}
+	return nil, 0, nil
+}
+
+func (s *stubProjectSvc) GetByID(ctx context.Context, id uuid.UUID) (*projectdom.Project, error) {
+	s.getByIDCalls++
+	if s.getByID != nil {
+		return s.getByID(ctx, id)
+	}
+	return &projectdom.Project{ID: id, Name: "stub-project"}, nil
+}
+
+func (s *stubProjectSvc) Create(ctx context.Context, in projectdom.CreateProjectInput) (*projectdom.Project, error) {
+	if s.create != nil {
+		return s.create(ctx, in)
+	}
+	return &projectdom.Project{ID: uuid.New(), Name: in.Name}, nil
+}
+
+func (s *stubProjectSvc) Update(ctx context.Context, id uuid.UUID, in projectdom.UpdateProjectInput) (*projectdom.Project, error) {
+	if s.update != nil {
+		return s.update(ctx, id, in)
+	}
+	return &projectdom.Project{ID: id, Name: in.Name}, nil
+}
+
+func (s *stubProjectSvc) Delete(ctx context.Context, id uuid.UUID) error {
+	if s.delete != nil {
+		return s.delete(ctx, id)
+	}
+	return nil
+}
+
+func (s *stubProjectSvc) InitiateAvatarUpload(context.Context, uuid.UUID, string, string, int64, uuid.UUID) (*attachmentdom.UploadSession, error) {
+	return &attachmentdom.UploadSession{}, nil
+}
+func (s *stubProjectSvc) CompleteAvatarUpload(context.Context, uuid.UUID, uuid.UUID) (*projectdom.Project, error) {
+	return nil, projectdom.ErrNotFound
+}
+func (s *stubProjectSvc) RemoveAvatar(context.Context, uuid.UUID) (*projectdom.Project, error) {
+	return nil, projectdom.ErrNotFound
+}
+
+func (s *stubProjectSvc) CountMembers(context.Context, uuid.UUID, projectdom.MemberFilter) (int64, error) {
+	return 0, nil
+}
+
+func (s *stubProjectSvc) ListMembers(context.Context, uuid.UUID, int, *string, projectdom.MemberFilter) ([]*projectdom.ProjectMember, bool, error) {
+	return nil, false, nil
+}
+
+func (s *stubProjectSvc) ListAllMembers(ctx context.Context, projectID uuid.UUID) ([]*projectdom.ProjectMember, error) {
+	s.listMembersCalls++
+	if s.listMembers != nil {
+		return s.listMembers(ctx, projectID)
+	}
+	return []*projectdom.ProjectMember{{ID: uuid.New(), ProjectID: projectID}}, nil
+}
+
+func (s *stubProjectSvc) CountDistinctAgentsByProjects(_ context.Context, _ []uuid.UUID) (int64, error) {
+	return 0, nil
+}
+
+func (s *stubProjectSvc) AddMember(ctx context.Context, projectID uuid.UUID, in projectdom.AddMemberInput) (*projectdom.ProjectMember, error) {
+	if s.addMember != nil {
+		return s.addMember(ctx, projectID, in)
+	}
+	return &projectdom.ProjectMember{ID: uuid.New(), ProjectID: projectID, UserID: in.UserID}, nil
+}
+
+func (s *stubProjectSvc) RemoveMember(ctx context.Context, projectID, userID uuid.UUID) error {
+	if s.removeMember != nil {
+		return s.removeMember(ctx, projectID, userID)
+	}
+	return nil
+}
+
+func (s *stubProjectSvc) AddAgentMember(_ context.Context, _, _, _ uuid.UUID, _ []uuid.UUID, _ *uuid.UUID) error {
+	return nil
+}
+func (s *stubProjectSvc) RemoveAgentMember(_ context.Context, _, _ uuid.UUID) error { return nil }
+func (s *stubProjectSvc) UpdateMemberDescription(_ context.Context, _, _ uuid.UUID, _ string) (*projectdom.ProjectMember, error) {
+	return nil, errors.New("not implemented in stub")
+}
+func (s *stubProjectSvc) RemoveMemberByMemberID(_ context.Context, _, _ uuid.UUID) error {
+	return errors.New("not implemented in stub")
+}
+
+// UpdateJevConfig is the one method CachedService adds on top of
+// projectdom.Service, picked up by assertion — see NewCachedService.
+func (s *stubProjectSvc) UpdateJevConfig(ctx context.Context, projectID uuid.UUID, apiKey, baseURL, model *string) (*projectdom.Project, error) {
+	s.updateJevConfigCalls++
+	if s.updateJevConfig != nil {
+		return s.updateJevConfig(ctx, projectID, apiKey, baseURL, model)
+	}
+	return &projectdom.Project{ID: projectID}, nil
+}
+
+// ---------------------------------------------------------------------------
+// GetByID
+// ---------------------------------------------------------------------------
+
+func TestCachedProject_GetByID_CacheMissPopulatesCache(t *testing.T) {
+	ctx := context.Background()
+	projectID := uuid.New()
+	stub := &stubProjectSvc{}
+	svc := projectsvc.NewCachedService(stub, newCacheStore(t), projectTTL, discardLogger())
+
+	// First call: cache miss.
+	p, err := svc.GetByID(ctx, projectID)
+	if err != nil {
+		t.Fatalf("GetByID (miss): %v", err)
+	}
+	if p.ID != projectID {
+		t.Fatalf("GetByID (miss): got ID %s, want %s", p.ID, projectID)
+	}
+	if stub.getByIDCalls != 1 {
+		t.Fatalf("expected 1 stub call, got %d", stub.getByIDCalls)
+	}
+
+	// Second call: cache hit.
+	p2, err := svc.GetByID(ctx, projectID)
+	if err != nil {
+		t.Fatalf("GetByID (hit): %v", err)
+	}
+	if p2.ID != projectID {
+		t.Fatalf("GetByID (hit): got ID %s, want %s", p2.ID, projectID)
+	}
+	if stub.getByIDCalls != 1 {
+		t.Fatalf("cache hit: stub should not be called again; got %d calls", stub.getByIDCalls)
+	}
+}
+
+func TestCachedProject_GetByID_ZeroTTLBypassesCache(t *testing.T) {
+	ctx := context.Background()
+	stub := &stubProjectSvc{}
+	svc := projectsvc.NewCachedService(stub, newCacheStore(t), 0, discardLogger())
+
+	for i := 0; i < 3; i++ {
+		if _, err := svc.GetByID(ctx, uuid.New()); err != nil {
+			t.Fatalf("call %d: %v", i, err)
+		}
+	}
+	if stub.getByIDCalls != 3 {
+		t.Fatalf("TTL=0 should bypass cache; want 3 calls, got %d", stub.getByIDCalls)
+	}
+}
+
+func TestCachedProject_Update_InvalidatesGetByID(t *testing.T) {
+	ctx := context.Background()
+	projectID := uuid.New()
+	stub := &stubProjectSvc{}
+	svc := projectsvc.NewCachedService(stub, newCacheStore(t), projectTTL, discardLogger())
+
+	// Populate cache.
+	if _, err := svc.GetByID(ctx, projectID); err != nil {
+		t.Fatalf("initial GetByID: %v", err)
+	}
+
+	// Update should evict the project key.
+	if _, err := svc.Update(ctx, projectID, projectdom.UpdateProjectInput{Name: "new"}); err != nil {
+		t.Fatalf("Update: %v", err)
+	}
+
+	// Must call stub again (cache evicted).
+	if _, err := svc.GetByID(ctx, projectID); err != nil {
+		t.Fatalf("GetByID after Update: %v", err)
+	}
+	if stub.getByIDCalls != 2 {
+		t.Fatalf("expected 2 stub calls, got %d", stub.getByIDCalls)
+	}
+}
+
+// TestCachedProject_UpdateJevConfig_InvalidatesGetByID is the regression test
+// for the save-then-test bug: UpdateJevConfig is the one write whose result is
+// only ever read back off the cached Project entity (JevAPIKeySecret/
+// JevBaseURL/JevModel are plain fields on it), so a write that didn't evict
+// the project key would leave the handler's own TestJevConfig — and every
+// Jev-dependent worker — reading the credentials the caller just replaced.
+func TestCachedProject_UpdateJevConfig_InvalidatesGetByID(t *testing.T) {
+	ctx := context.Background()
+	projectID := uuid.New()
+	stub := &stubProjectSvc{}
+	svc := projectsvc.NewCachedService(stub, newCacheStore(t), projectTTL, discardLogger())
+
+	// Populate cache.
+	if _, err := svc.GetByID(ctx, projectID); err != nil {
+		t.Fatalf("initial GetByID: %v", err)
+	}
+
+	// UpdateJevConfig should evict the project key.
+	baseURL := "https://jev.example.com"
+	if _, err := svc.UpdateJevConfig(ctx, projectID, nil, &baseURL, nil); err != nil {
+		t.Fatalf("UpdateJevConfig: %v", err)
+	}
+
+	// Must call the underlying service again (cache evicted).
+	if _, err := svc.GetByID(ctx, projectID); err != nil {
+		t.Fatalf("GetByID after UpdateJevConfig: %v", err)
+	}
+	if stub.getByIDCalls != 2 {
+		t.Fatalf("expected 2 stub calls, got %d", stub.getByIDCalls)
+	}
+}
+
+func TestCachedProject_Delete_InvalidatesAllProjectKeys(t *testing.T) {
+	ctx := context.Background()
+	projectID := uuid.New()
+	stub := &stubProjectSvc{}
+	svc := projectsvc.NewCachedService(stub, newCacheStore(t), projectTTL, discardLogger())
+
+	// Populate caches.
+	if _, err := svc.GetByID(ctx, projectID); err != nil {
+		t.Fatalf("GetByID: %v", err)
+	}
+	if _, err := svc.ListAllMembers(ctx, projectID); err != nil {
+		t.Fatalf("ListAllMembers: %v", err)
+	}
+
+	// Delete should evict both.
+	if err := svc.Delete(ctx, projectID); err != nil {
+		t.Fatalf("Delete: %v", err)
+	}
+
+	// Each should hit stub again.
+	if _, err := svc.GetByID(ctx, projectID); err != nil {
+		t.Fatalf("GetByID after Delete: %v", err)
+	}
+	if _, err := svc.ListAllMembers(ctx, projectID); err != nil {
+		t.Fatalf("ListAllMembers after Delete: %v", err)
+	}
+
+	if stub.getByIDCalls != 2 {
+		t.Fatalf("GetByID: expected 2 stub calls, got %d", stub.getByIDCalls)
+	}
+	if stub.listMembersCalls != 2 {
+		t.Fatalf("ListAllMembers: expected 2 stub calls, got %d", stub.listMembersCalls)
+	}
+}
+
+// ---------------------------------------------------------------------------
+// ListAllMembers
+// ---------------------------------------------------------------------------
+
+func TestCachedProject_ListMembers_CacheHit(t *testing.T) {
+	ctx := context.Background()
+	projectID := uuid.New()
+	stub := &stubProjectSvc{}
+	svc := projectsvc.NewCachedService(stub, newCacheStore(t), projectTTL, discardLogger())
+
+	if _, err := svc.ListAllMembers(ctx, projectID); err != nil {
+		t.Fatalf("ListAllMembers (miss): %v", err)
+	}
+	if _, err := svc.ListAllMembers(ctx, projectID); err != nil {
+		t.Fatalf("ListAllMembers (hit): %v", err)
+	}
+	if stub.listMembersCalls != 1 {
+		t.Fatalf("expected 1 stub call, got %d", stub.listMembersCalls)
+	}
+}
+
+func TestCachedProject_AddMember_InvalidatesMembersList(t *testing.T) {
+	ctx := context.Background()
+	projectID := uuid.New()
+	stub := &stubProjectSvc{}
+	svc := projectsvc.NewCachedService(stub, newCacheStore(t), projectTTL, discardLogger())
+
+	if _, err := svc.ListAllMembers(ctx, projectID); err != nil {
+		t.Fatalf("ListAllMembers: %v", err)
+	}
+	if _, err := svc.AddMember(ctx, projectID, projectdom.AddMemberInput{UserID: uuid.New(), RoleIDs: []uuid.UUID{uuid.New()}}); err != nil {
+		t.Fatalf("AddMember: %v", err)
+	}
+	if _, err := svc.ListAllMembers(ctx, projectID); err != nil {
+		t.Fatalf("ListAllMembers after AddMember: %v", err)
+	}
+	if stub.listMembersCalls != 2 {
+		t.Fatalf("expected 2 stub calls, got %d", stub.listMembersCalls)
+	}
+}
+
+func TestCachedProject_RemoveMember_InvalidatesMembersList(t *testing.T) {
+	ctx := context.Background()
+	projectID := uuid.New()
+	stub := &stubProjectSvc{}
+	svc := projectsvc.NewCachedService(stub, newCacheStore(t), projectTTL, discardLogger())
+
+	if _, err := svc.ListAllMembers(ctx, projectID); err != nil {
+		t.Fatalf("ListAllMembers: %v", err)
+	}
+	if err := svc.RemoveMember(ctx, projectID, uuid.New()); err != nil {
+		t.Fatalf("RemoveMember: %v", err)
+	}
+	if _, err := svc.ListAllMembers(ctx, projectID); err != nil {
+		t.Fatalf("ListAllMembers after RemoveMember: %v", err)
+	}
+	if stub.listMembersCalls != 2 {
+		t.Fatalf("expected 2 stub calls, got %d", stub.listMembersCalls)
+	}
+}
+
+// ---------------------------------------------------------------------------
+// Pass-through methods are delegated unchanged
+// ---------------------------------------------------------------------------
+
+func TestCachedProject_List_Passthrough(t *testing.T) {
+	ctx := context.Background()
+	called := false
+	stub := &stubProjectSvc{
+		list: func(_ context.Context, _, _ int) ([]*projectdom.Project, int64, error) {
+			called = true
+			return nil, 0, nil
+		},
+	}
+	svc := projectsvc.NewCachedService(stub, newCacheStore(t), projectTTL, discardLogger())
+	if _, _, err := svc.List(ctx, 1, 20); err != nil {
+		t.Fatalf("List: %v", err)
+	}
+	if !called {
+		t.Fatal("List should delegate to underlying service")
+	}
+}
+
+func TestCachedProject_GetByID_ServiceErrorPropagated(t *testing.T) {
+	ctx := context.Background()
+	sentinel := errors.New("not found")
+	stub := &stubProjectSvc{
+		getByID: func(_ context.Context, _ uuid.UUID) (*projectdom.Project, error) { return nil, sentinel },
+	}
+	svc := projectsvc.NewCachedService(stub, newCacheStore(t), projectTTL, discardLogger())
+
+	_, err := svc.GetByID(ctx, uuid.New())
+	if !errors.Is(err, sentinel) {
+		t.Fatalf("expected sentinel error, got %v", err)
+	}
+}
+
+// TestCachedProject_UpdateJevConfig_IsWiredByName guards the assertion-based
+// wiring in NewCachedService. The error names ErrJevConfigUnsupported rather
+// than something generic precisely because that is the only observable
+// difference between "the assertion matched" and "it didn't": a double that
+// does implement the method reaches its own copy and would pass either way.
+func TestCachedProject_UpdateJevConfig_IsWiredByName(t *testing.T) {
+	notWired := projectsvc.NewCachedService(nil, newCacheStore(t), projectTTL, discardLogger())
+	if _, err := notWired.UpdateJevConfig(context.Background(), uuid.New(), nil, nil, nil); !errors.Is(err, projectsvc.ErrJevConfigUnsupported) {
+		t.Errorf("expected ErrJevConfigUnsupported against an unwired service, got %v", err)
+	}
+}

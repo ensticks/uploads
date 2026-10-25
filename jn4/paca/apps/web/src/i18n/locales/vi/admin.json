@@ -1,0 +1,632 @@
+{
+	"users": {
+		"header": {
+			"title": "Quản lý người dùng",
+			"description": "Xem và quản lý tài khoản người dùng cùng vai trò được gán cho họ.",
+			"newUser": "Người dùng mới"
+		},
+		"stats": {
+			"userCount_one": "{{count}} người dùng",
+			"userCount_other": "{{count}} người dùng",
+			"inSystem": "trong hệ thống",
+			"mustChangePassword": "phải đổi mật khẩu"
+		},
+		"empty": {
+			"title": "Không tìm thấy người dùng nào",
+			"description": "Tạo người dùng đầu tiên của bạn để bắt đầu.",
+			"createUser": "Tạo người dùng"
+		},
+		"errors": {
+			"loadFailed": "Tải danh sách người dùng thất bại",
+			"tryAgain": "Vui lòng tải lại trang và thử lại."
+		},
+		"noPermission": {
+			"title": "Bạn không có quyền xem người dùng",
+			"description": "Bạn vẫn có thể tạo người dùng mới bằng nút phía trên."
+		},
+		"table": {
+			"columnUser": "Người dùng",
+			"columnRole": "Vai trò",
+			"columnCreated": "Ngày tạo",
+			"pwdResetBadge": "đặt lại mật khẩu",
+			"youBadge": "bạn",
+			"noFullName": "—",
+			"resetPasswordAction": "Đặt lại mật khẩu",
+			"editAction": "Chỉnh sửa người dùng",
+			"changeRoleAction": "Đổi vai trò",
+			"deleteAction": "Xóa người dùng",
+			"pwdResetHint": "Người dùng này phải đặt mật khẩu mới ở lần đăng nhập tiếp theo",
+			"columnActions": "Thao tác"
+		},
+		"formDialog": {
+			"createdTitle": "Đã tạo người dùng",
+			"createdDescriptionSuffix": "đã được tạo. Hãy chia sẻ mật khẩu tạm thời bên dưới — người dùng sẽ được yêu cầu đổi mật khẩu trong lần đăng nhập đầu tiên.",
+			"temporaryPasswordLabel": "Mật khẩu tạm thời",
+			"hidePassword": "Ẩn mật khẩu",
+			"showPassword": "Hiện mật khẩu",
+			"copyPassword": "Sao chép mật khẩu",
+			"passwordNotShownAgain": "Mật khẩu này sẽ không hiển thị lại. Hãy sao chép ngay bây giờ.",
+			"done": "Xong",
+			"editTitle": "Chỉnh sửa người dùng",
+			"createTitle": "Tạo người dùng",
+			"editDescription": "Cập nhật tên hiển thị và email của người dùng.",
+			"createDescription": "Một mật khẩu tạm thời an toàn sẽ được tạo tự động. Người dùng sẽ phải đổi mật khẩu trong lần đăng nhập đầu tiên.",
+			"roleStepDescription": "{{username}} đã được tạo với vai trò {{role}}. Giữ nguyên hoặc chọn vai trò khác.",
+			"stepIndicator": "{{step}} / {{total}}",
+			"usernameLabel": "Tên đăng nhập",
+			"usernamePlaceholder": "vd: john.doe",
+			"fullNameLabel": "Họ và tên",
+			"fullNamePlaceholder": "vd: John Doe",
+			"emailLabel": "Email",
+			"emailOptionalHint": "(tùy chọn — gửi email chào mừng kèm liên kết để đặt mật khẩu)",
+			"emailPlaceholder": "vd: john.doe@example.com",
+			"roleStep": {
+				"title": "Vai trò"
+			},
+			"cancel": "Hủy",
+			"continue": "Tiếp tục",
+			"saving": "Đang lưu…",
+			"creating": "Đang tạo…",
+			"saveChanges": "Lưu thay đổi",
+			"createUser": "Tạo người dùng",
+			"errors": {
+				"fullNameRequired": "Vui lòng nhập họ và tên.",
+				"invalidEmail": "Vui lòng nhập địa chỉ email hợp lệ.",
+				"usernameTaken": "Tên đăng nhập này đã được sử dụng.",
+				"emailTaken": "Email này đã được sử dụng.",
+				"userNotFound": "Không tìm thấy người dùng. Có thể người dùng đã bị xóa.",
+				"forbidden": "Bạn không có quyền thực hiện thao tác này.",
+				"noDefaultRole": "Chưa có vai trò mặc định để gán cho tài khoản mới. Hãy đặt một vai trò ở trang Vai trò toàn cục rồi thử lại.",
+				"internalError": "Đã xảy ra lỗi trên máy chủ. Vui lòng thử lại.",
+				"generic": "Đã xảy ra lỗi."
+			}
+		},
+		"roleDialog": {
+			"title": "Đổi vai trò",
+			"description": "Chọn vai trò cho {{username}}. Có hiệu lực từ yêu cầu tiếp theo của họ.",
+			"assign": "Gán vai trò",
+			"assigning": "Đang gán…",
+			"fullAccessWarning": "Vai trò này có toàn quyền truy cập. Có thể làm mọi việc, bao gồm quản lý người dùng và vai trò.",
+			"selfWarning": "Đây là tài khoản của chính bạn. Đổi vai trò có thể khiến bạn mất quyền truy cập trang này.",
+			"errors": {
+				"roleNotFound": "Vai trò đó không còn tồn tại. Hãy đóng hộp thoại này và thử lại."
+			}
+		},
+		"resetPasswordDialog": {
+			"title": "Đặt lại mật khẩu",
+			"descriptionSuccessPrefix": "Mật khẩu của",
+			"descriptionSuccessSuffix": "đã được đặt lại. Hãy chia sẻ mật khẩu tạm thời bên dưới — mật khẩu này sẽ không hiển thị lại.",
+			"descriptionConfirmPrefix": "Một mật khẩu tạm thời mạnh sẽ được tạo và gán cho",
+			"descriptionConfirmSuffix": "Họ sẽ phải đổi mật khẩu trong lần đăng nhập tiếp theo.",
+			"temporaryPasswordLabel": "Mật khẩu tạm thời",
+			"hidePassword": "Ẩn mật khẩu",
+			"showPassword": "Hiện mật khẩu",
+			"copyPassword": "Sao chép mật khẩu",
+			"notShownAgain": "⚠ Mật khẩu này sẽ không hiển thị lại sau khi đóng.",
+			"done": "Xong",
+			"cancel": "Hủy",
+			"resetting": "Đang đặt lại…",
+			"resetButton": "Đặt lại mật khẩu",
+			"errors": {
+				"userNotFound": "Người dùng này không còn tồn tại.",
+				"forbidden": "Bạn không có quyền đặt lại mật khẩu của người dùng này.",
+				"internalError": "Đã xảy ra lỗi. Vui lòng thử lại.",
+				"generic": "Đã xảy ra lỗi."
+			}
+		},
+		"deleteDialog": {
+			"title": "Xóa người dùng",
+			"confirmTextPrefix": "Bạn có chắc chắn muốn xóa",
+			"confirmTextSuffix": "? Tài khoản của họ sẽ bị xóa vĩnh viễn.",
+			"cannotBeUndone": "Hành động này không thể hoàn tác.",
+			"cancel": "Hủy",
+			"deleting": "Đang xóa…",
+			"confirmButton": "Xóa người dùng",
+			"errors": {
+				"userNotFound": "Người dùng này không còn tồn tại.",
+				"forbidden": "Bạn không có quyền xóa người dùng này.",
+				"internalError": "Đã xảy ra lỗi. Vui lòng thử lại.",
+				"generic": "Đã xảy ra lỗi."
+			}
+		},
+		"filters": {
+			"searchPlaceholder": "Tìm theo tên, tên người dùng hoặc email…",
+			"searchLabel": "Tìm người dùng",
+			"roleLabel": "Lọc theo vai trò",
+			"allRoles": "Tất cả vai trò",
+			"clearSearch": "Xóa tìm kiếm",
+			"resultsCount": "Kết quả: {{count}}",
+			"clearAll": "Xóa bộ lọc"
+		},
+		"noMatch": {
+			"title": "Không có người dùng phù hợp",
+			"description": "Hãy thử từ khóa hoặc bộ lọc vai trò khác.",
+			"clear": "Xóa bộ lọc"
+		}
+	},
+	"globalRoles": {
+		"header": {
+			"title": "Vai trò toàn cục",
+			"description": "Quản lý các vai trò trên toàn hệ thống và quyền hạn mà chúng cấp cho người dùng.",
+			"newRole": "Vai trò mới"
+		},
+		"stats": {
+			"roleCount_one": "{{count}} vai trò",
+			"roleCount_other": "{{count}} vai trò",
+			"defined": "đã định nghĩa",
+			"permissionGrants": "quyền hạn được cấp trên tất cả vai trò"
+		},
+		"empty": {
+			"title": "Chưa có vai trò nào được định nghĩa",
+			"description": "Tạo vai trò đầu tiên của bạn để bắt đầu quản lý quyền hạn người dùng.",
+			"createRole": "Tạo vai trò"
+		},
+		"errors": {
+			"loadFailed": "Tải danh sách vai trò thất bại",
+			"tryAgain": "Vui lòng tải lại trang và thử lại."
+		},
+		"noPermission": {
+			"title": "Bạn không có quyền xem vai trò",
+			"description": "Bạn vẫn có thể tạo vai trò mới bằng nút phía trên."
+		},
+		"table": {
+			"columnName": "Tên",
+			"columnDescription": "Mô tả",
+			"columnDefault": "Mặc định",
+			"noPermissionsAssigned": "Chưa gán quyền hạn nào",
+			"default": "Mặc định",
+			"setDefaultAction": "Đặt làm vai trò mặc định",
+			"editAction": "Chỉnh sửa vai trò",
+			"deleteAction": "Xóa vai trò",
+			"deleteDefaultDisabled": "Không thể xóa vai trò mặc định. Hãy đặt một vai trò khác làm mặc định trước.",
+			"builtIn": "Vai trò tích hợp sẵn",
+			"noDescription": "Không có mô tả"
+		},
+		"formDialog": {
+			"editTitle": "Chỉnh sửa vai trò",
+			"createTitle": "Tạo vai trò",
+			"editDescription": "Cập nhật tên vai trò và các quyền hạn được cấp.",
+			"createDescription": "Định nghĩa một vai trò mới trên toàn hệ thống và cấu hình quyền hạn của vai trò đó.",
+			"roleNameLabel": "Tên vai trò",
+			"roleNamePlaceholder": "vd: SECURITY_ADMIN",
+			"permissionsLabel": "Quyền hạn",
+			"enabledCount_one": "{{count}} đã bật",
+			"enabledCount_other": "{{count}} đã bật",
+			"cancel": "Hủy",
+			"saving": "Đang lưu…",
+			"saveChanges": "Lưu thay đổi",
+			"createRole": "Tạo vai trò"
+		},
+		"deleteDialog": {
+			"title": "Xóa vai trò",
+			"confirmTextPrefix": "Bạn có chắc chắn muốn xóa",
+			"confirmTextSuffix": "? Thao tác này cũng sẽ xóa tất cả các gán vai trò cho người dùng.",
+			"cannotBeUndone": "Hành động này không thể hoàn tác.",
+			"cancel": "Hủy",
+			"deleting": "Đang xóa…",
+			"confirmButton": "Xóa vai trò",
+			"errors": {
+				"roleNotFound": "Vai trò này không còn tồn tại.",
+				"isDefault": "Không thể xóa vai trò mặc định. Hãy đặt một vai trò khác làm mặc định trước.",
+				"forbidden": "Bạn không có quyền xóa vai trò này.",
+				"internalError": "Đã xảy ra lỗi. Vui lòng thử lại.",
+				"generic": "Đã xảy ra lỗi."
+			}
+		},
+		"permissions": {
+			"globalRolesRead": {
+				"label": "Xem vai trò toàn cục",
+				"description": "Xem định nghĩa các vai trò toàn cục"
+			},
+			"globalRolesWrite": {
+				"label": "Sửa vai trò toàn cục",
+				"description": "Tạo và cập nhật định nghĩa vai trò toàn cục"
+			},
+			"globalRolesAssign": {
+				"label": "Gán vai trò toàn cục",
+				"description": "Gán vai trò toàn cục cho người dùng"
+			},
+			"usersRead": {
+				"label": "Xem người dùng",
+				"description": "Xem hồ sơ và danh sách người dùng"
+			},
+			"usersWrite": {
+				"label": "Sửa người dùng",
+				"description": "Tạo và cập nhật tài khoản người dùng"
+			},
+			"usersDelete": {
+				"label": "Xóa người dùng",
+				"description": "Xóa tài khoản người dùng"
+			},
+			"projectsRead": {
+				"label": "Xem tất cả dự án",
+				"description": "Xem tất cả dự án trong không gian làm việc"
+			},
+			"projectsCreate": {
+				"label": "Tạo dự án",
+				"description": "Tạo dự án mới"
+			},
+			"projectsWrite": {
+				"label": "Sửa dự án",
+				"description": "Cập nhật thông tin dự án"
+			},
+			"projectsDelete": {
+				"label": "Xóa dự án",
+				"description": "Xóa vĩnh viễn dự án"
+			},
+			"projectMembersRead": {
+				"label": "Xem thành viên dự án",
+				"description": "Xem thành viên của bất kỳ dự án nào"
+			},
+			"projectMembersWrite": {
+				"label": "Sửa thành viên dự án",
+				"description": "Thêm, xóa và cập nhật thành viên trong bất kỳ dự án nào"
+			},
+			"projectRolesRead": {
+				"label": "Xem vai trò dự án",
+				"description": "Xem các vai trò được định nghĩa trong bất kỳ dự án nào"
+			},
+			"projectRolesWrite": {
+				"label": "Sửa vai trò dự án",
+				"description": "Tạo và cập nhật vai trò trong bất kỳ dự án nào"
+			},
+			"settingsWrite": {
+				"label": "Chỉnh sửa cài đặt không gian làm việc",
+				"description": "Cập nhật logo, favicon và màu chủ đạo của không gian làm việc"
+			},
+			"settingsSsoWrite": {
+				"label": "Quản lý nhà cung cấp SSO",
+				"description": "Cấu hình các nhà cung cấp danh tính dùng để đăng nhập. Quyền này cho phép đăng nhập với tư cách người dùng khác, nên hãy coi nó như quyền quản trị toàn phần."
+			},
+			"agentsRead": {
+				"label": "Xem tác nhân",
+				"description": "Xem các tác nhân AI cấp không gian làm việc"
+			},
+			"agentsWrite": {
+				"label": "Quản lý tác nhân",
+				"description": "Tạo, sửa và xóa các tác nhân AI cấp không gian làm việc"
+			},
+			"pluginsRead": {
+				"label": "Xem plugin",
+				"description": "Xem các plugin đã cài đặt"
+			},
+			"pluginsWrite": {
+				"label": "Quản lý plugin",
+				"description": "Cài đặt, cập nhật, bật và gỡ plugin"
+			},
+			"serviceAccountsRead": {
+				"label": "Xem tài khoản dịch vụ",
+				"description": "Xem tài khoản dịch vụ và khóa API của chúng"
+			},
+			"serviceAccountsWrite": {
+				"label": "Quản lý tài khoản dịch vụ",
+				"description": "Tạo, sửa, xóa tài khoản dịch vụ và cấp hoặc thu hồi khóa API"
+			}
+		},
+		"permissionGroups": {
+			"globalRoles": "Vai trò toàn cục",
+			"users": "Người dùng",
+			"agents": "Tác nhân AI",
+			"projects": "Dự án",
+			"plugins": "Plugin",
+			"settings": "Cài đặt",
+			"serviceAccounts": "Tài khoản dịch vụ"
+		},
+		"defaultDialog": {
+			"title": "Đặt vai trò mặc định",
+			"description": "Người dùng mới và agent toàn cục mới sẽ bắt đầu với vai trò {{role}}. Các tài khoản hiện có vẫn giữ vai trò hiện tại.",
+			"fullAccessWarning": "Vai trò này cấp mọi quyền, nên mọi tài khoản bạn tạo từ giờ sẽ bắt đầu với toàn quyền truy cập. Hãy chắc chắn đó là điều bạn muốn.",
+			"cancel": "Hủy",
+			"confirm": "Đặt làm mặc định",
+			"confirming": "Đang lưu…",
+			"errors": {
+				"roleNotFound": "Vai trò này không còn tồn tại.",
+				"forbidden": "Bạn không có quyền thay đổi vai trò mặc định.",
+				"generic": "Đã xảy ra lỗi. Vui lòng thử lại."
+			}
+		}
+	},
+	"rolePicker": {
+		"current": "Hiện tại",
+		"fullAccess": "Toàn quyền truy cập",
+		"loadFailed": "Không thể tải danh sách vai trò.",
+		"retry": "Thử lại",
+		"empty": "Chưa có vai trò nào được tạo.",
+		"default": "Mặc định"
+	},
+	"plugins": {
+		"title": "Cài đặt Plugin",
+		"description": "Quản lý thứ tự và khả năng hiển thị bảng plugin trên toàn hệ thống cho tất cả người dùng.",
+		"tabs": {
+			"marketplace": "Chợ Plugin",
+			"layout": "Bố cục điểm mở rộng"
+		},
+		"marketplace": {
+			"title": "Chợ Plugin",
+			"description": "Cài đặt hoặc gỡ cài đặt plugin từ danh mục công khai paca-plugins."
+		},
+		"layout": {
+			"title": "Bố cục điểm mở rộng",
+			"description": "Kéo để sắp xếp lại các bảng plugin trong từng điểm mở rộng. Bật/tắt khả năng hiển thị để hiện hoặc ẩn bảng cho tất cả người dùng."
+		}
+	},
+	"changelog": {
+		"title": "Có gì mới",
+		"description": "Theo dõi các cải tiến và điểm nổi bật từ những phiên bản Paca mới nhất.",
+		"current": "Phiên bản hiện tại",
+		"error": "Hiện không thể tải nhật ký thay đổi. Vui lòng thử lại sau.",
+		"empty": "Chưa có ghi chú phát hành nào."
+	},
+	"agents": {
+		"searchPlaceholder": "Tìm agent theo tên hoặc handle…",
+		"header": {
+			"title": "Agent toàn cục",
+			"description": "Quản lý các agent AI trò chuyện trên trang chủ và các trang quản trị, có thể được mời vào bất kỳ dự án nào.",
+			"newAgent": "Agent mới"
+		},
+		"empty": {
+			"title": "Chưa có agent toàn cục nào",
+			"description": "Tạo một agent toàn cục để có thể trò chuyện và mời vào dự án.",
+			"createAgent": "Tạo agent"
+		},
+		"noPermission": {
+			"title": "You don't have permission to view agents",
+			"description": "You can still create new agents using the button above."
+		}
+	},
+	"settings": {
+		"title": "Cài đặt không gian làm việc",
+		"description": "Tùy chọn thương hiệu và đăng nhập cho không gian làm việc này.",
+		"images": {
+			"title": "Logo và Favicon",
+			"logo": {
+				"label": "Logo",
+				"change": "Đổi logo",
+				"remove": "Xóa logo",
+				"uploading": "Đang tải lên…"
+			},
+			"favicon": {
+				"label": "Favicon",
+				"change": "Đổi favicon",
+				"remove": "Xóa favicon",
+				"uploading": "Đang tải lên…"
+			},
+			"errors": {
+				"invalidType": "Vui lòng chọn ảnh định dạng PNG, JPEG, WEBP hoặc GIF.",
+				"tooLarge": "Ảnh phải nhỏ hơn hoặc bằng 5 MB.",
+				"uploadFailed": "Tải ảnh lên thất bại. Vui lòng thử lại.",
+				"removeFailed": "Xóa ảnh thất bại. Vui lòng thử lại."
+			}
+		},
+		"general": {
+			"title": "Chung",
+			"brandNameLabel": "Tên thương hiệu",
+			"brandNamePlaceholder": "Paca",
+			"colorsLabel": "Màu chủ đạo",
+			"colorsDescription": "Chọn màu nhấn dùng cho nút bấm và điểm nhấn trên toàn bộ ứng dụng — màu sẽ tự động điều chỉnh cho chế độ sáng và tối.",
+			"colorPresets": {
+				"green": "Xanh lá",
+				"blue": "Xanh dương",
+				"teal": "Xanh ngọc",
+				"indigo": "Chàm",
+				"purple": "Tím",
+				"pink": "Hồng",
+				"red": "Đỏ",
+				"orange": "Cam"
+			},
+			"save": "Lưu thay đổi",
+			"saved": "Đã lưu",
+			"errors": {
+				"updateFailed": "Lưu thất bại. Vui lòng thử lại."
+			}
+		},
+		"sso": {
+			"title": "Đăng nhập một lần (SSO)",
+			"description": "Cho phép đăng nhập bằng nhà cung cấp danh tính OpenID Connect như Google, Microsoft Entra ID, Okta hoặc Keycloak.",
+			"add": "Thêm nhà cung cấp",
+			"empty": "Chưa có nhà cung cấp SSO nào. Người dùng đăng nhập bằng tên người dùng và mật khẩu.",
+			"enabled": "Đang bật",
+			"disabled": "Đang tắt",
+			"edit": "Sửa {{name}}",
+			"delete": "Xóa {{name}}",
+			"copy": "Sao chép",
+			"dialog": {
+				"createTitle": "Thêm nhà cung cấp SSO",
+				"editTitle": "Sửa nhà cung cấp SSO",
+				"description": "Đăng ký Paca làm ứng dụng OpenID Connect tại nhà cung cấp danh tính của bạn, sau đó nhập các thông tin được cấp.",
+				"cancel": "Hủy",
+				"save": "Lưu"
+			},
+			"fields": {
+				"displayName": "Tên hiển thị",
+				"displayNamePlaceholder": "SSO công ty",
+				"slug": "Mã định danh",
+				"slugHint": "Dùng trong URL đăng nhập và URL callback. Thay đổi sẽ làm hỏng URL callback đã đăng ký tại nhà cung cấp.",
+				"callbackUrl": "URL callback",
+				"callbackUrlHint": "Đăng ký URL này làm redirect URI tại nhà cung cấp danh tính.",
+				"issuerUrl": "URL issuer",
+				"issuerUrlHint": "Issuer OpenID Connect. Máy chủ Paca phải truy cập được tài liệu discovery của nó.",
+				"clientId": "Client ID",
+				"clientSecret": "Client secret",
+				"clientSecretKeepHint": "Đã lưu một secret. Để trống để giữ nguyên.",
+				"scopes": "Scope",
+				"scopesHint": "Phân tách bằng dấu cách. \"openid\" luôn được thêm vào.",
+				"allowedDomains": "Tên miền email được phép",
+				"allowedDomainsHint": "Phân tách bằng dấu phẩy. Để trống để cho phép mọi tên miền. Chỉ chấp nhận email đã xác minh.",
+				"enabled": "Bật",
+				"enabledHint": "Hiển thị nhà cung cấp này trên trang đăng nhập.",
+				"autoProvision": "Tự động tạo tài khoản",
+				"autoProvisionHint": "Người dùng lần đầu sẽ được tạo tài khoản mới với vai trò mặc định.",
+				"linkByEmail": "Liên kết tài khoản có sẵn qua email",
+				"linkByEmailHint": "Người dùng lần đầu có email đã xác minh trùng với một tài khoản có sẵn sẽ đăng nhập vào tài khoản đó.",
+				"linkByEmailWarning": "Chỉ bật với nhà cung cấp bạn hoàn toàn tin tưởng: ai kiểm soát nó đều có thể đăng nhập vào bất kỳ tài khoản nào có email trùng khớp, kể cả quản trị viên."
+			},
+			"deleteDialog": {
+				"title": "Xóa nhà cung cấp SSO",
+				"description": "Xóa \"{{name}}\"? Mọi người sẽ không thể đăng nhập bằng nó nữa và các tài khoản nó đã tạo sẽ mất liên kết. Bản thân các tài khoản vẫn được giữ lại.",
+				"confirm": "Xóa"
+			},
+			"errors": {
+				"slugTaken": "Mã định danh này đã được nhà cung cấp khác sử dụng.",
+				"discoveryFailed": "Không thể truy cập tài liệu discovery OpenID Connect của issuer. Hãy kiểm tra URL issuer.",
+				"invalid": "Một số trường không hợp lệ. Hãy kiểm tra mã định danh, URL issuer, client ID và tên miền email.",
+				"saveFailed": "Không thể lưu nhà cung cấp. Vui lòng thử lại.",
+				"loadFailed": "Không thể tải danh sách nhà cung cấp SSO.",
+				"deleteFailed": "Không thể xóa nhà cung cấp. Vui lòng thử lại."
+			}
+		}
+	},
+	"serviceAccounts": {
+		"searchPlaceholder": "Tìm theo tên hoặc mô tả…",
+		"header": {
+			"title": "Tài khoản dịch vụ",
+			"description": "Tài khoản không phải con người với khóa API và vai trò riêng, dùng cho tích hợp, CI và tự động hóa.",
+			"newAccount": "Tài khoản dịch vụ mới"
+		},
+		"empty": {
+			"title": "Chưa có tài khoản dịch vụ",
+			"description": "Hãy tạo một tài khoản để cấp cho tích hợp danh tính và khóa API riêng.",
+			"create": "Tạo tài khoản dịch vụ"
+		},
+		"errors": {
+			"loadFailed": "Không tải được tài khoản dịch vụ",
+			"tryAgain": "Vui lòng tải lại trang và thử lại."
+		},
+		"noPermission": {
+			"title": "Bạn không có quyền xem tài khoản dịch vụ",
+			"description": "Hãy nhờ quản trị viên không gian làm việc cấp quyền truy cập."
+		},
+		"table": {
+			"columnAccount": "Tài khoản",
+			"columnActions": "Thao tác",
+			"noDescription": "Không có mô tả",
+			"changeRoleAction": "Đổi vai trò",
+			"editAction": "Sửa tài khoản dịch vụ",
+			"deleteAction": "Xóa tài khoản dịch vụ",
+			"columnRole": "Vai trò"
+		},
+		"formDialog": {
+			"createTitle": "Tài khoản dịch vụ mới",
+			"editTitle": "Sửa tài khoản dịch vụ",
+			"createDescription": "Tài khoản bắt đầu không có quyền nào. Hãy tạo khóa API cho nó, rồi cấp vai trò.",
+			"editDescription": "Đổi tên, mô tả hoặc ảnh đại diện. Khóa API và vai trò được quản lý riêng.",
+			"nameLabel": "Tên",
+			"namePlaceholder": "vd. Bot triển khai CI",
+			"descriptionLabel": "Mô tả",
+			"descriptionPlaceholder": "Tài khoản này dùng để làm gì?",
+			"cancel": "Hủy",
+			"create": "Tạo",
+			"creating": "Đang tạo…",
+			"save": "Lưu",
+			"saving": "Đang lưu…",
+			"avatar": {
+				"change": "Đổi ảnh đại diện",
+				"remove": "Xóa ảnh đại diện",
+				"uploading": "Đang tải lên…",
+				"errors": {
+					"invalidType": "Hãy dùng ảnh PNG, JPEG, WebP hoặc GIF.",
+					"tooLarge": "Ảnh phải có dung lượng tối đa 5 MB.",
+					"uploadFailed": "Không tải được ảnh đại diện. Hãy thử lại.",
+					"removeFailed": "Không xóa được ảnh đại diện. Hãy thử lại."
+				}
+			},
+			"errors": {
+				"nameInvalid": "Tên phải dài từ 1 đến 100 ký tự.",
+				"descriptionTooLong": "Mô tả quá dài (tối đa 1000 ký tự).",
+				"notFound": "Tài khoản dịch vụ này không còn tồn tại.",
+				"generic": "Đã xảy ra lỗi. Hãy thử lại."
+			}
+		},
+		"deleteDialog": {
+			"title": "Xóa tài khoản dịch vụ",
+			"description": "Xóa “{{name}}”? Khóa API của tài khoản ngừng hoạt động ngay, vai trò và tư cách thành viên dự án bị gỡ bỏ. Không thể hoàn tác.",
+			"cancel": "Hủy",
+			"confirm": "Xóa",
+			"deleting": "Đang xóa…",
+			"error": "Không xóa được tài khoản dịch vụ. Hãy thử lại."
+		},
+		"keys": {
+			"nameLabel": "Tên khóa",
+			"namePlaceholder": "vd. GitHub Actions",
+			"expiryLabel": "Hết hạn",
+			"expiryOptional": "(tùy chọn)",
+			"create": "Tạo khóa",
+			"creating": "Đang tạo…",
+			"empty": "Chưa có khóa API.",
+			"revokeAria": "Thu hồi khóa {{name}}",
+			"reveal": {
+				"title": "Hãy sao chép khóa API mới",
+				"description": "Đây là lần duy nhất khóa đầy đủ được hiển thị. Hãy lưu ở nơi an toàn; nếu mất, hãy tạo khóa mới.",
+				"copyAria": "Sao chép khóa",
+				"copied": "Đã sao chép vào bộ nhớ tạm",
+				"done": "Xong"
+			},
+			"errors": {
+				"nameRequired": "Hãy đặt tên cho khóa.",
+				"nameTooLong": "Tên khóa quá dài (tối đa 100 ký tự).",
+				"createFailed": "Không tạo được khóa. Hãy đăng nhập bằng tài khoản của bạn (không dùng khóa API) rồi thử lại.",
+				"revokeFailed": "Không thu hồi được khóa. Hãy thử lại.",
+				"copyFailed": "Không sao chép được vào bộ nhớ tạm. Hãy chọn khóa và sao chép thủ công."
+			},
+			"revoke": {
+				"title": "Thu hồi khóa API",
+				"description": "Thu hồi “{{name}}”? Mọi thứ đang dùng khóa này sẽ ngừng hoạt động ngay. Không thể hoàn tác.",
+				"cancel": "Hủy",
+				"confirm": "Thu hồi khóa",
+				"revoking": "Đang thu hồi…"
+			},
+			"count": "Khóa API: {{count}}",
+			"newKey": "Khóa mới",
+			"createFirst": "Tạo khóa đầu tiên",
+			"createDialog": {
+				"title": "Tạo khóa API",
+				"description": "Khóa xác thực với tư cách tài khoản này. Chỉ hiển thị một lần ngay sau khi tạo.",
+				"cancel": "Hủy"
+			},
+			"row": {
+				"created": "Tạo ngày {{date}}",
+				"expires": "Hết hạn {{date}}",
+				"noExpiry": "Không hết hạn",
+				"lastUsed": "Dùng lần cuối {{date}}",
+				"neverUsed": "Chưa dùng"
+			}
+		},
+		"roleDialog": {
+			"title": "Đổi vai trò",
+			"description": "Chọn các vai trò không gian làm việc của {{name}}. Tài khoản chỉ làm được đúng những gì các vai trò này cho phép.",
+			"assign": "Lưu vai trò",
+			"assigning": "Đang lưu…",
+			"fullAccessWarning": "Vai trò này cấp mọi quyền. Bất kỳ ai giữ khóa API của tài khoản này đều có toàn quyền truy cập."
+		},
+		"detail": {
+			"notFound": {
+				"title": "Không tìm thấy tài khoản dịch vụ",
+				"description": "Có thể tài khoản đã bị xóa."
+			},
+			"roles": {
+				"description": "Những gì tài khoản này làm được trong không gian làm việc. Tài khoản mới chưa có vai trò nào.",
+				"none": "Chưa có vai trò: tài khoản này chưa làm được gì.",
+				"change": "Đổi vai trò",
+				"noneHint": "Hãy cấp một vai trò để tài khoản có thể làm việc.",
+				"readOnly": "Bạn có thể xem vai trò của tài khoản này nhưng không thể thay đổi."
+			},
+			"badge": "Tài khoản dịch vụ",
+			"tabs": {
+				"overview": "Tổng quan",
+				"apiKeys": "Khóa API",
+				"roles": "Vai trò"
+			},
+			"overview": {
+				"descriptionHint": "Hiển thị trong danh sách tài khoản và khi mời vào dự án.",
+				"saveChanges": "Lưu thay đổi",
+				"saved": "Đã lưu",
+				"saveFailed": "Không lưu được thay đổi. Hãy thử lại.",
+				"idLabel": "ID",
+				"createdLabel": "Ngày tạo",
+				"updatedLabel": "Cập nhật",
+				"deleteTitle": "Xóa tài khoản dịch vụ này",
+				"deleteHint": "Khóa API ngừng hoạt động, vai trò và tư cách thành viên dự án bị gỡ bỏ."
+			}
+		}
+	}
+}

@@ -1,0 +1,199 @@
+{
+	"activityPane": {
+		"resize": "アクティビティパネルのサイズを変更",
+		"title": "アクティビティ",
+		"empty": "アクティビティはまだありません",
+		"emptyComments": "コメントはまだありません",
+		"showAllActivity": "すべてのアクティビティを表示",
+		"filter": {
+			"label": "アクティビティをフィルター",
+			"comments": "コメント",
+			"all": "すべてのアクティビティ"
+		},
+		"editingComment": "コメントを編集中...",
+		"cancel": "キャンセル",
+		"sendHint": "⌘↵ で送信",
+		"systemActor": "システム",
+		"editing": "編集中",
+		"edit": "編集",
+		"delete": "削除",
+		"viewDiff": "差分を表示",
+		"revert": "元に戻す",
+		"errors": {
+			"revertFailed": "元に戻せませんでした。もう一度お試しください。"
+		}
+	},
+	"contentDiff": {
+		"emptyLine": "（空行）",
+		"noDifferences": "テキストの差分はありません",
+		"diffTooLarge": "差分が大きすぎてプレビューできません（{{lines}} 行）",
+		"collapsedLines": "変更のない{{count}}行を非表示",
+		"changeDiff": "変更差分",
+		"removed": "削除",
+		"added": "追加"
+	},
+	"home": {
+		"updateBanner": {
+			"title": "アップデートがあります",
+			"upstream": "Paca が {{version}} をリリースしました。",
+			"fork": "あなたのバージョン {{version}} が利用可能です。",
+			"current": "現在 {{version}} を使用中です。",
+			"viewRelease": "リリースを見る",
+			"dismiss": "閉じる"
+		},
+		"greeting": {
+			"morning": "おはようございます",
+			"afternoon": "こんにちは",
+			"evening": "こんばんは",
+			"fallbackName": "さん"
+		},
+		"hero": {
+			"badge": "スクラムバン ワークスペース",
+			"subtitleWithProjects_one": "現在{{count}}件のアクティブなプロジェクトがあります。続きから始めましょう。",
+			"subtitleWithProjects_other": "現在{{count}}件のアクティブなプロジェクトがあります。続きから始めましょう。",
+			"subtitleEmpty": "ワークスペースの準備ができました。プロジェクトを作成し、チームを招待して、作業を始めましょう。",
+			"newProject": "新しいプロジェクト"
+		},
+		"stats": {
+			"projects": {
+				"label": "プロジェクト",
+				"subEmpty": "プロジェクトはまだありません",
+				"subActive": "{{count}}件がアクティブ"
+			},
+			"openTasks": {
+				"label": "未完了タスク",
+				"sub": "全プロジェクト合計"
+			},
+			"teamMembers": {
+				"label": "チームメンバー",
+				"sub": "あなたを含む"
+			},
+			"aiAgents": {
+				"label": "AIエージェント",
+				"sub": "未設定",
+				"subActive": "{{count}}件設定済み"
+			}
+		},
+		"myTasks": {
+			"title": "自分のタスク",
+			"subtitle": "全プロジェクトで自分に割り当てられた未完了タスク",
+			"emptyTitle": "すべて対応済みです",
+			"emptyDescription": "現在、割り当てられた未完了タスクはありません。",
+			"loadError": "タスクを読み込めませんでした。もう一度お試しください。",
+			"loadMore": "もっと読み込む",
+			"loading": "読み込み中…"
+		},
+		"projectsSection": {
+			"title": "プロジェクト",
+			"countInWorkspace_one": "ワークスペース内に{{count}}件のプロジェクト",
+			"countInWorkspace_other": "ワークスペース内に{{count}}件のプロジェクト",
+			"newShort": "新規",
+			"newProjectCard": "新しいプロジェクト",
+			"loadMore": "プロジェクトをもっと読み込む",
+			"loadingMore": "読み込み中…"
+		},
+		"projectCard": {
+			"noDescription": "説明はありません"
+		},
+		"gettingStarted": {
+			"title": "はじめに",
+			"progress": "{{completed}} / {{total}}",
+			"subtitle": "以下のステップを完了して、Pacaの機能をフル活用しましょう。",
+			"steps": {
+				"createProject": {
+					"title": "最初のプロジェクトを作成する",
+					"description": "チームの作業を管理するスクラムバンボードをセットアップします。"
+				},
+				"inviteTeam": {
+					"title": "チームを招待する",
+					"description": "人間のメンバーを追加し、ロールを割り当てます。"
+				},
+				"configureAgent": {
+					"title": "AIエージェントを設定する",
+					"description": "タスクを自律的に処理するAIを接続します。"
+				},
+				"runSprint": {
+					"title": "最初のスプリントを実行する",
+					"description": "計画 → 実行 → 確認 → 適応 のサイクルでタスクを進めます。"
+				}
+			}
+		},
+		"quickActions": {
+			"title": "クイックアクション",
+			"newProject": {
+				"label": "新しいプロジェクト",
+				"description": "スクラムバンボードを作成"
+			},
+			"inviteTeam": {
+				"label": "チームを招待",
+				"description": "メンバーやエージェントを追加"
+			},
+			"addAiAgent": {
+				"label": "AIエージェントを追加",
+				"description": "自動化を設定"
+			}
+		},
+		"about": {
+			"title": "Pacaの仕組み",
+			"descriptionLead": "人間の創造力とAIのスピードを、共有のスクラムバンボード上で組み合わせます。タスクは",
+			"workflow": "計画 → 実行 → 確認 → 適応",
+			"descriptionTrail": "というサイクルを流れ、人間とAIどちらが何を行ったかも完全に可視化されます。",
+			"openSource": "オープンソース・Apache-2.0"
+		},
+		"createDialog": {
+			"title": "新しいプロジェクト",
+			"description": "チーム向けのスクラムバンワークスペースを作成します。作成後にメンバーを招待したり、設定を変更したりできます。",
+			"nameLabel": "プロジェクト名 *",
+			"namePlaceholder": "例: Platform v3",
+			"prefixLabel": "タスクIDプレフィックス",
+			"prefixHint": "（例: PACA）",
+			"prefixPlaceholder": "PROJ",
+			"prefixExampleLead": "タスクには次のようなラベルが付きます:",
+			"descriptionLabel": "説明",
+			"optionalHint": "（任意）",
+			"descriptionPlaceholder": "このプロジェクトについて教えてください",
+			"cancel": "キャンセル",
+			"submit": "プロジェクトを作成",
+			"errors": {
+				"nameRequired": "プロジェクト名を入力してください。",
+				"nameTaken": "この名前のプロジェクトは既に存在します。",
+				"nameInvalid": "プロジェクト名が空か無効です。",
+				"prefixInvalid": "プレフィックスは1〜10文字の大文字英数字で入力してください（例: PACA）。",
+				"generic": "問題が発生しました。もう一度お試しください。"
+			}
+		},
+		"legacyPluginsBanner": {
+			"title_one": "プラグインの更新が必要です",
+			"title_other": "プラグインの更新が必要です",
+			"description_one": "{{names}} は旧式の権限モデル requirePermissions を使用しています。動作は続きますが、作者が requireActions を使うバージョンを公開するまで、再インストールもアップグレードもできません。",
+			"description_other": "{{names}} は旧式の権限モデル requirePermissions を使用しています。動作は続きますが、作者が requireActions を使うバージョンを公開するまで、再インストールもアップグレードもできません。",
+			"manage": "プラグインを管理",
+			"dismiss": "閉じる"
+		}
+	},
+	"roleChange": {
+		"adding": "追加",
+		"removing": "削除",
+		"noChanges": "まだ変更はありません。上でロールを選択または解除してください。"
+	},
+	"roleBadge": {
+		"fullAccess": "フルアクセス",
+		"builtIn": "組み込み",
+		"default": "デフォルト",
+		"current": "現在",
+		"noDescription": "説明なし",
+		"noRoles": "ロールなし",
+		"showMore": "他のロールを表示 (+{{count}})",
+		"allRoles": "すべてのロール ({{count}})"
+	},
+	"roleSelect": {
+		"searchLabel": "ロールを検索",
+		"searchPlaceholder": "ロールを検索…",
+		"clearSearch": "検索をクリア",
+		"noMatch": "「{{query}}」に一致するロールはありません",
+		"selectedCount": "選択中: {{count}}",
+		"minOne": "ロールは1つ以上必要です。",
+		"clear": "クリア",
+		"placeholder": "ロールを選択"
+	}
+}

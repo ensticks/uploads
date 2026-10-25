@@ -1,0 +1,48 @@
+{
+	"common": {
+		"notFound": "Not found",
+		"somethingWentWrong": "Something went wrong",
+		"retry": "Retry",
+		"noPermissionToView": "You don't have permission to view this",
+		"loadMore": "加载更多",
+		"loadingMore": "正在加载更多…"
+	},
+	"dialog": {
+		"closeLabel": "关闭",
+		"closeButton": "关闭"
+	},
+	"sidebar": {
+		"title": "侧边栏",
+		"description": "显示移动端侧边栏。",
+		"toggleLabel": "切换侧边栏"
+	},
+	"validation": {
+		"usernameRequired": "用户名不能为空。",
+		"usernameMinLength": "用户名长度至少为 {{min}} 个字符。",
+		"passwordRequired": "密码不能为空。",
+		"passwordMinLength": "密码长度至少为 {{min}} 个字符。",
+		"newPasswordRequired": "新密码不能为空。",
+		"newPasswordMinLength": "新密码长度至少为 {{min}} 个字符。",
+		"newPasswordMustDiffer": "新密码不能与当前密码相同。",
+		"confirmPasswordRequired": "请确认您的新密码。",
+		"passwordsDoNotMatch": "两次输入的密码不一致。"
+	},
+	"timeAgo": {
+		"justNow": "刚刚",
+		"minutes_one": "{{count}} 分钟前",
+		"minutes_other": "{{count}} 分钟前",
+		"hours_one": "{{count}} 小时前",
+		"hours_other": "{{count}} 小时前",
+		"days_one": "{{count}} 天前",
+		"days_other": "{{count}} 天前"
+	},
+	"pagination": {
+		"navLabel": "分页导航",
+		"previous": "上一页",
+		"next": "下一页",
+		"page": "第 {{page}} 页",
+		"pageOfTotal": "第 {{page}} 页,共 {{totalPages}} 页",
+		"rowsPerPage": "每页行数",
+		"range": "第 {{from}}–{{to}} 条，共 {{total}} 条"
+	}
+}

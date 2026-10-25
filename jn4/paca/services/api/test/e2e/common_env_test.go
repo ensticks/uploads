@@ -1,0 +1,602 @@
+// Package e2e_test contains end-to-end smoke tests for the Paca API service.
+// Tests spin up real Postgres and Redis containers via testcontainers-go,
+// apply migrations, wire the full service stack, and exercise the complete
+// HTTP request flow against an in-process httptest.Server.
+//
+// Run with: PACA_E2E=1 go test ./test/e2e/... -v -timeout 300s
+package e2e_test
+
+import (
+	"context"
+	"crypto/sha256"
+	"encoding/hex"
+	"encoding/json"
+	"fmt"
+	"log/slog"
+	"net/http"
+	"net/http/cookiejar"
+	"net/http/httptest"
+	"os"
+	"path/filepath"
+	"runtime"
+	"strings"
+	"sync/atomic"
+	"testing"
+	"time"
+
+	"github.com/google/uuid"
+	"github.com/jmoiron/sqlx"
+	"github.com/redis/go-redis/v9"
+	"github.com/testcontainers/testcontainers-go"
+	"github.com/testcontainers/testcontainers-go/wait"
+
+	"github.com/Paca-AI/api/internal/platform/authz/iam"
+	"github.com/Paca-AI/api/internal/platform/cache"
+	"github.com/Paca-AI/api/internal/platform/database"
+	"github.com/Paca-AI/api/internal/platform/messaging"
+	"github.com/Paca-AI/api/internal/platform/storage"
+	jwttoken "github.com/Paca-AI/api/internal/platform/token"
+	pgRepo "github.com/Paca-AI/api/internal/repository/postgres"
+	redisRepo "github.com/Paca-AI/api/internal/repository/redis"
+	activitysvc "github.com/Paca-AI/api/internal/service/activity"
+	agentsvc "github.com/Paca-AI/api/internal/service/agent"
+	apikeysvc "github.com/Paca-AI/api/internal/service/apikey"
+	attachmentsvc "github.com/Paca-AI/api/internal/service/attachment"
+	authsvc "github.com/Paca-AI/api/internal/service/auth"
+	automationsvc "github.com/Paca-AI/api/internal/service/automation"
+	docsvc "github.com/Paca-AI/api/internal/service/doc"
+	exportsvc "github.com/Paca-AI/api/internal/service/export"
+	projectsvc "github.com/Paca-AI/api/internal/service/project"
+	rolesvc "github.com/Paca-AI/api/internal/service/role"
+	serviceaccountsvc "github.com/Paca-AI/api/internal/service/serviceaccount"
+	sprintsvc "github.com/Paca-AI/api/internal/service/sprint"
+	ssosvc "github.com/Paca-AI/api/internal/service/sso"
+	tasksvc "github.com/Paca-AI/api/internal/service/task"
+	usersvc "github.com/Paca-AI/api/internal/service/user"
+	"github.com/Paca-AI/api/internal/transport/http/handler"
+	httpmw "github.com/Paca-AI/api/internal/transport/http/middleware"
+	"github.com/Paca-AI/api/internal/transport/http/router"
+)
+
+// noopMemberCacheInvalidator satisfies agentsvc's projectMemberWriter
+// dependency without wiring a real members cache into the e2e harness — the
+// e2e suite doesn't exercise cache invalidation, only the agent CRUD /
+// ACP-bridge HTTP surface. It embeds the real *projectsvc.Service (not the
+// caching decorator); only InvalidateMembersCache, which the base Service
+// doesn't implement, is stubbed out.
+type noopMemberCacheInvalidator struct {
+	*projectsvc.Service
+}
+
+func (noopMemberCacheInvalidator) InvalidateMembersCache(context.Context, uuid.UUID) error {
+	return nil
+}
+
+const (
+	e2eJWTSecret         = "e2e-test-secret-value-that-is-at-least-32-chars"
+	e2eAccessTTL         = 15 * time.Minute
+	e2eRefreshTTL        = 48 * time.Hour
+	e2eRefreshSessionTTL = 24 * time.Hour
+)
+
+// sharedPGDSN, sharedRedisURL, and sharedStorageEndpoint are populated once by
+// TestMain so that every newE2EEnv call reuses the same containers.
+var (
+	sharedPGDSN           string
+	sharedRedisURL        string
+	sharedStorageEndpoint string // host:port reachable from the test process
+
+	// testDBSeq is incremented for each newE2EEnv call to generate a unique
+	// per-test Postgres database name. This ensures seed data (e.g. users)
+	// created in one test cannot conflict with another.
+	testDBSeq atomic.Int64
+)
+
+type e2eEnv struct {
+	ctx            context.Context
+	base           string
+	client         *http.Client
+	userService    *usersvc.Service
+	userRepo       *pgRepo.UserRepository
+	roleRepo       *pgRepo.RoleRepository
+	roleSvc        *rolesvc.Service
+	authz          *iam.Authorizer
+	projectRepo    *pgRepo.ProjectRepository
+	projectSvc     *projectsvc.Service
+	taskRepo       *pgRepo.TaskRepository
+	taskSvc        *tasksvc.Service
+	sprintRepo     *pgRepo.SprintRepository
+	sprintSvc      *sprintsvc.Service
+	viewRepo       *pgRepo.ViewRepository
+	viewSvc        *sprintsvc.ViewService
+	attachmentRepo *pgRepo.AttachmentRepository
+	attachmentSvc  *attachmentsvc.Service
+	apiKeyRepo     *pgRepo.APIKeyRepository
+	apiKeySvc      *apikeysvc.Service
+	automationRepo *pgRepo.AutomationRepository
+	automationSvc  *automationsvc.Service
+	agentRepo      *pgRepo.AgentRepository
+	agentSvc       *agentsvc.Service
+	activitySvc    *tasksvc.ActivitySvc
+	redisClient    *redis.Client // shared Valkey client, for per-test worker/consumer wiring
+	db             *sqlx.DB      // raw connection for per-test service wiring
+}
+
+func newE2EEnv(t *testing.T) *e2eEnv {
+	if os.Getenv("PACA_E2E") != "1" {
+		t.Skip("set PACA_E2E=1 to run e2e tests (requires Docker)")
+	}
+	checkDockerAvailable(t)
+
+	ctx := t.Context()
+
+	redisURL := sharedRedisURL
+
+	// Provision a per-test Postgres database so that seed data from one test
+	// (e.g. a user with a hardcoded username) cannot conflict with another.
+	seq := testDBSeq.Add(1)
+	testDBName := fmt.Sprintf("e2e_%04d", seq)
+	adminLog := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelWarn}))
+	adminDB, adminErr := database.Open(database.Config{DSN: sharedPGDSN}, adminLog)
+	if adminErr != nil {
+		t.Fatalf("open admin db for test isolation: %v", adminErr)
+	}
+	if _, createErr := adminDB.ExecContext(ctx, fmt.Sprintf(`CREATE DATABASE %q`, testDBName)); createErr != nil {
+		_ = adminDB.Close()
+		t.Fatalf("create per-test database %q: %v", testDBName, createErr)
+	}
+	t.Cleanup(func() {
+		bgCtx := context.Background()
+		_, _ = adminDB.ExecContext(bgCtx,
+			"SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = $1 AND pid <> pg_backend_pid()",
+			testDBName,
+		)
+		_, _ = adminDB.ExecContext(bgCtx, fmt.Sprintf(`DROP DATABASE IF EXISTS %q`, testDBName))
+		_ = adminDB.Close()
+	})
+	pgDSN := strings.Replace(sharedPGDSN, "/testdb?", "/"+testDBName+"?", 1)
+
+	log := slog.New(slog.NewTextHandler(os.Stdout, nil))
+
+	dbCfg := database.Config{DSN: pgDSN}
+	db, err := database.Open(dbCfg, log)
+	if err != nil {
+		// Postgres in fresh containers can briefly accept TCP before it is fully ready.
+		deadline := time.Now().Add(15 * time.Second)
+		for time.Now().Before(deadline) {
+			select {
+			case <-ctx.Done():
+				t.Fatalf("open database: context canceled while waiting for postgres: %v", ctx.Err())
+			default:
+			}
+
+			time.Sleep(300 * time.Millisecond)
+			db, err = database.Open(dbCfg, log)
+			if err == nil {
+				break
+			}
+		}
+		if err != nil {
+			t.Fatalf("open database: %v", err)
+		}
+	}
+	sqlDB := db.DB
+
+	_, thisFile, _, _ := runtime.Caller(0)
+	migrationsDir := filepath.Join(filepath.Dir(thisFile), "..", "..", "migrations")
+	if err := database.RunMigrations(sqlDB, migrationsDir); err != nil {
+		t.Fatalf("run migrations: %v", err)
+	}
+
+	redisClient, err := cache.NewClient(redisURL, log)
+	if err != nil {
+		t.Fatalf("open redis client: %v", err)
+	}
+
+	// Cleanup must close sqlDB BEFORE dropping the database to avoid blocking
+	// the DROP DATABASE command with active connections
+	// The cleanup order is important: LIFO (Last-In, First-Out)
+	// 1. redisClient.Close() - closes Redis connection
+	// 2. sqlDB.Close() - closes test DB connection (must happen before DROP)
+	// 3. DROP DATABASE - drops the test DB (registered earlier)
+	t.Cleanup(func() { _ = redisClient.Close() })
+	t.Cleanup(func() {
+		if sqlDB != nil {
+			_ = sqlDB.Close()
+		}
+	})
+
+	tm := jwttoken.New(e2eJWTSecret, e2eAccessTTL, e2eRefreshTTL)
+	userRepo := pgRepo.NewUserRepository(db)
+	roleRepo := pgRepo.NewRoleRepository(db)
+	seedShippedRoles(t, db)
+	authorizer := pgRepo.NewIAMAuthorizer(db)
+	roleService := rolesvc.New(roleRepo, authorizer, authorizer, authorizer.Registry(), authorizer.Schema())
+	refreshStore := redisRepo.NewRefreshTokenStore(redisClient)
+	authService := authsvc.New(userRepo, tm, refreshStore, e2eRefreshTTL, e2eRefreshSessionTTL)
+	userService := usersvc.New(userRepo, e2eActionsReader{authorizer})
+	agentRepo := pgRepo.NewAgentRepository(db)
+	projectRepo := pgRepo.NewProjectRepository(db)
+	taskRepo := pgRepo.NewTaskRepository(db)
+	projectService := projectsvc.New(projectRepo, taskRepo, agentRepo).WithRoleInvalidator(authorizer)
+	taskService := tasksvc.New(taskRepo)
+	// A real (non-nil) publisher is required so that task.updated activity
+	// events actually reach StreamActivities — otherwise a per-test
+	// worker.AutomationConsumer would never observe task status changes made
+	// through the HTTP API. Declared before sprintService below for the same
+	// reason: a sprint reaching sprint_started/etc. must durably reach
+	// StreamSprintActivities too (see sprintsvc.Service.publishSprintActivity),
+	// not just the fire-and-forget pub/sub channel a nil publisher would
+	// silently no-op. This is a cheap, fire-and-forget XAdd for every other
+	// e2e test too (no consumer group drains it unless a test starts one),
+	// so it doesn't affect their behavior or teardown time.
+	publisher := messaging.NewPublisher(redisClient, log)
+	sprintRepo := pgRepo.NewSprintRepository(db)
+	sprintService := sprintsvc.New(sprintRepo, taskRepo, publisher)
+	viewRepo := pgRepo.NewViewRepository(db)
+	viewService := sprintsvc.NewViewService(viewRepo, sprintRepo, taskRepo, nil)
+	attachmentRepo := pgRepo.NewAttachmentRepository(db)
+	apiKeyRepo := pgRepo.NewAPIKeyRepository(db)
+	apiKeyService := apikeysvc.New(apiKeyRepo)
+	activityLog := activitysvc.New(pgRepo.NewActivityRepository(db), projectRepo, activitysvc.NewRecorder(publisher))
+	activityService := tasksvc.NewActivityService(activityLog, taskRepo, projectRepo)
+	docRepo := pgRepo.NewDocumentRepository(db)
+	docService := docsvc.New(docRepo, projectRepo)
+	docActivityService := docsvc.NewActivityService(activityLog, docRepo)
+	automationRepo := pgRepo.NewAutomationRepository(db)
+	automationService := automationsvc.New(automationRepo, taskRepo, projectRepo, publisher)
+	pluginRepoForAgent := pgRepo.NewPluginRepository(db)
+	agentService := agentsvc.New(agentRepo, noopMemberCacheInvalidator{Service: projectService}, publisher, pluginRepoForAgent)
+	var attachmentService *attachmentsvc.Service
+	if sharedStorageEndpoint != "" {
+		storageEndpoint := sharedStorageEndpoint
+		storageClient, storageErr := storage.NewS3Client(ctx, storage.S3Config{
+			Endpoint:        "http://" + storageEndpoint,
+			Region:          "us-east-1",
+			AccessKeyID:     "rustfsadmin",
+			SecretAccessKey: "rustfsadmin",
+			ForcePathStyle:  true,
+		})
+		if storageErr != nil {
+			t.Fatalf("init storage client: %v", storageErr)
+		}
+		const attachBucket = "paca-attachments-e2e"
+		if err := storageClient.EnsureBucket(ctx, attachBucket); err != nil {
+			t.Fatalf("ensure bucket: %v", err)
+		}
+		attachmentService = attachmentsvc.New(attachmentRepo, attachmentsvc.NewTaskOwnerChecker(taskRepo), attachmentsvc.NewDocOwnerChecker(docRepo), storageClient, attachBucket)
+	}
+
+	cookieCfg := handler.CookieConfig{
+		Secure:            false,
+		AccessTTL:         e2eAccessTTL,
+		RefreshTTL:        e2eRefreshTTL,
+		RefreshSessionTTL: e2eRefreshSessionTTL,
+	}
+	authHandler := handler.NewAuthHandler(authService, cookieCfg)
+	// Empty public URL: the callback URL is derived from the request's
+	// Host, i.e. this test server's own address.
+	ssoHandler := handler.NewSSOHandler(
+		ssosvc.New(pgRepo.NewSSORepository(db), redisRepo.NewSSOStateStore(redisClient, 10*time.Minute),
+			userRepo, userService, authService, log),
+		authHandler, "")
+	engine := router.New(router.Deps{
+		TokenManager:        tm,
+		APIKeyAuth:          apiKeyService,
+		IAM:                 authorizer,
+		AgentEnvironments:   httpmw.AgentRepoLookups{Repo: agentRepo},
+		MemberPrincipals:    httpmw.MemberRepoLookup{Repo: projectRepo},
+		TaskNumbers:         taskRepo,
+		SessionEnvironments: httpmw.AgentRepoLookups{Repo: agentRepo},
+		Health:              handler.NewHealthHandler(),
+		Auth:                authHandler,
+		SSO:                 ssoHandler,
+		User:                handler.NewUserHandler(userService),
+		Role:                handler.NewRoleHandler(roleService),
+		RoleAttachments:     httpmw.NewRoleServiceAttachments(roleService),
+		Project: handler.NewProjectHandler(projectService, authorizer,
+			// Same Jev wiring as bootstrap/app.go (nil encryptor: keys are
+			// stored as plaintext, as on an instance without ENCRYPTION_KEY),
+			// plus a plain transport so jev-config/test can reach a test's
+			// local fake Jev server, which the SSRF-safe default would reject.
+			handler.WithProjectJevConfigService(projectService, nil),
+			handler.WithProjectJevHTTPClient(&http.Client{Timeout: 10 * time.Second})),
+		Task: handler.NewTaskHandler(taskService, viewService, activityService,
+			handler.WithTaskAssignedProjectService(projectService),
+			// Records which fields a human explicitly set, so the Jev
+			// autofill consumer never overwrites them — as in bootstrap/app.go.
+			handler.WithTaskAutofillRepository(taskRepo)),
+		Sprint:       handler.NewSprintHandler(sprintService, viewService),
+		Document:     handler.NewDocumentHandler(docService, docActivityService),
+		View:         handler.NewViewHandler(viewService),
+		Attachment:   handler.NewAttachmentHandler(attachmentService),
+		APIKey:       handler.NewAPIKeyHandler(apiKeyService),
+		Automation:   handler.NewAutomationHandler(automationService),
+		Agent:        handler.NewAgentHandler(agentService, "", "", "").WithMemberRepo(projectRepo).WithActivityLister(activityLog),
+		Conversation: handler.NewConversationHandler(agentService).WithMemberRepo(projectRepo),
+		// Only the list/read paths of exports are exercised: nothing here
+		// builds or downloads one, so no object store is attached.
+		ProjectExport: handler.NewProjectExportHandler(exportsvc.New(
+			pgRepo.NewProjectExportRepository(db), projectRepo, projectRepo, taskRepo, sprintRepo,
+			docRepo, pgRepo.NewActivityRepository(db), nil, "", publisher, log)),
+		ProjectActivity: handler.NewProjectActivityHandler(activityLog, attachmentService),
+		ServiceAccount: handler.NewServiceAccountHandler(
+			serviceaccountsvc.New(pgRepo.NewServiceAccountRepository(db)), apiKeyService),
+		Log: log,
+	})
+
+	srv := httptest.NewServer(engine)
+	t.Cleanup(srv.Close)
+
+	jar, err := cookiejar.New(nil)
+	if err != nil {
+		t.Fatalf("create cookie jar: %v", err)
+	}
+
+	return &e2eEnv{
+		ctx:  ctx,
+		base: srv.URL,
+		client: &http.Client{
+			Jar:     jar,
+			Timeout: 30 * time.Second,
+		},
+		userService:    userService,
+		userRepo:       userRepo,
+		roleRepo:       roleRepo,
+		roleSvc:        roleService,
+		authz:          authorizer,
+		projectRepo:    projectRepo,
+		projectSvc:     projectService,
+		taskRepo:       taskRepo,
+		taskSvc:        taskService,
+		sprintRepo:     sprintRepo,
+		sprintSvc:      sprintService,
+		viewRepo:       viewRepo,
+		viewSvc:        viewService,
+		attachmentRepo: attachmentRepo,
+		attachmentSvc:  attachmentService,
+		apiKeyRepo:     apiKeyRepo,
+		apiKeySvc:      apiKeyService,
+		automationRepo: automationRepo,
+		automationSvc:  automationService,
+		agentRepo:      agentRepo,
+		agentSvc:       agentService,
+		activitySvc:    activityService,
+		redisClient:    redisClient,
+		db:             db,
+	}
+}
+
+// TestMain starts a single Postgres and Valkey container pair for the whole
+// E2E suite rather than once per test function. This keeps total container
+// startup time proportional to O(1) instead of O(N tests).
+func TestMain(m *testing.M) {
+	if os.Getenv("PACA_E2E") != "1" {
+		// Guard not set – individual tests will self-skip; just run them.
+		os.Exit(m.Run())
+	}
+
+	if !setupDockerEnvForMain() {
+		// Docker unavailable – individual tests will skip via checkDockerAvailable.
+		os.Exit(m.Run())
+	}
+
+	bgCtx := context.Background()
+
+	pgC, err := testcontainers.GenericContainer(bgCtx, testcontainers.GenericContainerRequest{
+		ContainerRequest: testcontainers.ContainerRequest{
+			Image: "postgres:16-alpine",
+			Env: map[string]string{
+				"POSTGRES_USER":     "test",
+				"POSTGRES_PASSWORD": "test",
+				"POSTGRES_DB":       "testdb",
+			},
+			ExposedPorts: []string{"5432/tcp"},
+			WaitingFor:   wait.ForLog("database system is ready to accept connections").WithStartupTimeout(60 * time.Second),
+		},
+		Started: true,
+	})
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "FATAL: start postgres container: %v\n", err)
+		os.Exit(1)
+	}
+
+	redisC, err := testcontainers.GenericContainer(bgCtx, testcontainers.GenericContainerRequest{
+		ContainerRequest: testcontainers.ContainerRequest{
+			Image:        "valkey/valkey:8-alpine",
+			ExposedPorts: []string{"6379/tcp"},
+			WaitingFor:   wait.ForListeningPort("6379/tcp").WithStartupTimeout(30 * time.Second),
+		},
+		Started: true,
+	})
+	if err != nil {
+		_ = pgC.Terminate(bgCtx)
+		fmt.Fprintf(os.Stderr, "FATAL: start valkey container: %v\n", err)
+		os.Exit(1)
+	}
+
+	pgHost, _ := pgC.Host(bgCtx)
+	pgPort, _ := pgC.MappedPort(bgCtx, "5432/tcp")
+	if pgHost == "localhost" {
+		pgHost = "127.0.0.1"
+	}
+	sharedPGDSN = fmt.Sprintf("postgresql://test:test@%s:%s/testdb?sslmode=disable", pgHost, pgPort.Port())
+
+	redisHost, _ := redisC.Host(bgCtx)
+	redisPort, _ := redisC.MappedPort(bgCtx, "6379/tcp")
+	if redisHost == "localhost" {
+		redisHost = "127.0.0.1"
+	}
+	sharedRedisURL = fmt.Sprintf("redis://%s:%s/0", redisHost, redisPort.Port())
+
+	// A failure here must never reach for pgC/redisC.Terminate: m.Run() below
+	// runs the ENTIRE suite regardless of this container's fate, not just the
+	// attachment tests the comment below refers to — terminating the shared
+	// Postgres/Valkey containers here previously took down every other test
+	// in the package with a "connection refused" once this container's pull
+	// started failing (MinIO's images were pulled from Docker Hub; see
+	// docs/deployment/README.md), instead of just skipping attachment tests
+	// as intended.
+	rustfsC, err := testcontainers.GenericContainer(bgCtx, testcontainers.GenericContainerRequest{
+		ContainerRequest: testcontainers.ContainerRequest{
+			Image: "rustfs/rustfs:1.0.0-rc.6",
+			Env: map[string]string{
+				"RUSTFS_ACCESS_KEY": "rustfsadmin",
+				"RUSTFS_SECRET_KEY": "rustfsadmin",
+				"RUSTFS_VOLUMES":    "/data/rustfs0",
+				"RUSTFS_ADDRESS":    "0.0.0.0:9000",
+			},
+			ExposedPorts: []string{"9000/tcp"},
+			WaitingFor:   wait.ForHTTP("/health").WithPort("9000/tcp").WithStartupTimeout(60 * time.Second),
+		},
+		Started: true,
+	})
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "WARN: start rustfs container: %v – attachment tests will be skipped\n", err)
+	} else {
+		rustfsHost, _ := rustfsC.Host(bgCtx)
+		rustfsPort, _ := rustfsC.MappedPort(bgCtx, "9000/tcp")
+		if rustfsHost == "localhost" {
+			rustfsHost = "127.0.0.1"
+		}
+		sharedStorageEndpoint = fmt.Sprintf("%s:%s", rustfsHost, rustfsPort.Port())
+	}
+
+	code := m.Run()
+
+	_ = pgC.Terminate(bgCtx)
+	_ = redisC.Terminate(bgCtx)
+	if rustfsC != nil {
+		_ = rustfsC.Terminate(bgCtx)
+	}
+
+	os.Exit(code)
+}
+
+// setupDockerEnvForMain mirrors checkDockerAvailable but operates outside a
+// *testing.T context, using os.Setenv instead of t.Setenv.
+// Returns false when no Docker socket can be found.
+func setupDockerEnvForMain() bool {
+	if dh := os.Getenv("DOCKER_HOST"); dh != "" {
+		if !strings.Contains(dh, "://") || strings.HasPrefix(dh, "unix://") {
+			socket := strings.TrimPrefix(dh, "unix://")
+			if _, err := os.Stat(socket); err == nil {
+				_ = os.Setenv("TESTCONTAINERS_RYUK_DISABLED", "true")
+				return true
+			}
+			return false
+		}
+		return true
+	}
+
+	if socket := socketFromDockerContext(); socket != "" {
+		if _, err := os.Stat(socket); err == nil {
+			_ = os.Setenv("DOCKER_HOST", "unix://"+socket)
+			_ = os.Setenv("TESTCONTAINERS_RYUK_DISABLED", "true")
+			return true
+		}
+	}
+
+	home, _ := os.UserHomeDir()
+	candidates := []string{
+		"/var/run/docker.sock",
+		filepath.Join(home, ".docker/run/docker.sock"),
+		filepath.Join(home, ".docker/desktop/docker.sock"),
+		filepath.Join(home, ".colima/default/docker.sock"),
+		filepath.Join(home, ".colima/docker.sock"),
+	}
+	for _, p := range candidates {
+		if _, err := os.Stat(p); err == nil {
+			_ = os.Setenv("DOCKER_HOST", "unix://"+p)
+			_ = os.Setenv("TESTCONTAINERS_RYUK_DISABLED", "true")
+			return true
+		}
+	}
+	return false
+}
+
+// checkDockerAvailable is a read-only reachability guard: it never mutates
+// the environment. TestMain's setupDockerEnvForMain already exported
+// DOCKER_HOST/TESTCONTAINERS_RYUK_DISABLED process-wide (via os.Setenv,
+// before any test starts) if Docker was found at all, and no test creates
+// its own containers — Postgres/Valkey/RustFS are shared, started once in
+// TestMain — so there is nothing left for an individual test to configure.
+// This also matters for parallel tests specifically: t.Setenv panics if
+// called after t.Parallel(), since env vars are process-global and unsafe
+// to mutate concurrently.
+func checkDockerAvailable(t *testing.T) {
+	t.Helper()
+
+	if dh := os.Getenv("DOCKER_HOST"); dh != "" {
+		if !strings.Contains(dh, "://") || strings.HasPrefix(dh, "unix://") {
+			socket := strings.TrimPrefix(dh, "unix://")
+			if _, err := os.Stat(socket); err == nil {
+				return
+			}
+			t.Skipf("DOCKER_HOST=%s set but socket not found; is Docker running?", dh)
+		}
+		return
+	}
+
+	if socket := socketFromDockerContext(); socket != "" {
+		if _, err := os.Stat(socket); err == nil {
+			return
+		}
+	}
+
+	home, _ := os.UserHomeDir()
+	candidates := []string{
+		"/var/run/docker.sock",
+		filepath.Join(home, ".docker/run/docker.sock"),
+		filepath.Join(home, ".docker/desktop/docker.sock"),
+		filepath.Join(home, ".colima/default/docker.sock"),
+		filepath.Join(home, ".colima/docker.sock"),
+	}
+	for _, p := range candidates {
+		if _, err := os.Stat(p); err == nil {
+			return
+		}
+	}
+
+	t.Skip("Docker socket not found; install Docker Desktop or Colima and retry with PACA_E2E=1")
+}
+
+func socketFromDockerContext() string {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return ""
+	}
+
+	type dockerConfig struct {
+		CurrentContext string `json:"currentContext"`
+	}
+	cfgData, err := os.ReadFile(filepath.Join(home, ".docker", "config.json"))
+	if err != nil {
+		return ""
+	}
+	var cfg dockerConfig
+	if err := json.Unmarshal(cfgData, &cfg); err != nil || cfg.CurrentContext == "" {
+		return ""
+	}
+
+	sum := sha256.Sum256([]byte(cfg.CurrentContext))
+	metaPath := filepath.Join(home, ".docker", "contexts", "meta", hex.EncodeToString(sum[:]), "meta.json")
+
+	type contextEndpoint struct {
+		Host string `json:"Host"`
+	}
+	type contextMeta struct {
+		Endpoints map[string]contextEndpoint `json:"Endpoints"`
+	}
+	metaData, err := os.ReadFile(metaPath)
+	if err != nil {
+		return ""
+	}
+	var meta contextMeta
+	if err := json.Unmarshal(metaData, &meta); err != nil {
+		return ""
+	}
+
+	host := meta.Endpoints["docker"].Host
+	return strings.TrimPrefix(host, "unix://")
+}

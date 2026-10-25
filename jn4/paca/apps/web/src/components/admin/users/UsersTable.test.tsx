@@ -1,0 +1,263 @@
+import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { describe, expect, it, vi } from "vitest";
+
+import type { User } from "@/lib/admin-api";
+import { UsersTable } from "./UsersTable";
+
+const baseUser: User = {
+	id: "u1",
+	username: "alice",
+	full_name: "Alice Smith",
+	roles: [{ id: "r-admin", name: "Admin" }],
+	must_change_password: false,
+	created_at: "2026-01-15T00:00:00.000Z",
+};
+
+const anotherUser: User = {
+	id: "u2",
+	username: "bob",
+	full_name: "Bob Jones",
+	roles: [{ id: "r-user", name: "User" }],
+	must_change_password: true,
+	created_at: "2026-02-20T00:00:00.000Z",
+};
+
+function renderTable(
+	users: User[],
+	opts: {
+		canWrite?: boolean;
+		canDelete?: boolean;
+		canAssignRole?: boolean;
+		currentUserId?: string;
+		onEdit?: (user: User) => void;
+		onDelete?: (user: User) => void;
+		onResetPassword?: (user: User) => void;
+		onChangeRole?: (user: User) => void;
+	} = {},
+) {
+	const {
+		canWrite = true,
+		canDelete = true,
+		canAssignRole = false,
+		currentUserId,
+		onEdit = vi.fn<(user: User) => void>(),
+		onDelete = vi.fn<(user: User) => void>(),
+		onResetPassword = vi.fn<(user: User) => void>(),
+		onChangeRole = vi.fn<(user: User) => void>(),
+	} = opts;
+
+	render(
+		<UsersTable
+			users={users}
+			canWrite={canWrite}
+			canDelete={canDelete}
+			canAssignRole={canAssignRole}
+			currentUserId={currentUserId}
+			onEdit={onEdit}
+			onDelete={onDelete}
+			onResetPassword={onResetPassword}
+			onChangeRole={onChangeRole}
+		/>,
+	);
+
+	return { onEdit, onDelete, onResetPassword, onChangeRole };
+}
+
+describe("UsersTable", () => {
+	it("renders all users", () => {
+		renderTable([baseUser, anotherUser]);
+
+		expect(screen.getByText("alice")).toBeInTheDocument();
+		expect(screen.getByText("Alice Smith")).toBeInTheDocument();
+		expect(screen.getByText("bob")).toBeInTheDocument();
+		expect(screen.getByText("Bob Jones")).toBeInTheDocument();
+	});
+
+	it("renders role badges", () => {
+		renderTable([baseUser]);
+
+		expect(screen.getByText("Admin")).toBeInTheDocument();
+	});
+
+	it("shows 'you' badge for current user", () => {
+		renderTable([baseUser], { currentUserId: "u1" });
+
+		expect(screen.getByText("you")).toBeInTheDocument();
+	});
+
+	it("does not show 'you' badge for other users", () => {
+		renderTable([baseUser], { currentUserId: "u2" });
+
+		expect(screen.queryByText("you")).not.toBeInTheDocument();
+	});
+
+	it("shows 'pwd reset' badge for must_change_password user", () => {
+		renderTable([anotherUser]);
+
+		expect(screen.getByText("pwd reset")).toBeInTheDocument();
+	});
+
+	it("shows the username as the name, and an em dash, when full_name and email are empty", () => {
+		const userNoName: User = { ...baseUser, full_name: "" };
+		renderTable([userNoName]);
+
+		expect(screen.getByText("alice")).toBeInTheDocument();
+		expect(screen.getByText("—")).toBeInTheDocument();
+	});
+
+	it("shows the email under the username when there is no full name", () => {
+		renderTable([{ ...baseUser, full_name: "", email: "alice@example.com" }]);
+
+		expect(screen.getByText("alice@example.com")).toBeInTheDocument();
+	});
+
+	it("shows initials in the avatar", () => {
+		renderTable([baseUser]);
+
+		expect(screen.getByText("AS")).toBeInTheDocument();
+	});
+
+	it("folds roles beyond the second into a +N that lists them all", async () => {
+		renderTable([
+			{
+				...baseUser,
+				roles: ["A", "B", "C", "D"].map((n) => ({ id: `r-${n}`, name: n })),
+			},
+		]);
+
+		expect(screen.queryByText("C")).not.toBeInTheDocument();
+		await userEvent.click(
+			screen.getByRole("button", { name: /Show more roles/ }),
+		);
+		expect(await screen.findByText("All roles (4)")).toBeInTheDocument();
+		expect(screen.getByText("D")).toBeInTheDocument();
+	});
+
+	it("tells a user who must change their password apart by an indicator", () => {
+		renderTable([anotherUser]);
+
+		expect(screen.getByTitle(/must set a new password/)).toBeInTheDocument();
+	});
+
+	it("hides action column when neither canWrite nor canDelete is set", () => {
+		renderTable([baseUser], { canWrite: false, canDelete: false });
+
+		expect(screen.queryByTitle("Edit user")).not.toBeInTheDocument();
+		expect(screen.queryByTitle("Delete user")).not.toBeInTheDocument();
+		expect(screen.queryByTitle("Reset password")).not.toBeInTheDocument();
+	});
+
+	// users.delete is its own permission, apart from users.write (canWrite) —
+	// a role that can edit users is not necessarily allowed to remove them, and
+	// the reverse. Regression test: the delete button used to be gated on
+	// canWrite alone, so it showed for anyone who could edit a user even
+	// without users.delete, and the server then refused the click.
+	describe("deleting a user", () => {
+		it("hides only Delete when canWrite is true but canDelete is false", () => {
+			renderTable([baseUser], { canWrite: true, canDelete: false });
+
+			expect(screen.getByTitle("Edit user")).toBeInTheDocument();
+			expect(screen.getByTitle("Reset password")).toBeInTheDocument();
+			expect(screen.queryByTitle("Delete user")).not.toBeInTheDocument();
+		});
+
+		it("shows only Delete when canDelete is true but canWrite is false", () => {
+			renderTable([baseUser], {
+				canWrite: false,
+				canDelete: true,
+				currentUserId: "u999",
+			});
+
+			expect(screen.getByTitle("Delete user")).toBeInTheDocument();
+			expect(screen.queryByTitle("Edit user")).not.toBeInTheDocument();
+			expect(screen.queryByTitle("Reset password")).not.toBeInTheDocument();
+		});
+
+		it("still hides Delete for the current user even with canDelete", () => {
+			renderTable([baseUser], {
+				canWrite: false,
+				canDelete: true,
+				currentUserId: "u1",
+			});
+
+			expect(screen.queryByTitle("Delete user")).not.toBeInTheDocument();
+		});
+	});
+
+	it("calls onEdit when Edit button is clicked", async () => {
+		const { onEdit } = renderTable([baseUser]);
+
+		await userEvent.click(screen.getByTitle("Edit user"));
+
+		expect(onEdit).toHaveBeenCalledWith(baseUser);
+	});
+
+	it("calls onDelete when Delete button is clicked", async () => {
+		const { onDelete } = renderTable([baseUser], { currentUserId: "u999" });
+
+		await userEvent.click(screen.getByTitle("Delete user"));
+
+		expect(onDelete).toHaveBeenCalledWith(baseUser);
+	});
+
+	it("calls onResetPassword when Reset password button is clicked", async () => {
+		const { onResetPassword } = renderTable([baseUser]);
+
+		await userEvent.click(screen.getByTitle("Reset password"));
+
+		expect(onResetPassword).toHaveBeenCalledWith(baseUser);
+	});
+
+	it("hides Delete button for the current user (self)", () => {
+		renderTable([baseUser], { currentUserId: "u1" });
+
+		expect(screen.queryByTitle("Delete user")).not.toBeInTheDocument();
+	});
+
+	// A user's role is its own permission, apart from editing the user, so the
+	// role pill turns into a button on its own switch (canAssignRole) — not on
+	// canWrite.
+	describe("changing a role", () => {
+		it("shows the role as plain text when the viewer cannot assign roles", () => {
+			renderTable([baseUser], { canAssignRole: false });
+
+			expect(screen.getByText("Admin")).toBeInTheDocument();
+			expect(
+				screen.queryByRole("button", { name: "Admin" }),
+			).not.toBeInTheDocument();
+			expect(screen.queryByTitle("Change role")).not.toBeInTheDocument();
+		});
+
+		it("adds a change-role button that opens the change-role flow for that user", async () => {
+			const { onChangeRole } = renderTable([baseUser, anotherUser], {
+				canAssignRole: true,
+			});
+
+			await userEvent.click(
+				screen.getAllByRole("button", { name: /^Change role/ })[1],
+			);
+
+			expect(onChangeRole).toHaveBeenCalledTimes(1);
+			expect(onChangeRole).toHaveBeenCalledWith(anotherUser);
+		});
+
+		it("offers the role button without users.write, since the two permissions are independent", () => {
+			renderTable([baseUser], { canWrite: false, canAssignRole: true });
+
+			expect(
+				screen.getByRole("button", { name: /^Change role/ }),
+			).toBeInTheDocument();
+			expect(screen.queryByTitle("Edit user")).not.toBeInTheDocument();
+		});
+
+		it("keeps editing available without the role permission, but not the role button", () => {
+			renderTable([baseUser], { canWrite: true, canAssignRole: false });
+
+			expect(screen.getByTitle("Edit user")).toBeInTheDocument();
+			expect(
+				screen.queryByRole("button", { name: /^Change role/ }),
+			).not.toBeInTheDocument();
+		});
+	});
+});

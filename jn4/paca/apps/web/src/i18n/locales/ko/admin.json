@@ -1,0 +1,632 @@
+{
+	"users": {
+		"header": {
+			"title": "사용자 관리",
+			"description": "사용자 계정과 할당된 역할을 확인하고 관리하세요.",
+			"newUser": "새 사용자"
+		},
+		"stats": {
+			"userCount_one": "사용자 {{count}}명",
+			"userCount_other": "사용자 {{count}}명",
+			"inSystem": "시스템 내",
+			"mustChangePassword": "비밀번호 변경 필요"
+		},
+		"empty": {
+			"title": "사용자를 찾을 수 없습니다",
+			"description": "시작하려면 첫 번째 사용자를 만드세요.",
+			"createUser": "사용자 생성"
+		},
+		"errors": {
+			"loadFailed": "사용자를 불러오지 못했습니다",
+			"tryAgain": "페이지를 새로고침한 후 다시 시도해 주세요."
+		},
+		"noPermission": {
+			"title": "사용자를 볼 권한이 없습니다",
+			"description": "위의 버튼을 사용하여 새 사용자를 만들 수는 있습니다."
+		},
+		"table": {
+			"columnUser": "사용자",
+			"columnRole": "역할",
+			"columnCreated": "생성일",
+			"pwdResetBadge": "비밀번호 재설정",
+			"youBadge": "나",
+			"noFullName": "—",
+			"resetPasswordAction": "비밀번호 재설정",
+			"editAction": "사용자 수정",
+			"changeRoleAction": "역할 변경",
+			"deleteAction": "사용자 삭제",
+			"pwdResetHint": "이 사용자는 다음 로그인 시 새 비밀번호를 설정해야 합니다",
+			"columnActions": "작업"
+		},
+		"formDialog": {
+			"createdTitle": "사용자가 생성되었습니다",
+			"createdDescriptionSuffix": "님이 생성되었습니다. 아래 임시 비밀번호를 공유해 주세요 — 사용자는 첫 로그인 시 비밀번호를 변경해야 합니다.",
+			"temporaryPasswordLabel": "임시 비밀번호",
+			"hidePassword": "비밀번호 숨기기",
+			"showPassword": "비밀번호 표시",
+			"copyPassword": "비밀번호 복사",
+			"passwordNotShownAgain": "이 비밀번호는 다시 표시되지 않습니다. 지금 꼭 복사해 두세요.",
+			"done": "완료",
+			"editTitle": "사용자 수정",
+			"createTitle": "사용자 생성",
+			"editDescription": "사용자의 표시 이름과 이메일을 업데이트합니다.",
+			"createDescription": "안전한 임시 비밀번호가 자동으로 생성됩니다. 사용자는 첫 로그인 시 비밀번호를 변경해야 합니다.",
+			"roleStepDescription": "{{username}}이(가) {{role}} 역할로 생성되었습니다. 그대로 두거나 다른 역할을 선택하세요.",
+			"stepIndicator": "{{step}} / {{total}}",
+			"usernameLabel": "사용자 이름",
+			"usernamePlaceholder": "예: john.doe",
+			"fullNameLabel": "전체 이름",
+			"fullNamePlaceholder": "예: John Doe",
+			"emailLabel": "이메일",
+			"emailOptionalHint": "(선택 사항 — 비밀번호 설정 링크가 포함된 환영 이메일을 보냅니다)",
+			"emailPlaceholder": "예: john.doe@example.com",
+			"roleStep": {
+				"title": "역할"
+			},
+			"cancel": "취소",
+			"continue": "계속",
+			"saving": "저장 중…",
+			"creating": "생성 중…",
+			"saveChanges": "변경사항 저장",
+			"createUser": "사용자 생성",
+			"errors": {
+				"fullNameRequired": "전체 이름을 입력해 주세요.",
+				"invalidEmail": "올바른 이메일 주소를 입력해 주세요.",
+				"usernameTaken": "이미 사용 중인 사용자 이름입니다.",
+				"emailTaken": "이미 사용 중인 이메일입니다.",
+				"userNotFound": "사용자를 찾을 수 없습니다. 이미 삭제되었을 수 있습니다.",
+				"forbidden": "이 작업을 수행할 권한이 없습니다.",
+				"noDefaultRole": "새 계정에 부여할 기본 역할이 없습니다. 전역 역할 페이지에서 설정한 후 다시 시도하세요.",
+				"internalError": "서버에서 문제가 발생했습니다. 다시 시도해 주세요.",
+				"generic": "문제가 발생했습니다."
+			}
+		},
+		"roleDialog": {
+			"title": "역할 변경",
+			"description": "{{username}}의 역할을 선택하세요. 다음 요청부터 적용됩니다.",
+			"assign": "역할 할당",
+			"assigning": "할당 중…",
+			"fullAccessWarning": "이 역할은 전체 액세스 권한이 있습니다. 사용자와 역할 관리를 포함해 모든 작업을 수행할 수 있습니다.",
+			"selfWarning": "본인 계정입니다. 역할을 변경하면 이 페이지에 대한 접근 권한을 잃을 수 있습니다.",
+			"errors": {
+				"roleNotFound": "해당 역할이 더 이상 존재하지 않습니다. 대화 상자를 닫고 다시 시도하세요."
+			}
+		},
+		"resetPasswordDialog": {
+			"title": "비밀번호 재설정",
+			"descriptionSuccessPrefix": "비밀번호:",
+			"descriptionSuccessSuffix": "님의 비밀번호가 재설정되었습니다. 아래 임시 비밀번호를 공유해 주세요 — 다시 표시되지 않습니다.",
+			"descriptionConfirmPrefix": "강력한 임시 비밀번호가 생성되어",
+			"descriptionConfirmSuffix": "님에게 할당됩니다. 다음 로그인 시 비밀번호를 변경해야 합니다.",
+			"temporaryPasswordLabel": "임시 비밀번호",
+			"hidePassword": "비밀번호 숨기기",
+			"showPassword": "비밀번호 표시",
+			"copyPassword": "비밀번호 복사",
+			"notShownAgain": "⚠ 이 비밀번호는 닫은 후 다시 표시되지 않습니다.",
+			"done": "완료",
+			"cancel": "취소",
+			"resetting": "재설정 중…",
+			"resetButton": "비밀번호 재설정",
+			"errors": {
+				"userNotFound": "이 사용자는 더 이상 존재하지 않습니다.",
+				"forbidden": "이 사용자의 비밀번호를 재설정할 권한이 없습니다.",
+				"internalError": "문제가 발생했습니다. 다시 시도해 주세요.",
+				"generic": "문제가 발생했습니다."
+			}
+		},
+		"deleteDialog": {
+			"title": "사용자 삭제",
+			"confirmTextPrefix": "정말로 삭제하시겠습니까",
+			"confirmTextSuffix": "? 해당 계정은 영구적으로 삭제됩니다.",
+			"cannotBeUndone": "이 작업은 되돌릴 수 없습니다.",
+			"cancel": "취소",
+			"deleting": "삭제 중…",
+			"confirmButton": "사용자 삭제",
+			"errors": {
+				"userNotFound": "이 사용자는 더 이상 존재하지 않습니다.",
+				"forbidden": "이 사용자를 삭제할 권한이 없습니다.",
+				"internalError": "문제가 발생했습니다. 다시 시도해 주세요.",
+				"generic": "문제가 발생했습니다."
+			}
+		},
+		"filters": {
+			"searchPlaceholder": "이름, 사용자 이름 또는 이메일로 검색…",
+			"searchLabel": "사용자 검색",
+			"roleLabel": "역할로 필터링",
+			"allRoles": "모든 역할",
+			"clearSearch": "검색 지우기",
+			"resultsCount": "결과: {{count}}",
+			"clearAll": "필터 지우기"
+		},
+		"noMatch": {
+			"title": "일치하는 사용자가 없습니다",
+			"description": "다른 검색어나 역할 필터를 시도해 보세요.",
+			"clear": "필터 지우기"
+		}
+	},
+	"globalRoles": {
+		"header": {
+			"title": "전역 역할",
+			"description": "시스템 전체 역할과 사용자에게 부여되는 권한을 관리하세요.",
+			"newRole": "새 역할"
+		},
+		"stats": {
+			"roleCount_one": "역할 {{count}}개",
+			"roleCount_other": "역할 {{count}}개",
+			"defined": "정의됨",
+			"permissionGrants": "전체 역할에 부여된 권한"
+		},
+		"empty": {
+			"title": "아직 정의된 역할이 없습니다",
+			"description": "사용자 권한 관리를 시작하려면 첫 번째 역할을 만드세요.",
+			"createRole": "역할 생성"
+		},
+		"errors": {
+			"loadFailed": "역할을 불러오지 못했습니다",
+			"tryAgain": "페이지를 새로고침한 후 다시 시도해 주세요."
+		},
+		"noPermission": {
+			"title": "역할을 볼 권한이 없습니다",
+			"description": "위의 버튼을 사용하여 새 역할을 만들 수는 있습니다."
+		},
+		"table": {
+			"columnName": "이름",
+			"columnDescription": "설명",
+			"columnDefault": "기본값",
+			"noPermissionsAssigned": "할당된 권한 없음",
+			"default": "기본값",
+			"setDefaultAction": "기본 역할로 설정",
+			"editAction": "역할 수정",
+			"deleteAction": "역할 삭제",
+			"deleteDefaultDisabled": "기본 역할은 삭제할 수 없습니다. 먼저 다른 역할을 기본값으로 설정하세요.",
+			"builtIn": "기본 제공 역할",
+			"noDescription": "설명 없음"
+		},
+		"formDialog": {
+			"editTitle": "역할 수정",
+			"createTitle": "역할 생성",
+			"editDescription": "역할 이름과 권한 부여 설정을 업데이트하세요.",
+			"createDescription": "새로운 시스템 전체 역할을 정의하고 권한을 설정하세요.",
+			"roleNameLabel": "역할 이름",
+			"roleNamePlaceholder": "예: SECURITY_ADMIN",
+			"permissionsLabel": "권한",
+			"enabledCount_one": "{{count}}개 활성화됨",
+			"enabledCount_other": "{{count}}개 활성화됨",
+			"cancel": "취소",
+			"saving": "저장 중…",
+			"saveChanges": "변경사항 저장",
+			"createRole": "역할 생성"
+		},
+		"deleteDialog": {
+			"title": "역할 삭제",
+			"confirmTextPrefix": "정말로 삭제하시겠습니까",
+			"confirmTextSuffix": "? 이 역할에 대한 모든 사용자 배정도 함께 제거됩니다.",
+			"cannotBeUndone": "이 작업은 되돌릴 수 없습니다.",
+			"cancel": "취소",
+			"deleting": "삭제 중…",
+			"confirmButton": "역할 삭제",
+			"errors": {
+				"roleNotFound": "이 역할은 더 이상 존재하지 않습니다.",
+				"isDefault": "기본 역할은 삭제할 수 없습니다. 먼저 다른 역할을 기본값으로 설정하세요.",
+				"forbidden": "이 역할을 삭제할 권한이 없습니다.",
+				"internalError": "문제가 발생했습니다. 다시 시도해 주세요.",
+				"generic": "문제가 발생했습니다."
+			}
+		},
+		"permissions": {
+			"globalRolesRead": {
+				"label": "전역 역할 조회",
+				"description": "전역 역할 정의 보기"
+			},
+			"globalRolesWrite": {
+				"label": "전역 역할 작성",
+				"description": "전역 역할 정의 생성 및 업데이트"
+			},
+			"globalRolesAssign": {
+				"label": "전역 역할 할당",
+				"description": "사용자에게 전역 역할 할당"
+			},
+			"usersRead": {
+				"label": "사용자 조회",
+				"description": "사용자 프로필 및 목록 보기"
+			},
+			"usersWrite": {
+				"label": "사용자 작성",
+				"description": "사용자 계정 생성 및 업데이트"
+			},
+			"usersDelete": {
+				"label": "사용자 삭제",
+				"description": "사용자 계정 제거"
+			},
+			"projectsRead": {
+				"label": "모든 프로젝트 조회",
+				"description": "워크스페이스의 모든 프로젝트 보기"
+			},
+			"projectsCreate": {
+				"label": "프로젝트 생성",
+				"description": "새 프로젝트 생성"
+			},
+			"projectsWrite": {
+				"label": "프로젝트 작성",
+				"description": "프로젝트 세부정보 업데이트"
+			},
+			"projectsDelete": {
+				"label": "프로젝트 삭제",
+				"description": "프로젝트 영구 삭제"
+			},
+			"projectMembersRead": {
+				"label": "프로젝트 멤버 조회",
+				"description": "모든 프로젝트의 멤버 보기"
+			},
+			"projectMembersWrite": {
+				"label": "프로젝트 멤버 작성",
+				"description": "모든 프로젝트에서 멤버 추가, 제거, 업데이트"
+			},
+			"projectRolesRead": {
+				"label": "프로젝트 역할 조회",
+				"description": "모든 프로젝트에 정의된 역할 보기"
+			},
+			"projectRolesWrite": {
+				"label": "프로젝트 역할 작성",
+				"description": "모든 프로젝트에서 역할 생성 및 업데이트"
+			},
+			"settingsWrite": {
+				"label": "워크스페이스 설정 쓰기",
+				"description": "워크스페이스 로고, 파비콘, 기본 색상 업데이트"
+			},
+			"settingsSsoWrite": {
+				"label": "SSO 공급자 관리",
+				"description": "사용자가 로그인에 사용하는 ID 공급자를 설정합니다. 다른 사용자로 로그인할 수 있게 되므로 전체 관리자 권한처럼 다루세요."
+			},
+			"agentsRead": {
+				"label": "에이전트 보기",
+				"description": "워크스페이스 수준 AI 에이전트 보기"
+			},
+			"agentsWrite": {
+				"label": "에이전트 관리",
+				"description": "워크스페이스 수준 AI 에이전트 생성, 편집, 삭제"
+			},
+			"pluginsRead": {
+				"label": "플러그인 보기",
+				"description": "설치된 플러그인 보기"
+			},
+			"pluginsWrite": {
+				"label": "플러그인 관리",
+				"description": "플러그인 설치, 업데이트, 활성화, 제거"
+			},
+			"serviceAccountsRead": {
+				"label": "서비스 계정 읽기",
+				"description": "서비스 계정과 API 키 보기"
+			},
+			"serviceAccountsWrite": {
+				"label": "서비스 계정 관리",
+				"description": "서비스 계정을 만들고 편집·삭제하며 API 키를 발급·폐기"
+			}
+		},
+		"permissionGroups": {
+			"globalRoles": "전역 역할",
+			"users": "사용자",
+			"agents": "AI 에이전트",
+			"projects": "프로젝트",
+			"plugins": "플러그인",
+			"settings": "설정",
+			"serviceAccounts": "서비스 계정"
+		},
+		"defaultDialog": {
+			"title": "기본 역할 설정",
+			"description": "새 사용자와 새 전역 에이전트는 {{role}} 역할로 시작합니다. 이미 있는 계정은 현재 역할을 유지합니다.",
+			"fullAccessWarning": "이 역할은 모든 권한을 부여하므로 앞으로 만드는 모든 계정이 전체 액세스 권한으로 시작합니다. 의도한 설정인지 확인하세요.",
+			"cancel": "취소",
+			"confirm": "기본값으로 설정",
+			"confirming": "저장 중…",
+			"errors": {
+				"roleNotFound": "이 역할은 더 이상 존재하지 않습니다.",
+				"forbidden": "기본 역할을 변경할 권한이 없습니다.",
+				"generic": "문제가 발생했습니다. 다시 시도해 주세요."
+			}
+		}
+	},
+	"rolePicker": {
+		"current": "현재",
+		"fullAccess": "전체 액세스",
+		"loadFailed": "역할을 불러오지 못했습니다.",
+		"retry": "다시 시도",
+		"empty": "아직 생성된 역할이 없습니다.",
+		"default": "기본값"
+	},
+	"plugins": {
+		"title": "플러그인 설정",
+		"description": "모든 사용자에 대한 시스템 전체 플러그인 패널 순서와 표시 여부를 관리하세요.",
+		"tabs": {
+			"marketplace": "마켓플레이스",
+			"layout": "확장 지점 레이아웃"
+		},
+		"marketplace": {
+			"title": "마켓플레이스",
+			"description": "공개 paca-plugins 카탈로그에서 플러그인을 설치하거나 제거하세요."
+		},
+		"layout": {
+			"title": "확장 지점 레이아웃",
+			"description": "각 확장 지점 내에서 플러그인 패널을 드래그하여 순서를 변경하세요. 표시 여부를 전환하여 모든 사용자에게 패널을 보이거나 숨길 수 있습니다."
+		}
+	},
+	"changelog": {
+		"title": "새로운 소식",
+		"description": "Paca 최신 릴리스의 개선 사항과 주요 내용을 확인하세요.",
+		"current": "현재 버전",
+		"error": "지금은 변경 내역을 불러올 수 없습니다. 나중에 다시 시도해 주세요.",
+		"empty": "아직 릴리스 노트가 없습니다."
+	},
+	"agents": {
+		"searchPlaceholder": "이름 또는 핸들로 에이전트 검색…",
+		"header": {
+			"title": "전역 에이전트",
+			"description": "홈페이지와 관리 페이지에서 채팅하고 어떤 프로젝트에도 초대할 수 있는 AI 에이전트를 관리합니다.",
+			"newAgent": "새 에이전트"
+		},
+		"empty": {
+			"title": "아직 전역 에이전트가 없습니다",
+			"description": "전역 에이전트를 만들면 채팅과 프로젝트 초대에 사용할 수 있습니다.",
+			"createAgent": "에이전트 생성"
+		},
+		"noPermission": {
+			"title": "You don't have permission to view agents",
+			"description": "You can still create new agents using the button above."
+		}
+	},
+	"settings": {
+		"title": "워크스페이스 설정",
+		"description": "이 워크스페이스의 브랜딩 및 로그인 옵션입니다.",
+		"images": {
+			"title": "로고 및 파비콘",
+			"logo": {
+				"label": "로고",
+				"change": "로고 변경",
+				"remove": "로고 제거",
+				"uploading": "업로드 중…"
+			},
+			"favicon": {
+				"label": "파비콘",
+				"change": "파비콘 변경",
+				"remove": "파비콘 제거",
+				"uploading": "업로드 중…"
+			},
+			"errors": {
+				"invalidType": "PNG, JPEG, WEBP 또는 GIF 이미지를 선택해 주세요.",
+				"tooLarge": "이미지는 5MB 이하여야 합니다.",
+				"uploadFailed": "이미지 업로드에 실패했습니다. 다시 시도해 주세요.",
+				"removeFailed": "이미지 제거에 실패했습니다. 다시 시도해 주세요."
+			}
+		},
+		"general": {
+			"title": "일반",
+			"brandNameLabel": "브랜드 이름",
+			"brandNamePlaceholder": "Paca",
+			"colorsLabel": "기본 색상",
+			"colorsDescription": "앱 전체의 버튼과 강조 요소에 사용할 강조 색상을 선택하세요. 라이트 모드와 다크 모드에 맞게 자동으로 조정됩니다.",
+			"colorPresets": {
+				"green": "그린",
+				"blue": "블루",
+				"teal": "틸",
+				"indigo": "인디고",
+				"purple": "퍼플",
+				"pink": "핑크",
+				"red": "레드",
+				"orange": "오렌지"
+			},
+			"save": "변경사항 저장",
+			"saved": "저장됨",
+			"errors": {
+				"updateFailed": "저장에 실패했습니다. 다시 시도해 주세요."
+			}
+		},
+		"sso": {
+			"title": "싱글 사인온 (SSO)",
+			"description": "Google, Microsoft Entra ID, Okta, Keycloak 같은 OpenID Connect ID 공급자로 로그인할 수 있게 합니다.",
+			"add": "공급자 추가",
+			"empty": "아직 SSO 공급자가 없습니다. 사용자는 사용자 이름과 비밀번호로 로그인합니다.",
+			"enabled": "사용",
+			"disabled": "사용 안 함",
+			"edit": "{{name}} 편집",
+			"delete": "{{name}} 삭제",
+			"copy": "복사",
+			"dialog": {
+				"createTitle": "SSO 공급자 추가",
+				"editTitle": "SSO 공급자 편집",
+				"description": "ID 공급자에 Paca를 OpenID Connect 클라이언트로 등록한 뒤, 발급된 정보를 입력하세요.",
+				"cancel": "취소",
+				"save": "저장"
+			},
+			"fields": {
+				"displayName": "표시 이름",
+				"displayNamePlaceholder": "회사 SSO",
+				"slug": "슬러그",
+				"slugHint": "로그인 URL과 콜백 URL에 사용됩니다. 변경하면 공급자에 등록된 콜백 URL이 동작하지 않습니다.",
+				"callbackUrl": "콜백 URL",
+				"callbackUrlHint": "이 주소를 ID 공급자의 리디렉션 URI로 등록하세요.",
+				"issuerUrl": "발급자 URL",
+				"issuerUrlHint": "OpenID Connect 발급자입니다. Paca 서버에서 디스커버리 문서에 접근할 수 있어야 합니다.",
+				"clientId": "클라이언트 ID",
+				"clientSecret": "클라이언트 시크릿",
+				"clientSecretKeepHint": "시크릿이 저장되어 있습니다. 유지하려면 비워 두세요.",
+				"scopes": "스코프",
+				"scopesHint": "공백으로 구분합니다. \"openid\"는 항상 포함됩니다.",
+				"allowedDomains": "허용된 이메일 도메인",
+				"allowedDomainsHint": "쉼표로 구분합니다. 비워 두면 모든 도메인을 허용합니다. 인증된 이메일만 허용됩니다.",
+				"enabled": "사용",
+				"enabledHint": "로그인 페이지에 이 공급자를 표시합니다.",
+				"autoProvision": "계정 자동 생성",
+				"autoProvisionHint": "처음 로그인하는 사용자에게 기본 역할로 새 계정을 만들어 줍니다.",
+				"linkByEmail": "이메일로 기존 계정 연결",
+				"linkByEmailHint": "인증된 이메일이 기존 계정과 일치하는 신규 사용자는 해당 계정으로 로그인합니다.",
+				"linkByEmailWarning": "완전히 신뢰하는 공급자에서만 켜세요. 공급자를 제어하는 사람은 관리자를 포함해 이메일이 일치하는 모든 계정으로 로그인할 수 있습니다."
+			},
+			"deleteDialog": {
+				"title": "SSO 공급자 삭제",
+				"description": "\"{{name}}\"을(를) 삭제할까요? 더 이상 이 공급자로 로그인할 수 없고, 생성된 계정과의 연결도 해제됩니다. 계정 자체는 유지됩니다.",
+				"confirm": "삭제"
+			},
+			"errors": {
+				"slugTaken": "다른 공급자가 이미 이 슬러그를 사용하고 있습니다.",
+				"discoveryFailed": "발급자의 OpenID Connect 디스커버리 문서에 접근할 수 없습니다. 발급자 URL을 확인하세요.",
+				"invalid": "일부 항목이 올바르지 않습니다. 슬러그, 발급자 URL, 클라이언트 ID, 이메일 도메인을 확인하세요.",
+				"saveFailed": "공급자를 저장하지 못했습니다. 다시 시도하세요.",
+				"loadFailed": "SSO 공급자를 불러오지 못했습니다.",
+				"deleteFailed": "공급자를 삭제하지 못했습니다. 다시 시도하세요."
+			}
+		}
+	},
+	"serviceAccounts": {
+		"searchPlaceholder": "이름 또는 설명으로 검색…",
+		"header": {
+			"title": "서비스 계정",
+			"description": "통합, CI, 자동화를 위한 고유한 API 키와 역할을 가진 비인간 계정입니다.",
+			"newAccount": "새 서비스 계정"
+		},
+		"empty": {
+			"title": "아직 서비스 계정이 없습니다",
+			"description": "통합에 고유한 ID와 API 키를 부여하려면 하나를 만드세요.",
+			"create": "서비스 계정 만들기"
+		},
+		"errors": {
+			"loadFailed": "서비스 계정을 불러오지 못했습니다",
+			"tryAgain": "페이지를 새로고침한 후 다시 시도해 주세요."
+		},
+		"noPermission": {
+			"title": "서비스 계정을 볼 권한이 없습니다",
+			"description": "워크스페이스 관리자에게 접근 권한을 요청하세요."
+		},
+		"table": {
+			"columnAccount": "계정",
+			"columnActions": "작업",
+			"noDescription": "설명 없음",
+			"changeRoleAction": "역할 변경",
+			"editAction": "서비스 계정 편집",
+			"deleteAction": "서비스 계정 삭제",
+			"columnRole": "역할"
+		},
+		"formDialog": {
+			"createTitle": "새 서비스 계정",
+			"editTitle": "서비스 계정 편집",
+			"createDescription": "권한 없이 시작합니다. API 키를 만든 다음 역할을 부여하세요.",
+			"editDescription": "이름, 설명, 아바타를 변경합니다. API 키와 역할은 별도로 관리합니다.",
+			"nameLabel": "이름",
+			"namePlaceholder": "예: CI 배포 봇",
+			"descriptionLabel": "설명",
+			"descriptionPlaceholder": "이 계정은 어떤 용도인가요?",
+			"cancel": "취소",
+			"create": "만들기",
+			"creating": "만드는 중…",
+			"save": "저장",
+			"saving": "저장하는 중…",
+			"avatar": {
+				"change": "아바타 변경",
+				"remove": "아바타 제거",
+				"uploading": "업로드 중…",
+				"errors": {
+					"invalidType": "PNG, JPEG, WebP 또는 GIF 이미지를 사용하세요.",
+					"tooLarge": "이미지는 5MB 이하여야 합니다.",
+					"uploadFailed": "아바타를 업로드하지 못했습니다. 다시 시도하세요.",
+					"removeFailed": "아바타를 제거하지 못했습니다. 다시 시도하세요."
+				}
+			},
+			"errors": {
+				"nameInvalid": "이름은 1~100자여야 합니다.",
+				"descriptionTooLong": "설명이 너무 깁니다(최대 1000자).",
+				"notFound": "이 서비스 계정은 더 이상 존재하지 않습니다.",
+				"generic": "문제가 발생했습니다. 다시 시도하세요."
+			}
+		},
+		"deleteDialog": {
+			"title": "서비스 계정 삭제",
+			"description": "“{{name}}”을(를) 삭제할까요? API 키가 즉시 작동을 멈추고 역할과 프로젝트 멤버십이 제거됩니다. 이 작업은 되돌릴 수 없습니다.",
+			"cancel": "취소",
+			"confirm": "삭제",
+			"deleting": "삭제하는 중…",
+			"error": "서비스 계정을 삭제하지 못했습니다. 다시 시도하세요."
+		},
+		"keys": {
+			"nameLabel": "키 이름",
+			"namePlaceholder": "예: GitHub Actions",
+			"expiryLabel": "만료",
+			"expiryOptional": "(선택)",
+			"create": "키 만들기",
+			"creating": "만드는 중…",
+			"empty": "아직 API 키가 없습니다.",
+			"revokeAria": "키 {{name}} 폐기",
+			"reveal": {
+				"title": "새 API 키를 복사하세요",
+				"description": "전체 키가 표시되는 것은 이번이 유일합니다. 안전한 곳에 보관하세요. 잃어버리면 새로 만들어야 합니다.",
+				"copyAria": "키 복사",
+				"copied": "클립보드에 복사했습니다",
+				"done": "완료"
+			},
+			"errors": {
+				"nameRequired": "키 이름을 입력하세요.",
+				"nameTooLong": "키 이름이 너무 깁니다(최대 100자).",
+				"createFailed": "키를 만들지 못했습니다. API 키가 아닌 계정으로 로그인한 상태에서 다시 시도하세요.",
+				"revokeFailed": "키를 폐기하지 못했습니다. 다시 시도하세요.",
+				"copyFailed": "클립보드에 복사하지 못했습니다. 키를 선택해 직접 복사하세요."
+			},
+			"revoke": {
+				"title": "API 키 폐기",
+				"description": "“{{name}}”을(를) 폐기할까요? 이 키를 사용하는 모든 것이 즉시 작동을 멈춥니다. 이 작업은 되돌릴 수 없습니다.",
+				"cancel": "취소",
+				"confirm": "키 폐기",
+				"revoking": "폐기하는 중…"
+			},
+			"count": "API 키: {{count}}",
+			"newKey": "새 키",
+			"createFirst": "첫 키 만들기",
+			"createDialog": {
+				"title": "API 키 만들기",
+				"description": "이 키는 이 계정으로 인증합니다. 생성 직후 한 번만 표시됩니다.",
+				"cancel": "취소"
+			},
+			"row": {
+				"created": "{{date}} 생성",
+				"expires": "{{date}} 만료",
+				"noExpiry": "만료 없음",
+				"lastUsed": "마지막 사용 {{date}}",
+				"neverUsed": "사용한 적 없음"
+			}
+		},
+		"roleDialog": {
+			"title": "역할 변경",
+			"description": "{{name}}이(가) 가질 워크스페이스 역할을 선택하세요. 이 역할이 허용하는 작업만 수행할 수 있습니다.",
+			"assign": "역할 저장",
+			"assigning": "저장하는 중…",
+			"fullAccessWarning": "이 역할은 모든 권한을 부여합니다. 이 계정의 API 키를 가진 누구든 전체 접근 권한을 갖게 됩니다."
+		},
+		"detail": {
+			"notFound": {
+				"title": "서비스 계정을 찾을 수 없습니다",
+				"description": "삭제되었을 수 있습니다."
+			},
+			"roles": {
+				"description": "이 계정이 워크스페이스에서 할 수 있는 일입니다. 새 계정은 역할이 없습니다.",
+				"none": "역할 없음: 이 계정은 아직 아무것도 할 수 없습니다.",
+				"change": "역할 변경",
+				"noneHint": "역할을 부여해야 작업을 할 수 있습니다.",
+				"readOnly": "이 계정의 역할을 볼 수는 있지만 변경할 수는 없습니다."
+			},
+			"badge": "서비스 계정",
+			"tabs": {
+				"overview": "개요",
+				"apiKeys": "API 키",
+				"roles": "역할"
+			},
+			"overview": {
+				"descriptionHint": "계정 목록과 프로젝트에 초대할 때 표시됩니다.",
+				"saveChanges": "변경 사항 저장",
+				"saved": "저장됨",
+				"saveFailed": "변경 사항을 저장하지 못했습니다. 다시 시도하세요.",
+				"idLabel": "ID",
+				"createdLabel": "생성일",
+				"updatedLabel": "수정일",
+				"deleteTitle": "이 서비스 계정 삭제",
+				"deleteHint": "API 키가 작동을 멈추고 역할과 프로젝트 멤버십이 제거됩니다."
+			}
+		}
+	}
+}

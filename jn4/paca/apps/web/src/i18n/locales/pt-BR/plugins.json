@@ -1,0 +1,56 @@
+{
+	"marketplace": {
+		"loading": "Carregando marketplace...",
+		"searchPlaceholder": "Buscar plugins",
+		"empty": "Nenhum plugin do marketplace encontrado.",
+		"card": {
+			"installed": "Instalado",
+			"updateAvailable": "Atualização disponível",
+			"source": "Origem",
+			"official": "Plugin oficial do Paca",
+			"upgrading": "Atualizando...",
+			"upgradeTo": "Atualizar para {{version}}",
+			"uninstalling": "Desinstalando...",
+			"uninstall": "Desinstalar",
+			"installing": "Instalando...",
+			"install": "Instalar",
+			"features": {
+				"backend": "Backend",
+				"frontend": "Frontend",
+				"migrations": "Migrações",
+				"mcp": "MCP",
+				"skills": "Habilidades"
+			},
+			"errors": {
+				"incompatibleHostVersion": "Este plugin requer o Paca {{required}} ou mais recente. Você está usando a versão {{current}}.",
+				"incompatibleHostVersionGeneric": "Este plugin requer uma versão do Paca mais recente do que a que você está executando.",
+				"alreadyUpToDate": "Este plugin já está atualizado.",
+				"downgradeNotAllowed": "Não é possível instalar uma versão mais antiga do que a já instalada.",
+				"notFound": "Este plugin não está mais disponível no marketplace.",
+				"nameTaken": "Já existe um plugin instalado com este nome.",
+				"generic": "Ocorreu um erro. Tente novamente."
+			},
+			"legacyPermissions": {
+				"badge": "Usa permissões antigas",
+				"description": "Este plugin ainda usa o modelo de permissões antigo requirePermissions. Ele continua funcionando, mas não pode ser reinstalado nem atualizado até que o autor publique uma versão que use requireActions."
+			}
+		}
+	},
+	"preferences": {
+		"empty": "Nenhum plugin com pontos de extensão está instalado.",
+		"actions": {
+			"show": "Mostrar",
+			"hide": "Ocultar"
+		},
+		"extensionPoints": {
+			"sidebarGeneral": "Barra lateral — Geral",
+			"sidebarProject": "Barra lateral — Projeto",
+			"taskDetail": "Detalhes da tarefa",
+			"projectSettingsTab": "Aba de configurações do projeto",
+			"customView": "Visualização personalizada",
+			"projectPage": "Página do Projeto",
+			"adminPage": "Página de Administração",
+			"userSettingsTab": "Aba de configurações do usuário"
+		}
+	}
+}

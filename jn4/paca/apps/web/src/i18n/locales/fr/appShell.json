@@ -1,0 +1,87 @@
+{
+	"language": {
+		"label": "Langue",
+		"toggleTooltip": "Langue : {{language}} — cliquez pour changer"
+	},
+	"brand": {
+		"logoAlt": "Logo Paca"
+	},
+	"theme": {
+		"label": "Thème",
+		"light": "Clair",
+		"dark": "Sombre",
+		"auto": "Auto",
+		"cycleTooltip": "Thème : {{mode}} — cliquez pour changer",
+		"modeAutoTooltip": "Mode de thème : auto (système). Cliquez pour passer en mode clair.",
+		"modeTooltip": "Mode de thème : {{mode}}. Cliquez pour changer de mode."
+	},
+	"nav": {
+		"home": "Accueil",
+		"administration": "Administration",
+		"globalRoles": "Rôles globaux",
+		"users": "Utilisateurs",
+		"plugins": "Plugins",
+		"allProjects": "Tous les projets",
+		"project": "Projet",
+		"agents": "Agents",
+		"environments": "Environnements",
+		"conversations": "Conversations",
+		"automation": "Automatisation",
+		"team": "Équipe",
+		"settings": "Paramètres",
+		"changelog": "Nouveautés",
+		"activity": "Activité",
+		"serviceAccounts": "Comptes de service"
+	},
+	"projectSwitcher": {
+		"projects": "Projets",
+		"yourProjects": "Vos projets",
+		"noProjectsYet": "Aucun projet pour le moment",
+		"newProject": "Nouveau projet",
+		"loadingMore": "Chargement…"
+	},
+	"interactions": {
+		"title": "Interactions",
+		"timeline": "Chronologie",
+		"productBacklog": "Backlog produit",
+		"plannedSprints": "Sprints en brouillon",
+		"completedSprints": "Sprints terminés"
+	},
+	"docs": {
+		"documentation": "Documentation",
+		"noDocumentsYet": "Aucun document pour le moment",
+		"emptyFolder": "Dossier vide",
+		"add": "Ajouter",
+		"newDocument": "Nouveau document",
+		"newFolder": "Nouveau dossier",
+		"newFolderDefaultName": "Nouveau dossier",
+		"newSubfolder": "Nouveau sous-dossier",
+		"rename": "Renommer",
+		"delete": "Supprimer",
+		"untitled": "Sans titre",
+		"errors": {
+			"titleInvalid": "Ce titre n'est pas valide.",
+			"folderNameInvalid": "Ce nom de dossier n'est pas valide.",
+			"renameFailed": "Échec du renommage. Veuillez réessayer."
+		}
+	},
+	"notifications": {
+		"title": "Notifications",
+		"empty": "Aucune notification pour le moment",
+		"loadingMore": "Chargement…",
+		"markAllAsRead": "Tout marquer comme lu",
+		"muteSound": "Couper le son des notifications",
+		"unmuteSound": "Activer le son des notifications",
+		"text": {
+			"assigned": "{{actor}} vous a assigné à la tâche #{{taskNumber}} — {{taskTitle}}",
+			"mentioned": "{{actor}} vous a mentionné dans #{{taskNumber}} — {{taskTitle}}"
+		}
+	},
+	"userMenu": {
+		"signIn": "Se connecter",
+		"myProfile": "Mon profil",
+		"apiKeys": "Clés API",
+		"logOut": "Se déconnecter",
+		"loggingOut": "Déconnexion en cours…"
+	}
+}

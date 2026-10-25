@@ -1,0 +1,87 @@
+{
+	"language": {
+		"label": "Language",
+		"toggleTooltip": "Language: {{language}} — click to change"
+	},
+	"brand": {
+		"logoAlt": "Paca Logo"
+	},
+	"theme": {
+		"label": "Theme",
+		"light": "Light",
+		"dark": "Dark",
+		"auto": "Auto",
+		"cycleTooltip": "Theme: {{mode}} — click to cycle",
+		"modeAutoTooltip": "Theme mode: auto (system). Click to switch to light mode.",
+		"modeTooltip": "Theme mode: {{mode}}. Click to switch mode."
+	},
+	"nav": {
+		"home": "Home",
+		"administration": "Administration",
+		"globalRoles": "Global Roles",
+		"users": "Users",
+		"plugins": "Plugins",
+		"allProjects": "All Projects",
+		"project": "Project",
+		"agents": "Agents",
+		"environments": "Environments",
+		"conversations": "Conversations",
+		"automation": "Automation",
+		"team": "Team",
+		"settings": "Settings",
+		"changelog": "What's New",
+		"activity": "Activity",
+		"serviceAccounts": "Service Accounts"
+	},
+	"projectSwitcher": {
+		"projects": "Projects",
+		"yourProjects": "Your Projects",
+		"noProjectsYet": "No projects yet",
+		"newProject": "New project",
+		"loadingMore": "Loading more…"
+	},
+	"interactions": {
+		"title": "Interactions",
+		"timeline": "Timeline",
+		"productBacklog": "Product Backlog",
+		"plannedSprints": "Draft Sprints",
+		"completedSprints": "Completed Sprints"
+	},
+	"docs": {
+		"documentation": "Documentation",
+		"noDocumentsYet": "No documents yet",
+		"emptyFolder": "Empty folder",
+		"add": "Add",
+		"newDocument": "New Document",
+		"newFolder": "New Folder",
+		"newFolderDefaultName": "New Folder",
+		"newSubfolder": "New Subfolder",
+		"rename": "Rename",
+		"delete": "Delete",
+		"untitled": "Untitled",
+		"errors": {
+			"titleInvalid": "That title isn't valid.",
+			"folderNameInvalid": "That folder name isn't valid.",
+			"renameFailed": "Rename failed. Please try again."
+		}
+	},
+	"notifications": {
+		"title": "Notifications",
+		"empty": "No notifications yet",
+		"loadingMore": "Loading…",
+		"markAllAsRead": "Mark all as read",
+		"muteSound": "Mute notification sound",
+		"unmuteSound": "Unmute notification sound",
+		"text": {
+			"assigned": "{{actor}} assigned you to task #{{taskNumber}} — {{taskTitle}}",
+			"mentioned": "{{actor}} mentioned you in #{{taskNumber}} — {{taskTitle}}"
+		}
+	},
+	"userMenu": {
+		"signIn": "Sign in",
+		"myProfile": "My Profile",
+		"apiKeys": "API Keys",
+		"logOut": "Log out",
+		"loggingOut": "Logging out…"
+	}
+}

@@ -1,0 +1,470 @@
+# Development compose for contributors and local end-to-end testing.
+#
+# Full stack:
+#   docker compose -f deploy/docker-compose.dev.yml up -d
+#
+# Infra only:
+#   docker compose -f deploy/docker-compose.dev.yml up -d postgres valkey
+#
+# The application services remain optional so contributors can also run them
+# directly on the host for faster feedback loops.
+
+name: paca-dev
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: paca
+      POSTGRES_PASSWORD: paca
+      POSTGRES_DB: paca
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U paca -d paca"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # ── Database backups ─────────────────────────────────────────────────────────
+  # Dev mirror of the db-backup service in docker-compose.prod.yml — same
+  # entrypoint script and cron mechanism, pointed at the local postgres
+  # container by default. Writes to BACKUP_DIR on the schedule given by
+  # BACKUP_CRON, pruning dumps older than BACKUP_RETENTION_DAYS.
+  #
+  # To test without waiting for the cron schedule, run the backup on demand:
+  #   docker compose -f deploy/docker-compose.dev.yml exec db-backup run-backup.sh
+  #
+  # To test retention pruning, backdate a dump's mtime past the retention
+  # window and re-run the script above:
+  #   docker compose -f deploy/docker-compose.dev.yml exec db-backup \
+  #     sh -c 'touch -t "$(date -d "@$(($(date +%s)-10*86400))" +%Y%m%d%H%M)" /backups/paca-fake.sql.gz'
+  db-backup:
+    image: postgres:16-alpine
+    environment:
+      DATABASE_URL: ${DATABASE_URL:-postgres://paca:paca@postgres:5432/paca?sslmode=disable}
+      BACKUP_RETENTION_DAYS: ${BACKUP_RETENTION_DAYS:-7}
+      # Standard 5-field cron syntax: minute hour day-of-month month day-of-week.
+      # Default: 02:00 daily. Override in .env.dev with something like
+      # "*/2 * * * *" to watch it fire every 2 minutes while testing.
+      BACKUP_CRON: ${BACKUP_CRON:-0 2 * * *}
+      TZ: ${TZ:-UTC}
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        set -e
+        if [ "$$(echo "$$BACKUP_CRON" | wc -w)" -ne 5 ]; then
+          echo "Invalid BACKUP_CRON '$$BACKUP_CRON': expected 5 fields (minute hour day month weekday)" >&2
+          exit 1
+        fi
+
+        cat > /etc/backup.env <<EOF
+        DATABASE_URL="$$DATABASE_URL"
+        BACKUP_RETENTION_DAYS="$$BACKUP_RETENTION_DAYS"
+        EOF
+
+        cat > /usr/local/bin/run-backup.sh <<'EOS'
+        #!/bin/sh
+        set -e -o pipefail
+        . /etc/backup.env
+        ts="$$(date +%Y%m%d-%H%M%S)"
+        tmp="/backups/.paca-$${ts}.sql.gz.tmp"
+        out="/backups/paca-$${ts}.sql.gz"
+        if pg_dump "$$DATABASE_URL" --no-owner | gzip > "$$tmp"; then
+          mv "$$tmp" "$$out"
+          echo "Backup written: $$out"
+          find /backups -maxdepth 1 -name 'paca-*.sql.gz' -mtime "+$${BACKUP_RETENTION_DAYS}" -delete
+        else
+          echo "Backup failed at $${ts}" >&2
+          rm -f "$$tmp"
+        fi
+        EOS
+        chmod +x /usr/local/bin/run-backup.sh
+
+        mkdir -p /var/spool/cron/crontabs
+        echo "$$BACKUP_CRON /usr/local/bin/run-backup.sh >>/proc/1/fd/1 2>>/proc/1/fd/2" > /var/spool/cron/crontabs/root
+
+        echo "Database backup service started — schedule: $$BACKUP_CRON $$TZ (retention: $$BACKUP_RETENTION_DAYS days)."
+        exec crond -f -d 8
+    volumes:
+      - ${BACKUP_DIR:-./backups}:/backups
+    depends_on:
+      postgres:
+        condition: service_healthy
+        required: false
+
+  valkey:
+    image: valkey/valkey:8-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - valkey_data:/data
+    healthcheck:
+      test: ["CMD", "valkey-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build:
+      context: ../services/api
+      dockerfile: Dockerfile.dev
+    working_dir: /workspace
+    # air is already installed in the image; no per-start download needed.
+    command: air
+    environment:
+      # Limit parallel package compilation to avoid OOM kills on memory-constrained
+      # Docker Desktop VMs (mirrors the -p=1 flag used in the production Dockerfile).
+      GOFLAGS: "-p=1"
+      ENV: development
+      PORT: "8080"
+      DATABASE_URL: postgres://paca:paca@postgres:5432/paca?sslmode=disable
+      REDIS_URL: redis://valkey:6379/0
+      JWT_SECRET: dev-change-in-production
+      JWT_ACCESS_TTL: 15m
+      JWT_REFRESH_TTL: 168h
+      COOKIE_SECURE: "false"
+      ADMIN_USERNAME: admin
+      ADMIN_PASSWORD: adminpassword
+      # Storage — RustFS by default; switch to "s3" and set real credentials for AWS S3.
+      STORAGE_PROVIDER: rustfs
+      STORAGE_ENDPOINT: rustfs:9000
+      # Public URL used to rewrite presigned URLs so browsers can reach RustFS
+      # through the Caddy gateway instead of the internal Docker hostname.
+      STORAGE_PUBLIC_URL: ${PUBLIC_HOST:-http://localhost}/storage
+      STORAGE_REGION: us-east-1
+      STORAGE_BUCKET: paca
+      STORAGE_ACCESS_KEY_ID: rustfsadmin
+      STORAGE_SECRET_ACCESS_KEY: rustfsadmin
+      STORAGE_USE_SSL: "false"
+      # Encryption key for sensitive values (plugin tokens/secrets).
+      ENCRYPTION_KEY: "3b4a93a4f2ffa732a5f7cf44b9a37050e49f5f9c3f105c3995432b9dd49e28ac"
+      # Base URL of the agent-runner service. Explicit rather than relying
+      # on the Go code's own http://ai-agent:8080 default — that hostname
+      # doesn't exist in this compose file since ai-agent was removed,
+      # so leaving this unset would silently break GET /agents/llm-models
+      # and the ACP bridge status/disconnect proxies (confirmed live: a DNS
+      # lookup failure on the old default hostname, not a timeout).
+      AI_AGENT_URL: http://agent-runner:8080
+      # Authenticates the reverse direction: API calling into agent-runner's
+      # internal-only routes (e.g. the ACP bridge status check). Must match
+      # INTERNAL_API_KEY in the agent-runner service.
+      AI_AGENT_INTERNAL_KEY: dev-internal-key-change-in-production
+      # Public base URL used by plugins to generate callback/webhook URLs.
+      PUBLIC_URL: ${PUBLIC_HOST:-http://localhost}
+      # Purely descriptive — services/api never itself publishes any
+      # environment port, it only echoes these back via GET
+      # /environments/config so the web app's Connect page can show a real
+      # `ssh -p <port> root@<host>` command and a real
+      # `<host>:<host_port>` address for a port forward. Every environment
+      # container publishes its own SSH/forward ports directly on this
+      # Docker host (a native -p binding per environment — see
+      # services/agent-runner's own SSH_BASTION_PORT_RANGE_START/_END /
+      # PORT_FORWARD_RANGE_START/_END), so both values here are the same
+      # bare host either way. PUBLIC_HOSTNAME (deploy/.env.dev), NOT
+      # PUBLIC_HOST above — PUBLIC_HOST is a full URL (scheme + host +
+      # port, e.g. "http://pc.paca-ai.org:3000"); concatenating that whole
+      # string into an ssh/DNS-name context produces garbage like
+      # "env.http://pc.paca-ai.org:3000". PUBLIC_HOSTNAME is the bare-host
+      # counterpart kept specifically for this. Defaults to "localhost"
+      # unchanged when unset.
+      SSH_BASTION_HOST: ${PUBLIC_HOSTNAME:-localhost}
+      PORT_FORWARD_HOST: ${PUBLIC_HOSTNAME:-localhost}
+      # Plugin subsystem — load WASM binaries + migrations from the local plugin store.
+      PLUGINS_WASM_DIR: /plugins
+      PLUGINS_FRONTEND_DIR: /plugins-frontend
+      PLUGINS_MCP_DIR: /plugins-mcp
+      PLUGINS_SKILLS_DIR: /plugins-skills
+    volumes:
+      - ../services/api:/workspace
+      # Backend plugin store — WASM binaries and SQL migrations.
+      # Writable so the marketplace installer can download and extract artifacts.
+      # Layout: /plugins/<plugin-id>/backend.wasm + /plugins/<plugin-id>/migrations/
+      - ../plugins/local/backend:/plugins
+      # Frontend plugin store — built JS bundles and MCP bundles.
+      # Writable for API marketplace installs; also mounted read-only by the gateway.
+      # Layout: /plugins-frontend/<plugin-id>/assets/remoteEntry.js
+      - ../plugins/local/frontend:/plugins-frontend
+      # MCP plugin store — self-contained ESM bundles served at /plugins-mcp/.
+      # Writable for API marketplace installs; also mounted read-only by the gateway.
+      # Layout: /plugins-mcp/<plugin-id>/mcp.js
+      - ../plugins/local/mcp:/plugins-mcp
+      # Skills plugin store — SKILL.md bundles served at /plugins-skills/.
+      # Writable for API marketplace installs; also mounted read-only by the gateway.
+      # Layout: /plugins-skills/<plugin-id>/<skill-name>/SKILL.md
+      - ../plugins/local/skills:/plugins-skills
+      # go modules are pre-downloaded into the image layer; no volume needed.
+      # Persist the Go build cache so the first build after a container restart
+      # reuses previously compiled packages instead of starting cold.
+      - go_build_cache:/root/.cache/go-build
+    depends_on:
+      postgres:
+        condition: service_healthy
+      valkey:
+        condition: service_healthy
+      rustfs:
+        condition: service_healthy
+
+  web:
+    image: oven/bun:1-alpine
+    working_dir: /workspace
+    command: sh -c "bun install && bun run dev --host 0.0.0.0 --port 3000"
+    environment:
+      NODE_ENV: development
+      DOCKER: "true"
+      NODE_OPTIONS: "--max-old-space-size=2048"
+      VITE_ALLOWED_HOST: ${VITE_ALLOWED_HOST:-}
+    volumes:
+      - ../apps/web:/workspace
+      - web_node_modules:/workspace/node_modules
+      - bun_cache:/root/.bun/install/cache
+
+  realtime:
+    build:
+      context: ../services/realtime
+      dockerfile: Dockerfile.dev
+    working_dir: /app
+    command: sh -c "bun install && bun run --watch src/index.ts"
+    environment:
+      PORT: "3001"
+      NODE_ENV: development
+      # Internal service-to-service URL — the realtime service calls the API
+      # directly, bypassing Caddy, so no prefix stripping is needed.
+      API_URL: http://api:8080
+      REDIS_URL: redis://valkey:6379/0
+      CORS_ORIGINS: ${PUBLIC_HOST:-http://localhost}
+      LOG_LEVEL: debug
+    volumes:
+      - ../services/realtime:/app
+      - realtime_node_modules:/app/node_modules
+    depends_on:
+      valkey:
+        condition: service_healthy
+      api:
+        condition: service_started
+  
+  gateway:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+    volumes:
+      - ./caddy/Caddyfile.dev:/etc/caddy/Caddyfile:ro
+      # Frontend plugin store — built JS bundles, served at /plugins/.
+      # Layout: /var/www/plugins/<plugin-id>/assets/remoteEntry.js
+      - ../plugins/local/frontend:/var/www/plugins:ro
+      # MCP plugin store — self-contained ESM bundles, served at /plugins-mcp/.
+      # Layout: /var/www/plugins-mcp/<plugin-id>/mcp.js
+      - ../plugins/local/mcp:/var/www/plugins-mcp:ro
+      # Skills plugin store — SKILL.md bundles, served at /plugins-skills/.
+      # Layout: /var/www/plugins-skills/<plugin-id>/<skill-name>/SKILL.md
+      - ../plugins/local/skills:/var/www/plugins-skills:ro
+    depends_on:
+      - api
+      - web
+      - realtime
+
+  # A fresh Docker named volume is created root-owned, but the rustfs image
+  # runs its main process as the unprivileged `rustfs` user (uid/gid 10001) —
+  # writing to /data/rustfs0 then fails with "Permission denied (os error
+  # 13)" (confirmed live). This one-shot init container fixes ownership
+  # before rustfs starts; it reuses the same image so nothing extra is
+  # pulled, and only ever needs to run once per volume (a no-op chown on
+  # every later `up` after that).
+  rustfs-init:
+    image: rustfs/rustfs:1.0.0-rc.6
+    user: root
+    entrypoint: ["/bin/sh", "-c", "chown -R 10001:10001 /data/rustfs0"]
+    volumes:
+      - rustfs_data:/data/rustfs0
+
+  # RustFS — S3-compatible object store for development.
+  # Swap for AWS S3 in production by updating STORAGE_* env vars in the API service.
+  rustfs:
+    image: rustfs/rustfs:1.0.0-rc.6
+    depends_on:
+      rustfs-init:
+        condition: service_completed_successfully
+    environment:
+      RUSTFS_ACCESS_KEY: rustfsadmin
+      RUSTFS_SECRET_KEY: rustfsadmin
+      RUSTFS_VOLUMES: /data/rustfs0
+      RUSTFS_ADDRESS: 0.0.0.0:9000
+      RUSTFS_CONSOLE_ADDRESS: 0.0.0.0:9001
+      RUSTFS_CONSOLE_ENABLE: "true"
+    ports:
+      - "9000:9000"   # S3 API
+      - "9001:9001"   # RustFS web console
+    volumes:
+      - rustfs_data:/data/rustfs0
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:9000/health"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  mcp:
+    image: oven/bun:1-alpine
+    working_dir: /workspace
+    command: sh -c "bun install && bun run watch"
+    volumes:
+      - ../apps/mcp:/workspace
+    healthcheck:
+      test: ["CMD", "test", "-f", "/workspace/build/index.js"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 120s
+
+  # Go service that runs llm- and acp-type agent conversations. Mirrors
+  # services/api's air-based
+  # Dockerfile.dev setup: source is bind-mounted and air rebuilds/restarts
+  # the binary on any .go change instead of requiring a full `docker compose
+  # up --build agent-runner`.
+  agent-runner:
+    build:
+      context: ../services/agent-runner
+      dockerfile: Dockerfile.dev
+    working_dir: /workspace
+    # air is already installed in the image; no per-start download needed.
+    command: air
+    # No ports: block here, deliberately — unlike the earlier in-process
+    # relay design, agent-runner's own container never listens on the SSH/
+    # port-forward range at all. Each environment container publishes its
+    # own assigned port directly (a native Docker -p binding, applied when
+    # agent-runner calls the Engine API over the mounted docker.sock
+    # below), which the daemon binds on this same machine's real
+    # interfaces regardless of which container asked for it — see
+    # SSH_BASTION_PORT_RANGE_START/_END below for the range those bindings
+    # are picked from.
+    environment:
+      # Limit parallel package compilation to avoid OOM kills on memory-constrained
+      # Docker Desktop VMs (mirrors the -p=1 flag used in the production Dockerfile).
+      GOFLAGS: "-p=1"
+      VALKEY_URL: redis://valkey:6379/0
+      DATABASE_URL: postgres://paca:paca@postgres:5432/paca
+      # Used to authenticate api → agent-runner internal-only routes (e.g.
+      # the ACP bridge status check). Must match AI_AGENT_INTERNAL_KEY on
+      # the api service.
+      INTERNAL_API_KEY: dev-internal-key-change-in-production
+      PACA_API_URL: http://api:8080
+      PACA_GATEWAY_URL: http://gateway:8080
+      # Must match ENCRYPTION_KEY on the api service — see internal/secret's
+      # package doc comment.
+      ENCRYPTION_KEY: "3b4a93a4f2ffa732a5f7cf44b9a37050e49f5f9c3f105c3995432b9dd49e28ac"
+      # The Goose-based sandbox image.
+      #
+      # MUST be built from services/agent-server/Dockerfile, NOT the
+      # raw ghcr.io/aaif-goose/goose image referenced directly — found live,
+      # the hard way, while wiring this up: the raw upstream image has no
+      # Node.js at all, so the built-in Paca MCP server (spawned via
+      # `npx -y @paca-ai/paca-mcp` — enabled by PACA_API_URL above) can never start inside the sandbox, and Goose does not surface
+      # that MCP-subprocess failure as an ACP error — it just hangs
+      # session/new forever. This Dockerfile adds Node.js and
+      # pre-installs the MCP package specifically to avoid this.
+      #
+      # Defaults to the published image (CD builds ghcr.io/paca-ai/
+      # paca-agent-server-goose from this same Dockerfile), so a fresh
+      # checkout works without building anything. To test local changes to
+      # services/agent-server instead, build and point at your own tag
+      # (run from the repo root):
+      #   docker build -f services/agent-server/Dockerfile \
+      #     -t paca-agent-server-goose:dev services/agent-server
+      #   AGENT_SERVER_IMAGE=paca-agent-server-goose:dev docker compose ... up
+      AGENT_SERVER_IMAGE: ${AGENT_SERVER_IMAGE:-ghcr.io/paca-ai/paca-agent-server-goose:latest}
+      # Runs every sandbox's built-in Paca MCP server from this checkout's
+      # apps/mcp instead of the image's globally npm-installed
+      # @paca-ai/paca-mcp (see services/agent-server/Dockerfile) — so a
+      # local apps/mcp change is live on the next conversation without
+      # publishing a new npm version and rebuilding the sandbox image.
+      # Requires `bun install && bun run build` to have been run inside
+      # apps/mcp first (needs build/ and node_modules/ on disk).
+      #
+      # ${PWD} must be the repo root — i.e. `docker compose -f
+      # deploy/docker-compose.dev.yml up -d` invoked from there, exactly as
+      # README.md/CONTRIBUTING.md document. (Previously this assumed `docker
+      # compose` was invoked from inside deploy/ itself, one directory
+      # short of what the documented command actually does — `${PWD}` then
+      # resolved to the repo root, and the old `${PWD}/../apps/mcp` landed
+      # one level above the repo, on a nonexistent path Docker silently
+      # auto-created as an empty directory. Every sandbox's Paca MCP server
+      # then failed to start against that empty mount, failing every
+      # conversation's session/new — see the acp.rpcError.Data fix in
+      # internal/acp/types.go that made this failure's real cause visible
+      # instead of a generic "Internal error".) This is a HOST path, not a
+      # path inside this container: agent-runner reaches the Docker daemon
+      # over the mounted socket below (sibling-container mode, not
+      # Docker-in-Docker), so the daemon resolves this bind mount's source
+      # against its own (the host's) filesystem — see
+      # sandbox.Config.MCPDevSourceDir.
+      PACA_MCP_DEV_SOURCE_DIR: ${PWD}/apps/mcp
+      PORT_POOL_START: "10000"
+      PORT_POOL_SIZE: "100"
+      WORKER_CONCURRENCY: "5"
+      CHAT_SANDBOX_IDLE_TIMEOUT_MINUTES: "3"
+      # "*" — every agent, regardless of type — is the local-dev default
+      # (see config.go's AllowedAgentIDs doc comment); a real staged
+      # rollout would list specific agent UUIDs here instead.
+      AGENT_RUNNER_ALLOWED_AGENT_IDS: "*"
+      LOG_LEVEL: INFO
+      # SSH (docs/ai-agent/environment-management.md's "Terminal / SSH
+      # Access" section) — the range agent-runner assigns each running
+      # static environment's own dedicated, natively-published SSH port
+      # from. SSH_BASTION_HOST on the api service (above) tells the web
+      # app's Connect page to show `localhost` as the host half of the
+      # `ssh` command.
+      #
+      # On by default here (unlike docker-compose.prod.yml, which is
+      # opt-in/empty by default) for local-dev convenience — deliberate,
+      # not an oversight. Docker publishes these on 0.0.0.0 (see
+      # publicHostAddr in internal/sandbox/docker/environment.go), so any
+      # environment created against this dev stack is reachable from your
+      # whole LAN, not just localhost, for as long as it's running. Fine
+      # for a laptop on a trusted network; set both *_START vars empty (or
+      # override in a local .env) if that's not your situation.
+      SSH_BASTION_PORT_RANGE_START: "2200"
+      SSH_BASTION_PORT_RANGE_END: "2299"
+      # Port forwarding (docs/ai-agent/environment-management.md's "Port
+      # Forwarding" section) — the exact same idea as the SSH range above,
+      # for user-added port forwards instead, same 0.0.0.0/LAN-reachable
+      # caveat. A disjoint range from SSH's own (2200-2299) so the two can
+      # never collide.
+      PORT_FORWARD_RANGE_START: "2300"
+      PORT_FORWARD_RANGE_END: "2399"
+      # Same PORT_FORWARD_HOST the api service sets above, for a different
+      # consumer: this service uses it to tell an environment-attached
+      # conversation's agent the real `host:port` address each of its
+      # port forwards is reachable at (executor.buildEnvironmentContext),
+      # not just to echo it back to the web app's Connect page.
+      PORT_FORWARD_HOST: ${PUBLIC_HOSTNAME:-localhost}
+    volumes:
+      # Sibling-container mode (see PACA_MCP_DEV_SOURCE_DIR's comment
+      # above) — this same socket is also how agent-runner spins up each
+      # conversation's dedicated `docker:dind` sidecar (see
+      # internal/sandbox/docker/dind.go), not just the sandbox container itself.
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ../services/agent-runner:/workspace
+      # go modules are pre-downloaded into the image layer; no volume needed.
+      # Persist the Go build cache so the first build after a container restart
+      # reuses previously compiled packages instead of starting cold. Shared
+      # with the api service's build cache volume — Go's build cache is
+      # content-addressed, so sharing it across modules is safe.
+      - go_build_cache:/root/.cache/go-build
+    depends_on:
+      postgres:
+        condition: service_healthy
+      valkey:
+        condition: service_healthy
+      api:
+        condition: service_started
+      mcp:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
+  valkey_data:
+  go_build_cache:
+  web_node_modules:
+  bun_cache:
+  rustfs_data:
+  realtime_node_modules:

@@ -1,0 +1,48 @@
+{
+	"common": {
+		"notFound": "Not found",
+		"somethingWentWrong": "Something went wrong",
+		"retry": "Retry",
+		"noPermissionToView": "You don't have permission to view this",
+		"loadMore": "Tải thêm",
+		"loadingMore": "Đang tải thêm…"
+	},
+	"dialog": {
+		"closeLabel": "Đóng",
+		"closeButton": "Đóng"
+	},
+	"sidebar": {
+		"title": "Thanh bên",
+		"description": "Hiển thị thanh bên trên thiết bị di động.",
+		"toggleLabel": "Ẩn/hiện thanh bên"
+	},
+	"validation": {
+		"usernameRequired": "Vui lòng nhập tên đăng nhập.",
+		"usernameMinLength": "Tên đăng nhập phải có ít nhất {{min}} ký tự.",
+		"passwordRequired": "Vui lòng nhập mật khẩu.",
+		"passwordMinLength": "Mật khẩu phải có ít nhất {{min}} ký tự.",
+		"newPasswordRequired": "Vui lòng nhập mật khẩu mới.",
+		"newPasswordMinLength": "Mật khẩu mới phải có ít nhất {{min}} ký tự.",
+		"newPasswordMustDiffer": "Mật khẩu mới phải khác với mật khẩu hiện tại.",
+		"confirmPasswordRequired": "Vui lòng xác nhận mật khẩu mới.",
+		"passwordsDoNotMatch": "Mật khẩu xác nhận không khớp."
+	},
+	"timeAgo": {
+		"justNow": "vừa xong",
+		"minutes_one": "{{count}} phút trước",
+		"minutes_other": "{{count}} phút trước",
+		"hours_one": "{{count}} giờ trước",
+		"hours_other": "{{count}} giờ trước",
+		"days_one": "{{count}} ngày trước",
+		"days_other": "{{count}} ngày trước"
+	},
+	"pagination": {
+		"navLabel": "Phân trang",
+		"previous": "Trang trước",
+		"next": "Trang sau",
+		"page": "Trang {{page}}",
+		"pageOfTotal": "Trang {{page}} / {{totalPages}}",
+		"rowsPerPage": "Số dòng mỗi trang",
+		"range": "{{from}}–{{to}} / {{total}}"
+	}
+}

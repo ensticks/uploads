@@ -1,0 +1,632 @@
+{
+	"agents": {
+		"searchPlaceholder": "Search agents by name or handle…",
+		"header": {
+			"title": "Global Agents",
+			"description": "Manage AI agents that chat on the home page and admin pages, and can be invited into any project.",
+			"newAgent": "New Agent"
+		},
+		"empty": {
+			"title": "No global agents yet",
+			"description": "Create a global agent to make it available for chat and project invites.",
+			"createAgent": "Create agent"
+		},
+		"noPermission": {
+			"title": "You don't have permission to view agents",
+			"description": "You can still create new agents using the button above."
+		}
+	},
+	"users": {
+		"header": {
+			"title": "User Management",
+			"description": "View and manage user accounts and their assigned roles.",
+			"newUser": "New User"
+		},
+		"stats": {
+			"userCount_one": "{{count}} user",
+			"userCount_other": "{{count}} users",
+			"inSystem": "in system",
+			"mustChangePassword": "must change password"
+		},
+		"empty": {
+			"title": "No users found",
+			"description": "Create your first user to get started.",
+			"createUser": "Create user"
+		},
+		"errors": {
+			"loadFailed": "Failed to load users",
+			"tryAgain": "Please refresh the page and try again."
+		},
+		"noPermission": {
+			"title": "You don't have permission to view users",
+			"description": "You can still create new users using the button above."
+		},
+		"table": {
+			"columnUser": "User",
+			"columnRole": "Role",
+			"columnCreated": "Created",
+			"pwdResetBadge": "pwd reset",
+			"youBadge": "you",
+			"noFullName": "—",
+			"resetPasswordAction": "Reset password",
+			"editAction": "Edit user",
+			"changeRoleAction": "Change role",
+			"deleteAction": "Delete user",
+			"pwdResetHint": "This user must set a new password at next sign-in",
+			"columnActions": "Actions"
+		},
+		"formDialog": {
+			"createdTitle": "User created",
+			"createdDescriptionSuffix": "has been created. Share the temporary password below — the user will be asked to change it on first login.",
+			"temporaryPasswordLabel": "Temporary password",
+			"hidePassword": "Hide password",
+			"showPassword": "Show password",
+			"copyPassword": "Copy password",
+			"passwordNotShownAgain": "This password will not be shown again. Make sure to copy it now.",
+			"done": "Done",
+			"editTitle": "Edit User",
+			"createTitle": "Create User",
+			"editDescription": "Update the user's display name and email.",
+			"createDescription": "A secure temporary password will be generated automatically. The user will be required to change it on first login.",
+			"roleStepDescription": "{{username}} was created with the {{role}} role. Keep it, or choose a different one.",
+			"stepIndicator": "{{step}} / {{total}}",
+			"usernameLabel": "Username",
+			"usernamePlaceholder": "e.g. john.doe",
+			"fullNameLabel": "Full Name",
+			"fullNamePlaceholder": "e.g. John Doe",
+			"emailLabel": "Email",
+			"emailOptionalHint": "(optional — sends a welcome email with a link to set their password)",
+			"emailPlaceholder": "e.g. john.doe@example.com",
+			"roleStep": {
+				"title": "Role"
+			},
+			"cancel": "Cancel",
+			"continue": "Continue",
+			"saving": "Saving…",
+			"creating": "Creating…",
+			"saveChanges": "Save changes",
+			"createUser": "Create user",
+			"errors": {
+				"fullNameRequired": "Full name is required.",
+				"invalidEmail": "Please enter a valid email address.",
+				"usernameTaken": "This username is already taken.",
+				"emailTaken": "This email is already in use.",
+				"userNotFound": "User not found. They may have already been deleted.",
+				"forbidden": "You don't have permission to perform this action.",
+				"noDefaultRole": "There is no default role to give the new account. Set one on the Global Roles page, then try again.",
+				"internalError": "Something went wrong on the server. Please try again.",
+				"generic": "Something went wrong."
+			}
+		},
+		"roleDialog": {
+			"title": "Change role",
+			"description": "Choose a role for {{username}}. It applies from their next request.",
+			"assign": "Assign role",
+			"assigning": "Assigning…",
+			"fullAccessWarning": "This role has full access. It can do everything, including managing users and roles.",
+			"selfWarning": "This is your own account. Changing your role can remove your access to this page.",
+			"errors": {
+				"roleNotFound": "That role no longer exists. Close this dialog and try again."
+			}
+		},
+		"resetPasswordDialog": {
+			"title": "Reset password",
+			"descriptionSuccessPrefix": "Password for",
+			"descriptionSuccessSuffix": "has been reset. Share the temporary password below — it will not be shown again.",
+			"descriptionConfirmPrefix": "A strong temporary password will be generated and assigned to",
+			"descriptionConfirmSuffix": "They will be required to change it on next login.",
+			"temporaryPasswordLabel": "Temporary Password",
+			"hidePassword": "Hide password",
+			"showPassword": "Show password",
+			"copyPassword": "Copy password",
+			"notShownAgain": "⚠ This password will not be shown again after closing.",
+			"done": "Done",
+			"cancel": "Cancel",
+			"resetting": "Resetting…",
+			"resetButton": "Reset password",
+			"errors": {
+				"userNotFound": "This user no longer exists.",
+				"forbidden": "You don't have permission to reset this user's password.",
+				"internalError": "Something went wrong. Please try again.",
+				"generic": "Something went wrong."
+			}
+		},
+		"deleteDialog": {
+			"title": "Delete user",
+			"confirmTextPrefix": "Are you sure you want to delete",
+			"confirmTextSuffix": "? Their account will be permanently removed.",
+			"cannotBeUndone": "This action cannot be undone.",
+			"cancel": "Cancel",
+			"deleting": "Deleting…",
+			"confirmButton": "Delete user",
+			"errors": {
+				"userNotFound": "This user no longer exists.",
+				"forbidden": "You don't have permission to delete this user.",
+				"internalError": "Something went wrong. Please try again.",
+				"generic": "Something went wrong."
+			}
+		},
+		"filters": {
+			"searchPlaceholder": "Search by name, username or email…",
+			"searchLabel": "Search users",
+			"roleLabel": "Filter by role",
+			"allRoles": "All roles",
+			"clearSearch": "Clear search",
+			"resultsCount": "Results: {{count}}",
+			"clearAll": "Clear filters"
+		},
+		"noMatch": {
+			"title": "No users match",
+			"description": "Try a different search or role filter.",
+			"clear": "Clear filters"
+		}
+	},
+	"globalRoles": {
+		"header": {
+			"title": "Global Roles",
+			"description": "Manage system-wide roles and the permissions they grant to users.",
+			"newRole": "New Role"
+		},
+		"stats": {
+			"roleCount_one": "{{count}} role",
+			"roleCount_other": "{{count}} roles",
+			"defined": "defined",
+			"permissionGrants": "permission grants across all roles"
+		},
+		"empty": {
+			"title": "No roles defined yet",
+			"description": "Create your first role to start managing user permissions.",
+			"createRole": "Create role"
+		},
+		"errors": {
+			"loadFailed": "Failed to load roles",
+			"tryAgain": "Please refresh the page and try again."
+		},
+		"noPermission": {
+			"title": "You don't have permission to view roles",
+			"description": "You can still create new roles using the button above."
+		},
+		"table": {
+			"columnName": "Name",
+			"columnDescription": "Description",
+			"columnDefault": "Default",
+			"noPermissionsAssigned": "No permissions assigned",
+			"default": "Default",
+			"setDefaultAction": "Set as default role",
+			"editAction": "Edit role",
+			"deleteAction": "Delete role",
+			"deleteDefaultDisabled": "The default role can't be deleted. Make another role the default first.",
+			"builtIn": "Built-in role",
+			"noDescription": "No description"
+		},
+		"formDialog": {
+			"editTitle": "Edit Role",
+			"createTitle": "Create Role",
+			"editDescription": "Update the role name and its permission grants.",
+			"createDescription": "Define a new system-wide role and configure its permissions.",
+			"roleNameLabel": "Role Name",
+			"roleNamePlaceholder": "e.g. SECURITY_ADMIN",
+			"permissionsLabel": "Permissions",
+			"enabledCount_one": "{{count}} enabled",
+			"enabledCount_other": "{{count}} enabled",
+			"cancel": "Cancel",
+			"saving": "Saving…",
+			"saveChanges": "Save changes",
+			"createRole": "Create role"
+		},
+		"deleteDialog": {
+			"title": "Delete role",
+			"confirmTextPrefix": "Are you sure you want to delete",
+			"confirmTextSuffix": "? This will also remove all user assignments for this role.",
+			"cannotBeUndone": "This action cannot be undone.",
+			"cancel": "Cancel",
+			"deleting": "Deleting…",
+			"confirmButton": "Delete role",
+			"errors": {
+				"roleNotFound": "This role no longer exists.",
+				"isDefault": "The default role can't be deleted. Make another role the default first.",
+				"forbidden": "You don't have permission to delete this role.",
+				"internalError": "Something went wrong. Please try again.",
+				"generic": "Something went wrong."
+			}
+		},
+		"permissions": {
+			"globalRolesRead": {
+				"label": "Read Global Roles",
+				"description": "View global role definitions"
+			},
+			"globalRolesWrite": {
+				"label": "Write Global Roles",
+				"description": "Create and update global role definitions"
+			},
+			"globalRolesAssign": {
+				"label": "Assign Global Roles",
+				"description": "Assign global roles to users"
+			},
+			"usersRead": {
+				"label": "Read Users",
+				"description": "View user profiles and list"
+			},
+			"usersWrite": {
+				"label": "Write Users",
+				"description": "Create and update user accounts"
+			},
+			"usersDelete": {
+				"label": "Delete Users",
+				"description": "Remove user accounts"
+			},
+			"projectsRead": {
+				"label": "Read All Projects",
+				"description": "View all projects in the workspace"
+			},
+			"projectsCreate": {
+				"label": "Create Projects",
+				"description": "Create new projects"
+			},
+			"projectsWrite": {
+				"label": "Write Projects",
+				"description": "Update project details"
+			},
+			"projectsDelete": {
+				"label": "Delete Projects",
+				"description": "Permanently delete projects"
+			},
+			"projectMembersRead": {
+				"label": "Read Project Members",
+				"description": "View members of any project"
+			},
+			"projectMembersWrite": {
+				"label": "Write Project Members",
+				"description": "Add, remove, and update members in any project"
+			},
+			"projectRolesRead": {
+				"label": "Read Project Roles",
+				"description": "View roles defined in any project"
+			},
+			"projectRolesWrite": {
+				"label": "Write Project Roles",
+				"description": "Create and update roles in any project"
+			},
+			"settingsWrite": {
+				"label": "Write Workspace Settings",
+				"description": "Update the workspace logo, favicon, and primary color"
+			},
+			"settingsSsoWrite": {
+				"label": "Manage SSO Providers",
+				"description": "Configure the identity providers users can sign in with. Grants the ability to sign in as other users, so treat it like full admin access."
+			},
+			"agentsRead": {
+				"label": "Read Agents",
+				"description": "View workspace-level AI agents"
+			},
+			"agentsWrite": {
+				"label": "Manage Agents",
+				"description": "Create, edit and delete workspace-level AI agents"
+			},
+			"pluginsRead": {
+				"label": "Read Plugins",
+				"description": "View installed plugins"
+			},
+			"pluginsWrite": {
+				"label": "Manage Plugins",
+				"description": "Install, update, enable and remove plugins"
+			},
+			"serviceAccountsRead": {
+				"label": "Read Service Accounts",
+				"description": "View service accounts and their API keys"
+			},
+			"serviceAccountsWrite": {
+				"label": "Manage Service Accounts",
+				"description": "Create, edit and delete service accounts and mint or revoke their API keys"
+			}
+		},
+		"permissionGroups": {
+			"globalRoles": "Global Roles",
+			"users": "Users",
+			"agents": "AI Agents",
+			"projects": "Projects",
+			"plugins": "Plugins",
+			"settings": "Settings",
+			"serviceAccounts": "Service Accounts"
+		},
+		"defaultDialog": {
+			"title": "Set default role",
+			"description": "New users and new global agents will start with the {{role}} role. Accounts that already exist keep the role they have.",
+			"fullAccessWarning": "This role grants every permission, so every account you create from now on would start with full access. Make sure that's what you want.",
+			"cancel": "Cancel",
+			"confirm": "Set as default",
+			"confirming": "Saving…",
+			"errors": {
+				"roleNotFound": "This role no longer exists.",
+				"forbidden": "You don't have permission to change the default role.",
+				"generic": "Something went wrong. Please try again."
+			}
+		}
+	},
+	"rolePicker": {
+		"current": "Current",
+		"fullAccess": "Full access",
+		"loadFailed": "Couldn't load the roles.",
+		"retry": "Try again",
+		"empty": "No roles have been created yet.",
+		"default": "Default"
+	},
+	"plugins": {
+		"title": "Plugin Settings",
+		"description": "Manage system-wide plugin panel ordering and visibility for all users.",
+		"tabs": {
+			"marketplace": "Marketplace",
+			"layout": "Extension Point Layout"
+		},
+		"marketplace": {
+			"title": "Marketplace",
+			"description": "Install or uninstall plugins from the public paca-plugins catalog."
+		},
+		"layout": {
+			"title": "Extension Point Layout",
+			"description": "Drag to reorder plugin panels within each extension point. Toggle visibility to show or hide panels for all users."
+		}
+	},
+	"changelog": {
+		"title": "What's New",
+		"description": "Follow the improvements and highlights from the latest Paca releases.",
+		"current": "Current version",
+		"error": "Couldn't load the changelog right now. Please try again later.",
+		"empty": "No release notes available yet."
+	},
+	"settings": {
+		"title": "Workspace Settings",
+		"description": "Branding and sign-in options for this workspace.",
+		"images": {
+			"title": "Logo & Favicon",
+			"logo": {
+				"label": "Logo",
+				"change": "Change logo",
+				"remove": "Remove logo",
+				"uploading": "Uploading…"
+			},
+			"favicon": {
+				"label": "Favicon",
+				"change": "Change favicon",
+				"remove": "Remove favicon",
+				"uploading": "Uploading…"
+			},
+			"errors": {
+				"invalidType": "Please choose a PNG, JPEG, WEBP, or GIF image.",
+				"tooLarge": "Image must be 5 MB or smaller.",
+				"uploadFailed": "Failed to upload image. Please try again.",
+				"removeFailed": "Failed to remove image. Please try again."
+			}
+		},
+		"general": {
+			"title": "General",
+			"brandNameLabel": "Brand Name",
+			"brandNamePlaceholder": "Paca",
+			"colorsLabel": "Primary Color",
+			"colorsDescription": "Choose an accent color used for buttons and highlights across the app — automatically adjusted for light and dark mode.",
+			"colorPresets": {
+				"green": "Green",
+				"blue": "Blue",
+				"teal": "Teal",
+				"indigo": "Indigo",
+				"purple": "Purple",
+				"pink": "Pink",
+				"red": "Red",
+				"orange": "Orange"
+			},
+			"save": "Save changes",
+			"saved": "Saved",
+			"errors": {
+				"updateFailed": "Failed to save. Please try again."
+			}
+		},
+		"sso": {
+			"title": "Single sign-on (SSO)",
+			"description": "Let people sign in with an OpenID Connect identity provider such as Google, Microsoft Entra ID, Okta or Keycloak.",
+			"add": "Add provider",
+			"empty": "No SSO providers yet. Users sign in with a username and password.",
+			"enabled": "Enabled",
+			"disabled": "Disabled",
+			"edit": "Edit {{name}}",
+			"delete": "Delete {{name}}",
+			"copy": "Copy",
+			"dialog": {
+				"createTitle": "Add SSO provider",
+				"editTitle": "Edit SSO provider",
+				"description": "Register Paca as an OpenID Connect client at your identity provider, then enter the details it gives you.",
+				"cancel": "Cancel",
+				"save": "Save"
+			},
+			"fields": {
+				"displayName": "Display name",
+				"displayNamePlaceholder": "Company SSO",
+				"slug": "Slug",
+				"slugHint": "Used in the sign-in and callback URLs. Changing it breaks the callback URL registered at the provider.",
+				"callbackUrl": "Callback URL",
+				"callbackUrlHint": "Register this as the redirect URI at your identity provider.",
+				"issuerUrl": "Issuer URL",
+				"issuerUrlHint": "The OpenID Connect issuer. Its discovery document must be reachable from the Paca server.",
+				"clientId": "Client ID",
+				"clientSecret": "Client secret",
+				"clientSecretKeepHint": "A secret is stored. Leave blank to keep it.",
+				"scopes": "Scopes",
+				"scopesHint": "Space-separated. \"openid\" is always included.",
+				"allowedDomains": "Allowed email domains",
+				"allowedDomainsHint": "Comma-separated. Leave empty to allow any domain. Only verified emails are accepted.",
+				"enabled": "Enabled",
+				"enabledHint": "Show this provider on the sign-in page.",
+				"autoProvision": "Create accounts automatically",
+				"autoProvisionHint": "First-time users get a new account with the default role.",
+				"linkByEmail": "Link existing accounts by email",
+				"linkByEmailHint": "A first-time user whose verified email matches an existing account signs in as that account.",
+				"linkByEmailWarning": "Only turn this on for a provider you trust completely: anyone who controls it can sign in as any account with a matching email, including administrators."
+			},
+			"deleteDialog": {
+				"title": "Delete SSO provider",
+				"description": "Delete \"{{name}}\"? People can no longer sign in with it, and the accounts it created lose their link to it. The accounts themselves are kept.",
+				"confirm": "Delete"
+			},
+			"errors": {
+				"slugTaken": "Another provider already uses this slug.",
+				"discoveryFailed": "Could not reach the issuer's OpenID Connect discovery document. Check the issuer URL.",
+				"invalid": "Some fields are invalid. Check the slug, issuer URL, client ID and email domains.",
+				"saveFailed": "Failed to save the provider. Please try again.",
+				"loadFailed": "Failed to load SSO providers.",
+				"deleteFailed": "Failed to delete the provider. Please try again."
+			}
+		}
+	},
+	"serviceAccounts": {
+		"searchPlaceholder": "Search by name or description…",
+		"header": {
+			"title": "Service Accounts",
+			"description": "Non-human accounts with their own API keys and roles, for integrations, CI and automation.",
+			"newAccount": "New service account"
+		},
+		"empty": {
+			"title": "No service accounts yet",
+			"description": "Create one to give an integration its own identity and API key.",
+			"create": "Create service account"
+		},
+		"errors": {
+			"loadFailed": "Failed to load service accounts",
+			"tryAgain": "Please refresh the page and try again."
+		},
+		"noPermission": {
+			"title": "You don't have permission to view service accounts",
+			"description": "Ask a workspace administrator for access."
+		},
+		"table": {
+			"columnAccount": "Account",
+			"columnActions": "Actions",
+			"noDescription": "No description",
+			"changeRoleAction": "Change roles",
+			"editAction": "Edit service account",
+			"deleteAction": "Delete service account",
+			"columnRole": "Roles"
+		},
+		"formDialog": {
+			"createTitle": "New service account",
+			"editTitle": "Edit service account",
+			"createDescription": "It starts with no permissions. Create API keys for it, then grant it roles.",
+			"editDescription": "Change the name, description or avatar. API keys and roles are managed separately.",
+			"nameLabel": "Name",
+			"namePlaceholder": "e.g. CI deploy bot",
+			"descriptionLabel": "Description",
+			"descriptionPlaceholder": "What is this account used for?",
+			"cancel": "Cancel",
+			"create": "Create",
+			"creating": "Creating…",
+			"save": "Save",
+			"saving": "Saving…",
+			"avatar": {
+				"change": "Change avatar",
+				"remove": "Remove avatar",
+				"uploading": "Uploading…",
+				"errors": {
+					"invalidType": "Use a PNG, JPEG, WebP or GIF image.",
+					"tooLarge": "The image must be 5 MB or smaller.",
+					"uploadFailed": "Couldn't upload the avatar. Try again.",
+					"removeFailed": "Couldn't remove the avatar. Try again."
+				}
+			},
+			"errors": {
+				"nameInvalid": "The name must be 1–100 characters.",
+				"descriptionTooLong": "The description is too long (1000 characters at most).",
+				"notFound": "This service account no longer exists.",
+				"generic": "Something went wrong. Try again."
+			}
+		},
+		"deleteDialog": {
+			"title": "Delete service account",
+			"description": "Delete “{{name}}”? Its API keys stop working immediately and its roles and project memberships are removed. This can't be undone.",
+			"cancel": "Cancel",
+			"confirm": "Delete",
+			"deleting": "Deleting…",
+			"error": "Couldn't delete the service account. Try again."
+		},
+		"keys": {
+			"nameLabel": "Key name",
+			"namePlaceholder": "e.g. GitHub Actions",
+			"expiryLabel": "Expires",
+			"expiryOptional": "(optional)",
+			"create": "Create key",
+			"creating": "Creating…",
+			"empty": "No API keys yet.",
+			"revokeAria": "Revoke key {{name}}",
+			"reveal": {
+				"title": "Copy your new API key",
+				"description": "This is the only time the full key is shown. Store it somewhere safe; if you lose it, create a new one.",
+				"copyAria": "Copy key",
+				"copied": "Copied to clipboard",
+				"done": "Done"
+			},
+			"errors": {
+				"nameRequired": "Give the key a name.",
+				"nameTooLong": "The key name is too long (100 characters at most).",
+				"createFailed": "Couldn't create the key. Sign in with your account (not an API key) and try again.",
+				"revokeFailed": "Couldn't revoke the key. Try again.",
+				"copyFailed": "Couldn't copy to the clipboard. Select the key and copy it manually."
+			},
+			"revoke": {
+				"title": "Revoke API key",
+				"description": "Revoke “{{name}}”? Anything using it stops working immediately. This can't be undone.",
+				"cancel": "Cancel",
+				"confirm": "Revoke key",
+				"revoking": "Revoking…"
+			},
+			"count": "API keys: {{count}}",
+			"newKey": "New key",
+			"createFirst": "Create the first key",
+			"createDialog": {
+				"title": "Create API key",
+				"description": "The key authenticates as this account. It is shown only once, right after you create it.",
+				"cancel": "Cancel"
+			},
+			"row": {
+				"created": "Created {{date}}",
+				"expires": "Expires {{date}}",
+				"noExpiry": "No expiry",
+				"lastUsed": "Last used {{date}}",
+				"neverUsed": "Never used"
+			}
+		},
+		"roleDialog": {
+			"title": "Change roles",
+			"description": "Choose the workspace roles {{name}} holds. It can do exactly what these roles allow.",
+			"assign": "Save roles",
+			"assigning": "Saving…",
+			"fullAccessWarning": "This role grants every permission. Anything holding this account's API key would have full access."
+		},
+		"detail": {
+			"notFound": {
+				"title": "Service account not found",
+				"description": "It may have been deleted."
+			},
+			"roles": {
+				"description": "What this account can do in the workspace. A new account holds none.",
+				"none": "No roles: this account can't do anything yet.",
+				"change": "Change roles",
+				"noneHint": "Grant a role so it can do something.",
+				"readOnly": "You can view this account's roles but not change them."
+			},
+			"badge": "Service account",
+			"tabs": {
+				"overview": "Overview",
+				"apiKeys": "API keys",
+				"roles": "Roles"
+			},
+			"overview": {
+				"descriptionHint": "Shown in the account list and when inviting it to a project.",
+				"saveChanges": "Save changes",
+				"saved": "Saved",
+				"saveFailed": "Couldn't save the changes. Try again.",
+				"idLabel": "ID",
+				"createdLabel": "Created",
+				"updatedLabel": "Updated",
+				"deleteTitle": "Delete this service account",
+				"deleteHint": "Its API keys stop working and its roles and project memberships are removed."
+			}
+		}
+	}
+}

@@ -1,0 +1,261 @@
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
+import { createFileRoute, redirect } from "@tanstack/react-router";
+import { Users } from "lucide-react";
+import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
+import { DeleteUserDialog } from "@/components/admin/users/DeleteUserDialog";
+import { ResetPasswordDialog } from "@/components/admin/users/ResetPasswordDialog";
+import { UserFormDialog } from "@/components/admin/users/UserFormDialog";
+import { UserRoleDialog } from "@/components/admin/users/UserRoleDialog";
+import { UsersFilters } from "@/components/admin/users/UsersFilters";
+import { UsersHeader } from "@/components/admin/users/UsersHeader";
+import {
+	EmptyUsersState,
+	NoUsersMatchState,
+	UsersErrorState,
+} from "@/components/admin/users/UsersStates";
+import { UsersStats } from "@/components/admin/users/UsersStats";
+import { UsersTable } from "@/components/admin/users/UsersTable";
+import { UsersTableSkeleton } from "@/components/admin/users/UsersTableSkeleton";
+import { NoPermissionState } from "@/components/shared/no-permission-state";
+import { Pagination } from "@/components/ui/pagination";
+import { useCanAssignGlobalRole } from "@/hooks/use-can-assign-global-role";
+import { usePermissions } from "@/hooks/use-permissions";
+import { useRolesByIds } from "@/hooks/use-role-search";
+import { useTablePaging } from "@/hooks/use-table-paging";
+import {
+	myPermissionsQueryOptions,
+	type User,
+	usersQueryOptions,
+} from "@/lib/admin-api";
+import { currentUserQueryOptions } from "@/lib/auth-api";
+import { hasPermission } from "@/lib/permissions";
+import { cn } from "@/lib/utils";
+
+export const Route = createFileRoute("/_authenticated/admin/users/")({
+	beforeLoad: async ({ context: { queryClient } }) => {
+		const permissions = await queryClient
+			.fetchQuery(myPermissionsQueryOptions)
+			.catch(() => [] as string[]);
+
+		const canAccess =
+			hasPermission(permissions, "users:read") ||
+			hasPermission(permissions, "users:write") ||
+			hasPermission(permissions, "users:delete");
+
+		if (!canAccess) {
+			throw redirect({ to: "/home" });
+		}
+	},
+	component: UsersManagementPage,
+});
+
+function UsersManagementPage() {
+	const { t } = useTranslation("admin");
+	const { hasPermission, isLoading: isPermissionsLoading } = usePermissions();
+	const canRead = hasPermission("users:read");
+	const canWrite = hasPermission("users:write");
+	// Deleting a user is its own permission, separate from editing one —
+	// mirrors canAssignRole below. Without this the delete button showed for
+	// anyone who could edit a user, even without users.delete, and the
+	// server then refused the request.
+	const canDelete = hasPermission("users:delete");
+	// Changing a role is its own permission, separate from editing the user.
+	const canAssignRole = useCanAssignGlobalRole();
+
+	const { page, pageSize, setPage, setPageSize } =
+		useTablePaging("admin-users");
+	const [search, setSearch] = useState("");
+	const [role, setRole] = useState("");
+	// Bumped to remount the filter bar (and so empty its search box) when the
+	// "No users match" state clears the filters.
+	const [filtersKey, setFiltersKey] = useState(0);
+	const isFiltering = search.trim() !== "" || role !== "";
+
+	// Role chips and the role filter need roles:read; without it the filter
+	// is hidden and badges show plain names.
+	const canReadRoles = !!hasPermission("roles:read");
+
+	const {
+		data: pagedUsers,
+		isLoading: isDataLoading,
+		isFetching,
+		isError,
+	} = useQuery({
+		...usersQueryOptions(page, pageSize, { search: search.trim(), role }),
+		enabled: canRead,
+		placeholderData: keepPreviousData,
+	});
+	// While permissions are still loading, canRead defaults to false same as
+	// a confirmed denial — fold isPermissionsLoading into isLoading (and
+	// guard the noPermission check below) so the page shows the skeleton
+	// instead of flashing NoPermissionState first.
+	const isLoading = isPermissionsLoading || isDataLoading;
+
+	const { data: currentUser } = useQuery(currentUserQueryOptions);
+
+	const [createOpen, setCreateOpen] = useState(false);
+	const [editUser, setEditUser] = useState<User | null>(null);
+	const [deleteUser, setDeleteUser] = useState<User | null>(null);
+	const [resetPasswordUser, setResetPasswordUser] = useState<User | null>(null);
+	const [roleUser, setRoleUser] = useState<User | null>(null);
+
+	const users = pagedUsers?.items ?? [];
+	// What the visible users' roles grant (for badge descriptions), looked up
+	// by id rather than loading every role.
+	const globalRoles = useRolesByIds(
+		undefined,
+		[...new Set(users.flatMap((u) => u.roles.map((r) => r.id)))].slice(0, 100),
+		canReadRoles,
+	);
+	const total = pagedUsers?.total ?? 0;
+	const totalPages = Math.max(1, Math.ceil(total / pageSize));
+	const mustChangePasswordCount = pagedUsers?.must_change_password_count ?? 0;
+
+	// A delete (or a stale page number from a shrinking result set) can leave
+	// `page` pointing past the last page — e.g. deleting the last user on the
+	// last page. Snap back so the table never renders an empty page while
+	// users still exist on an earlier one.
+	useEffect(() => {
+		if (!isLoading && !isError && page > totalPages) {
+			setPage(totalPages);
+		}
+	}, [isLoading, isError, page, totalPages, setPage]);
+
+	// A new filter always starts from the first page.
+	const changeSearch = (value: string) => {
+		setSearch(value);
+		setPage(1);
+	};
+	const changeRole = (value: string) => {
+		setRole(value);
+		setPage(1);
+	};
+	const clearFilters = () => {
+		setSearch("");
+		setRole("");
+		setPage(1);
+		setFiltersKey((k) => k + 1);
+	};
+
+	return (
+		<div className="flex flex-col gap-6 p-6 max-w-5xl w-full mx-auto">
+			<UsersHeader canWrite={canWrite} onCreate={() => setCreateOpen(true)} />
+
+			{canWrite ? (
+				<UserFormDialog open={createOpen} onOpenChange={setCreateOpen} />
+			) : null}
+
+			{canRead && !isLoading && !isError && !isFiltering && (
+				<UsersStats
+					total={total}
+					mustChangePasswordCount={mustChangePasswordCount}
+				/>
+			)}
+
+			{canRead && !isPermissionsLoading ? (
+				<UsersFilters
+					key={filtersKey}
+					canFilterByRole={canReadRoles}
+					selectedRole={role}
+					isFetching={isFetching}
+					isFiltering={isFiltering}
+					resultCount={total}
+					onSearchChange={changeSearch}
+					onRoleChange={changeRole}
+					onClear={clearFilters}
+				/>
+			) : null}
+
+			{!isPermissionsLoading && !canRead ? (
+				<NoPermissionState
+					icon={Users}
+					title={t("users.noPermission.title")}
+					description={t("users.noPermission.description")}
+				/>
+			) : isLoading ? (
+				<UsersTableSkeleton />
+			) : isError ? (
+				<UsersErrorState />
+			) : users.length === 0 && isFiltering ? (
+				<NoUsersMatchState onClear={clearFilters} />
+			) : users.length === 0 ? (
+				<EmptyUsersState
+					canWrite={canWrite}
+					onCreate={() => setCreateOpen(true)}
+				/>
+			) : (
+				<div
+					className={cn(
+						"flex flex-col gap-4 transition-opacity",
+						// keepPreviousData leaves the old rows up while the new
+						// filter loads; dim them so it reads as "updating".
+						isFetching && "opacity-60",
+					)}
+				>
+					<UsersTable
+						users={users}
+						canWrite={canWrite}
+						canDelete={canDelete}
+						canAssignRole={canAssignRole}
+						currentUserId={currentUser?.id}
+						roleDirectory={globalRoles}
+						onEdit={setEditUser}
+						onDelete={setDeleteUser}
+						onResetPassword={setResetPasswordUser}
+						onChangeRole={setRoleUser}
+					/>
+					<Pagination
+						page={page}
+						totalPages={totalPages}
+						onPageChange={setPage}
+						total={total}
+						pageSize={pageSize}
+						onPageSizeChange={setPageSize}
+					/>
+				</div>
+			)}
+
+			{editUser ? (
+				<UserFormDialog
+					user={editUser}
+					open={!!editUser}
+					onOpenChange={(open) => {
+						if (!open) setEditUser(null);
+					}}
+				/>
+			) : null}
+
+			{roleUser ? (
+				<UserRoleDialog
+					user={roleUser}
+					isSelf={roleUser.id === currentUser?.id}
+					open={!!roleUser}
+					onOpenChange={(open) => {
+						if (!open) setRoleUser(null);
+					}}
+				/>
+			) : null}
+
+			{deleteUser ? (
+				<DeleteUserDialog
+					user={deleteUser}
+					open={!!deleteUser}
+					onOpenChange={(open) => {
+						if (!open) setDeleteUser(null);
+					}}
+				/>
+			) : null}
+
+			{resetPasswordUser ? (
+				<ResetPasswordDialog
+					user={resetPasswordUser}
+					open={!!resetPasswordUser}
+					onOpenChange={(open) => {
+						if (!open) setResetPasswordUser(null);
+					}}
+				/>
+			) : null}
+		</div>
+	);
+}

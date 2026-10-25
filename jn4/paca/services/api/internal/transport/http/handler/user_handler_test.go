@@ -1,0 +1,1185 @@
+package handler_test
+
+import (
+	"bytes"
+	"context"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"net/http"
+	"strings"
+	"testing"
+	"time"
+
+	"github.com/go-chi/chi/v5"
+	"github.com/google/uuid"
+
+	attachmentdom "github.com/Paca-AI/api/internal/domain/attachment"
+	roledom "github.com/Paca-AI/api/internal/domain/role"
+	domainuser "github.com/Paca-AI/api/internal/domain/user"
+	"github.com/Paca-AI/api/internal/transport/http/handler"
+)
+
+// ---------------------------------------------------------------------------
+// mock
+// ---------------------------------------------------------------------------
+
+type mockUserSvc struct {
+	getByID                      func(ctx context.Context, id uuid.UUID) (*domainuser.User, error)
+	list                         func(ctx context.Context, page, pageSize int, filter domainuser.ListFilter) ([]*domainuser.User, int64, error)
+	countUsersMustChangePassword func(ctx context.Context) (int64, error)
+	listGlobalPermissions        func(ctx context.Context, id uuid.UUID) ([]string, error)
+	create                       func(ctx context.Context, in domainuser.CreateInput) (*domainuser.User, error)
+	updateProfile                func(ctx context.Context, id uuid.UUID, in domainuser.UpdateProfileInput) (*domainuser.User, error)
+	adminUpdate                  func(ctx context.Context, id uuid.UUID, in domainuser.AdminUpdateInput) (*domainuser.User, error)
+	resetPassword                func(ctx context.Context, id uuid.UUID, newPassword string) error
+	changeMyPassword             func(ctx context.Context, id uuid.UUID, currentPassword, newPassword string) error
+	issuePasswordSetToken        func(ctx context.Context, userID uuid.UUID) (string, time.Time, error)
+	setPasswordWithToken         func(ctx context.Context, rawToken, newPassword string) error
+	delete                       func(ctx context.Context, id uuid.UUID) error
+	initiateAvatarUpload         func(ctx context.Context, userID uuid.UUID, fileName, contentType string, fileSize int64) (*attachmentdom.UploadSession, error)
+	listAfter                    func(ctx context.Context, limit int, cursor *string, filter domainuser.ListFilter) ([]*domainuser.User, bool, error)
+	completeAvatarUpload         func(ctx context.Context, userID, fileID uuid.UUID) (*domainuser.User, error)
+	removeAvatar                 func(ctx context.Context, userID uuid.UUID) (*domainuser.User, error)
+}
+
+func (m *mockUserSvc) GetByID(ctx context.Context, id uuid.UUID) (*domainuser.User, error) {
+	if m.getByID != nil {
+		return m.getByID(ctx, id)
+	}
+	return nil, domainuser.ErrNotFound
+}
+func (m *mockUserSvc) List(ctx context.Context, page, pageSize int, filter domainuser.ListFilter) ([]*domainuser.User, int64, error) {
+	if m.list != nil {
+		return m.list(ctx, page, pageSize, filter)
+	}
+	return nil, 0, nil
+}
+func (m *mockUserSvc) ListAfter(ctx context.Context, limit int, cursor *string, filter domainuser.ListFilter) ([]*domainuser.User, bool, error) {
+	if m.listAfter != nil {
+		return m.listAfter(ctx, limit, cursor, filter)
+	}
+	return nil, false, nil
+}
+func (m *mockUserSvc) CountUsers(context.Context) (int64, error) {
+	return 0, nil
+}
+func (m *mockUserSvc) CountUsersMustChangePassword(ctx context.Context) (int64, error) {
+	if m.countUsersMustChangePassword != nil {
+		return m.countUsersMustChangePassword(ctx)
+	}
+	return 0, nil
+}
+func (m *mockUserSvc) ListGlobalPermissions(ctx context.Context, id uuid.UUID) ([]string, error) {
+	if m.listGlobalPermissions != nil {
+		return m.listGlobalPermissions(ctx, id)
+	}
+	return []string{}, nil
+}
+func (m *mockUserSvc) Create(ctx context.Context, in domainuser.CreateInput) (*domainuser.User, error) {
+	if m.create != nil {
+		return m.create(ctx, in)
+	}
+	return nil, errors.New("mock: create not configured")
+}
+func (m *mockUserSvc) UpdateProfile(ctx context.Context, id uuid.UUID, in domainuser.UpdateProfileInput) (*domainuser.User, error) {
+	if m.updateProfile != nil {
+		return m.updateProfile(ctx, id, in)
+	}
+	return nil, domainuser.ErrNotFound
+}
+func (m *mockUserSvc) AdminUpdate(ctx context.Context, id uuid.UUID, in domainuser.AdminUpdateInput) (*domainuser.User, error) {
+	if m.adminUpdate != nil {
+		return m.adminUpdate(ctx, id, in)
+	}
+	return nil, domainuser.ErrNotFound
+}
+func (m *mockUserSvc) Delete(ctx context.Context, id uuid.UUID) error {
+	if m.delete != nil {
+		return m.delete(ctx, id)
+	}
+	return nil
+}
+func (m *mockUserSvc) ResetPassword(ctx context.Context, id uuid.UUID, newPassword string) error {
+	if m.resetPassword != nil {
+		return m.resetPassword(ctx, id, newPassword)
+	}
+	return nil
+}
+func (m *mockUserSvc) ChangeMyPassword(ctx context.Context, id uuid.UUID, currentPassword, newPassword string) error {
+	if m.changeMyPassword != nil {
+		return m.changeMyPassword(ctx, id, currentPassword, newPassword)
+	}
+	return nil
+}
+
+func (m *mockUserSvc) IssuePasswordSetToken(ctx context.Context, userID uuid.UUID) (string, time.Time, error) {
+	if m.issuePasswordSetToken != nil {
+		return m.issuePasswordSetToken(ctx, userID)
+	}
+	return "", time.Time{}, nil
+}
+func (m *mockUserSvc) SetPasswordWithToken(ctx context.Context, rawToken, newPassword string) error {
+	if m.setPasswordWithToken != nil {
+		return m.setPasswordWithToken(ctx, rawToken, newPassword)
+	}
+	return nil
+}
+
+func (m *mockUserSvc) InitiateAvatarUpload(ctx context.Context, userID uuid.UUID, fileName, contentType string, fileSize int64) (*attachmentdom.UploadSession, error) {
+	if m.initiateAvatarUpload != nil {
+		return m.initiateAvatarUpload(ctx, userID, fileName, contentType, fileSize)
+	}
+	return &attachmentdom.UploadSession{}, nil
+}
+func (m *mockUserSvc) CompleteAvatarUpload(ctx context.Context, userID, fileID uuid.UUID) (*domainuser.User, error) {
+	if m.completeAvatarUpload != nil {
+		return m.completeAvatarUpload(ctx, userID, fileID)
+	}
+	return nil, domainuser.ErrNotFound
+}
+func (m *mockUserSvc) RemoveAvatar(ctx context.Context, userID uuid.UUID) (*domainuser.User, error) {
+	if m.removeAvatar != nil {
+		return m.removeAvatar(ctx, userID)
+	}
+	return nil, domainuser.ErrNotFound
+}
+
+// verify mock satisfies the interface at compile time
+var _ domainuser.Service = (*mockUserSvc)(nil)
+
+// ---------------------------------------------------------------------------
+// helper
+// ---------------------------------------------------------------------------
+
+func newUserRouter(svc domainuser.Service) chi.Router {
+	r := chi.NewRouter()
+	h := handler.NewUserHandler(svc)
+	// self-service routes
+	r.Get("/users/me", h.GetMe)
+	r.Patch("/users/me", h.UpdateMe)
+	r.Get("/users/me/global-permissions", h.GetMyGlobalPermissions)
+	// admin routes
+	r.Get("/admin/users", h.ListUsers)
+	r.Get("/admin/users/cursor", h.ListUsersByCursor)
+	r.Post("/admin/users", h.CreateUser)
+	r.Get("/admin/users/{userId}", h.GetUserByID)
+	r.Patch("/admin/users/{userId}", h.AdminUpdateUser)
+	r.Patch("/admin/users/{userId}/password", h.ResetPassword)
+	r.Delete("/admin/users/{userId}", h.DeleteUser)
+	return r
+}
+
+// ---------------------------------------------------------------------------
+// CreateUser (admin)
+// ---------------------------------------------------------------------------
+
+func TestCreateUser_Success(t *testing.T) {
+	id := uuid.New()
+	svc := &mockUserSvc{
+		create: func(_ context.Context, in domainuser.CreateInput) (*domainuser.User, error) {
+			return &domainuser.User{ID: id, Username: in.Username, FullName: in.FullName}, nil
+		},
+	}
+	r := newUserRouter(svc)
+
+	w := do(t, r, http.MethodPost, "/admin/users",
+		jsonBody(t, map[string]string{"username": "alice", "password": "pass1234", "full_name": "Alice"}))
+	if w.Code != http.StatusCreated {
+		t.Errorf("expected 201, got %d: %s", w.Code, w.Body.String())
+	}
+}
+
+// Roles are not a field of the create body: a stray "role" is ignored, the new
+// account gets the default role (attached by the repository), and the response
+// shows the account's roles as a list.
+func TestCreateUser_RolesAreNotInTheBody(t *testing.T) {
+	roleID := uuid.New()
+	svc := &mockUserSvc{
+		create: func(_ context.Context, in domainuser.CreateInput) (*domainuser.User, error) {
+			return &domainuser.User{ID: uuid.New(), Username: in.Username, FullName: in.FullName,
+				Roles: []roledom.Summary{{ID: roleID, Name: "USER"}}}, nil
+		},
+	}
+	r := newUserRouter(svc)
+
+	w := do(t, r, http.MethodPost, "/admin/users",
+		jsonBody(t, map[string]string{"username": "bob", "password": "pass1234", "full_name": "Bob", "role": "ADMIN"}))
+	if w.Code != http.StatusCreated {
+		t.Fatalf("expected 201, got %d: %s", w.Code, w.Body.String())
+	}
+	var resp struct {
+		Data map[string]any `json:"data"`
+	}
+	if err := json.Unmarshal(w.Body.Bytes(), &resp); err != nil {
+		t.Fatal(err)
+	}
+	if _, legacy := resp.Data["role"]; legacy {
+		t.Errorf("the legacy role field must not be in the response: %v", resp.Data)
+	}
+	roles, _ := resp.Data["roles"].([]any)
+	if len(roles) != 1 || roles[0].(map[string]any)["name"] != "USER" || roles[0].(map[string]any)["id"] != roleID.String() {
+		t.Errorf("roles = %v", resp.Data["roles"])
+	}
+}
+
+func TestCreateUser_MalformedJSON(t *testing.T) {
+	r := newUserRouter(&mockUserSvc{})
+
+	w := do(t, r, http.MethodPost, "/admin/users", bytes.NewBufferString("{bad body"))
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400 for malformed JSON, got %d", w.Code)
+	}
+	if code := errorCode(t, w); code != "BAD_REQUEST" {
+		t.Errorf("expected error_code BAD_REQUEST, got %q", code)
+	}
+}
+
+func TestCreateUser_UsernameTaken(t *testing.T) {
+	svc := &mockUserSvc{
+		create: func(_ context.Context, _ domainuser.CreateInput) (*domainuser.User, error) {
+			return nil, domainuser.ErrUsernameTaken
+		},
+	}
+	r := newUserRouter(svc)
+
+	w := do(t, r, http.MethodPost, "/admin/users",
+		jsonBody(t, map[string]string{"username": "bob", "password": "pass1234", "full_name": "Bob"}))
+	if w.Code != http.StatusConflict {
+		t.Fatalf("expected 409, got %d", w.Code)
+	}
+	if code := errorCode(t, w); code != "USER_USERNAME_TAKEN" {
+		t.Errorf("expected error_code USER_USERNAME_TAKEN, got %q", code)
+	}
+}
+
+// ---------------------------------------------------------------------------
+// ListUsers (admin)
+// ---------------------------------------------------------------------------
+
+func TestListUsers_Success(t *testing.T) {
+	id := uuid.New()
+	svc := &mockUserSvc{
+		list: func(_ context.Context, _, _ int, _ domainuser.ListFilter) ([]*domainuser.User, int64, error) {
+			return []*domainuser.User{
+				{ID: id, Username: "alice", FullName: "Alice"},
+			}, 1, nil
+		},
+	}
+	r := newUserRouter(svc)
+
+	w := do(t, r, http.MethodGet, "/admin/users?page=1&page_size=10", nil)
+	if w.Code != http.StatusOK {
+		t.Errorf("expected 200, got %d: %s", w.Code, w.Body.String())
+	}
+}
+
+func TestListUsers_PassesSearchAndRoleFilter(t *testing.T) {
+	var got domainuser.ListFilter
+	svc := &mockUserSvc{
+		list: func(_ context.Context, _, _ int, f domainuser.ListFilter) ([]*domainuser.User, int64, error) {
+			got = f
+			return nil, 0, nil
+		},
+	}
+	r := newUserRouter(svc)
+
+	w := do(t, r, http.MethodGet, "/admin/users?search=%20alice%20smith%20&role=ADMIN", nil)
+	if w.Code != http.StatusOK {
+		t.Fatalf("status = %d, want 200", w.Code)
+	}
+	if got.Search != "alice smith" || got.Role != "ADMIN" {
+		t.Fatalf("filter = %+v, want search=%q role=%q", got, "alice smith", "ADMIN")
+	}
+}
+
+func TestListUsersByCursor_NextCursorAndFilter(t *testing.T) {
+	last := &domainuser.User{ID: uuid.New(), Username: "bob", FullName: "Bob"}
+	var gotLimit int
+	var gotCursor *string
+	var gotFilter domainuser.ListFilter
+	svc := &mockUserSvc{
+		listAfter: func(_ context.Context, limit int, cursor *string, f domainuser.ListFilter) ([]*domainuser.User, bool, error) {
+			gotLimit, gotCursor, gotFilter = limit, cursor, f
+			return []*domainuser.User{last}, true, nil
+		},
+	}
+	r := newUserRouter(svc)
+
+	w := do(t, r, http.MethodGet, "/admin/users/cursor?page_size=1&cursor=abc&search=%20bo%20", nil)
+	if w.Code != http.StatusOK {
+		t.Fatalf("status = %d: %s", w.Code, w.Body.String())
+	}
+	if gotLimit != 1 || gotCursor == nil || *gotCursor != "abc" || gotFilter.Search != "bo" {
+		t.Fatalf("limit=%d cursor=%v filter=%+v", gotLimit, gotCursor, gotFilter)
+	}
+	var env struct {
+		Data struct {
+			Items      []map[string]any `json:"items"`
+			NextCursor *string          `json:"next_cursor"`
+		} `json:"data"`
+	}
+	if err := json.Unmarshal(w.Body.Bytes(), &env); err != nil {
+		t.Fatal(err)
+	}
+	if len(env.Data.Items) != 1 || env.Data.NextCursor == nil {
+		t.Fatalf("unexpected body: %s", w.Body.String())
+	}
+	dec, err := domainuser.DecodeCursor(*env.Data.NextCursor)
+	if err != nil || dec.ID != last.ID.String() {
+		t.Fatalf("next_cursor = %v (%v), want id %s", *env.Data.NextCursor, err, last.ID)
+	}
+}
+
+func TestListUsersByCursor_LastPageHasNoCursor(t *testing.T) {
+	svc := &mockUserSvc{
+		listAfter: func(context.Context, int, *string, domainuser.ListFilter) ([]*domainuser.User, bool, error) {
+			return []*domainuser.User{{ID: uuid.New(), Username: "a"}}, false, nil
+		},
+	}
+	w := do(t, newUserRouter(svc), http.MethodGet, "/admin/users/cursor", nil)
+	if w.Code != http.StatusOK || !strings.Contains(w.Body.String(), `"next_cursor":null`) {
+		t.Fatalf("status=%d body=%s", w.Code, w.Body.String())
+	}
+}
+
+func TestListUsersByCursor_InvalidCursor(t *testing.T) {
+	svc := &mockUserSvc{
+		listAfter: func(context.Context, int, *string, domainuser.ListFilter) ([]*domainuser.User, bool, error) {
+			return nil, false, domainuser.ErrInvalidCursor
+		},
+	}
+	w := do(t, newUserRouter(svc), http.MethodGet, "/admin/users/cursor?cursor=%21", nil)
+	if w.Code != http.StatusBadRequest || !strings.Contains(w.Body.String(), "USER_INVALID_CURSOR") {
+		t.Fatalf("status=%d body=%s", w.Code, w.Body.String())
+	}
+}
+
+func TestListUsers_ServiceError(t *testing.T) {
+	svc := &mockUserSvc{
+		list: func(_ context.Context, _, _ int, _ domainuser.ListFilter) ([]*domainuser.User, int64, error) {
+			return nil, 0, errors.New("db error")
+		},
+	}
+	r := newUserRouter(svc)
+
+	w := do(t, r, http.MethodGet, "/admin/users", nil)
+	if w.Code != http.StatusInternalServerError {
+		t.Errorf("expected 500, got %d: %s", w.Code, w.Body.String())
+	}
+}
+
+func TestListUsers_PageValid(t *testing.T) {
+	cases := []struct {
+		name     string
+		query    string
+		wantPage int
+	}{
+		{"absent_defaults", "", 1},
+		{"valid_custom_page_kept", "page=3", 3},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			var gotPage int
+			svc := &mockUserSvc{
+				list: func(_ context.Context, page, _ int, _ domainuser.ListFilter) ([]*domainuser.User, int64, error) {
+					gotPage = page
+					return []*domainuser.User{}, 0, nil
+				},
+			}
+			r := newUserRouter(svc)
+
+			w := do(t, r, http.MethodGet, "/admin/users?"+tc.query, nil)
+			if w.Code != http.StatusOK {
+				t.Fatalf("expected 200, got %d: %s", w.Code, w.Body.String())
+			}
+			if gotPage != tc.wantPage {
+				t.Errorf("expected service called with page=%d, got %d", tc.wantPage, gotPage)
+			}
+		})
+	}
+}
+
+// TestListUsers_PageInvalidRejected covers the same silent-substitution fix
+// applied to page_size: an explicitly supplied invalid page value now fails
+// the request instead of quietly running with page=1.
+func TestListUsers_PageInvalidRejected(t *testing.T) {
+	cases := []string{"page=0", "page=-1", "page=abc"}
+	for _, query := range cases {
+		t.Run(query, func(t *testing.T) {
+			svc := &mockUserSvc{
+				list: func(_ context.Context, page, _ int, _ domainuser.ListFilter) ([]*domainuser.User, int64, error) {
+					t.Fatalf("service should not be called for invalid page, got page=%d", page)
+					return nil, 0, nil
+				},
+			}
+			r := newUserRouter(svc)
+
+			w := do(t, r, http.MethodGet, "/admin/users?"+query, nil)
+			if w.Code != http.StatusBadRequest {
+				t.Errorf("expected 400, got %d: %s", w.Code, w.Body.String())
+			}
+		})
+	}
+}
+
+// ---------------------------------------------------------------------------
+// GetUserByID (admin)
+// ---------------------------------------------------------------------------
+
+func TestGetUserByID_Success(t *testing.T) {
+	id := uuid.New()
+	svc := &mockUserSvc{
+		getByID: func(_ context.Context, got uuid.UUID) (*domainuser.User, error) {
+			if got != id {
+				t.Fatalf("unexpected id: %v", got)
+			}
+			return &domainuser.User{ID: id, Username: "alice"}, nil
+		},
+	}
+	r := newUserRouter(svc)
+
+	w := do(t, r, http.MethodGet, fmt.Sprintf("/admin/users/%s", id), nil)
+	if w.Code != http.StatusOK {
+		t.Errorf("expected 200, got %d: %s", w.Code, w.Body.String())
+	}
+}
+
+func TestGetUserByID_BadID(t *testing.T) {
+	r := newUserRouter(&mockUserSvc{})
+
+	w := do(t, r, http.MethodGet, "/admin/users/not-a-uuid", nil)
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400, got %d", w.Code)
+	}
+	if code := errorCode(t, w); code != "BAD_REQUEST" {
+		t.Errorf("expected error_code BAD_REQUEST, got %q", code)
+	}
+}
+
+func TestGetUserByID_NotFound(t *testing.T) {
+	svc := &mockUserSvc{
+		getByID: func(_ context.Context, _ uuid.UUID) (*domainuser.User, error) {
+			return nil, domainuser.ErrNotFound
+		},
+	}
+	r := newUserRouter(svc)
+
+	w := do(t, r, http.MethodGet, fmt.Sprintf("/admin/users/%s", uuid.New()), nil)
+	if w.Code != http.StatusNotFound {
+		t.Fatalf("expected 404, got %d", w.Code)
+	}
+	if code := errorCode(t, w); code != "USER_NOT_FOUND" {
+		t.Errorf("expected error_code USER_NOT_FOUND, got %q", code)
+	}
+}
+
+// ---------------------------------------------------------------------------
+// GetMe
+// ---------------------------------------------------------------------------
+
+func TestGetMe_Success(t *testing.T) {
+	id := uuid.New()
+	svc := &mockUserSvc{
+		getByID: func(_ context.Context, _ uuid.UUID) (*domainuser.User, error) {
+			return &domainuser.User{ID: id, Username: "me"}, nil
+		},
+	}
+	r := chi.NewRouter()
+	claims := testClaims(id.String(), "me", "USER")
+	r.With(injectClaims(claims)).Get("/users/me", handler.NewUserHandler(svc).GetMe)
+
+	w := do(t, r, http.MethodGet, "/users/me", nil)
+	if w.Code != http.StatusOK {
+		t.Errorf("expected 200, got %d: %s", w.Code, w.Body.String())
+	}
+}
+
+func TestGetMe_Unauthenticated(t *testing.T) {
+	r := chi.NewRouter()
+	r.Get("/users/me", handler.NewUserHandler(&mockUserSvc{}).GetMe)
+
+	w := do(t, r, http.MethodGet, "/users/me", nil)
+	if w.Code != http.StatusUnauthorized {
+		t.Fatalf("expected 401, got %d", w.Code)
+	}
+	if code := errorCode(t, w); code != "AUTH_UNAUTHENTICATED" {
+		t.Errorf("expected error_code AUTH_UNAUTHENTICATED, got %q", code)
+	}
+}
+
+func TestGetMe_NotFound(t *testing.T) {
+	id := uuid.New()
+	svc := &mockUserSvc{
+		getByID: func(_ context.Context, _ uuid.UUID) (*domainuser.User, error) {
+			return nil, domainuser.ErrNotFound
+		},
+	}
+	r := chi.NewRouter()
+	claims := testClaims(id.String(), "a", "USER")
+	r.With(injectClaims(claims)).Get("/users/me", handler.NewUserHandler(svc).GetMe)
+
+	w := do(t, r, http.MethodGet, "/users/me", nil)
+	if w.Code != http.StatusNotFound {
+		t.Fatalf("expected 404, got %d", w.Code)
+	}
+	if code := errorCode(t, w); code != "USER_NOT_FOUND" {
+		t.Errorf("expected error_code USER_NOT_FOUND, got %q", code)
+	}
+}
+
+// ---------------------------------------------------------------------------
+// UpdateMe (self-service)
+// ---------------------------------------------------------------------------
+
+func TestUpdateMe_Success(t *testing.T) {
+	id := uuid.New()
+	svc := &mockUserSvc{
+		updateProfile: func(_ context.Context, got uuid.UUID, in domainuser.UpdateProfileInput) (*domainuser.User, error) {
+			if got != id {
+				t.Fatalf("unexpected id: %v", got)
+			}
+			return &domainuser.User{ID: id, FullName: in.FullName}, nil
+		},
+	}
+	r := chi.NewRouter()
+	claims := testClaims(id.String(), "me", "USER")
+	r.With(injectClaims(claims)).Patch("/users/me", handler.NewUserHandler(svc).UpdateMe)
+
+	w := do(t, r, http.MethodPatch, "/users/me",
+		jsonBody(t, map[string]string{"full_name": "New Name"}))
+	if w.Code != http.StatusOK {
+		t.Errorf("expected 200, got %d: %s", w.Code, w.Body.String())
+	}
+}
+
+func TestUpdateMe_Unauthenticated(t *testing.T) {
+	r := chi.NewRouter()
+	r.Patch("/users/me", handler.NewUserHandler(&mockUserSvc{}).UpdateMe)
+
+	w := do(t, r, http.MethodPatch, "/users/me",
+		jsonBody(t, map[string]string{"full_name": "Name"}))
+	if w.Code != http.StatusUnauthorized {
+		t.Fatalf("expected 401, got %d", w.Code)
+	}
+}
+
+// ---------------------------------------------------------------------------
+// GetMyGlobalPermissions
+// ---------------------------------------------------------------------------
+
+func TestGetMyGlobalPermissions_Success(t *testing.T) {
+	id := uuid.New()
+	svc := &mockUserSvc{
+		listGlobalPermissions: func(_ context.Context, got uuid.UUID) ([]string, error) {
+			if got != id {
+				t.Fatalf("unexpected id: %v", got)
+			}
+			return []string{"roles:read", "users:read"}, nil
+		},
+	}
+	r := chi.NewRouter()
+	claims := testClaims(id.String(), "me", "USER")
+	r.With(injectClaims(claims)).Get("/users/me/global-permissions", handler.NewUserHandler(svc).GetMyGlobalPermissions)
+
+	w := do(t, r, http.MethodGet, "/users/me/global-permissions", nil)
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", w.Code, w.Body.String())
+	}
+	var env struct {
+		Data map[string]any `json:"data"`
+	}
+	if err := json.Unmarshal(w.Body.Bytes(), &env); err != nil {
+		t.Fatal(err)
+	}
+	acts, ok := env.Data["actions"].([]any)
+	if !ok || len(acts) != 2 || acts[0] != "roles:read" || acts[1] != "users:read" {
+		t.Fatalf("data = %v, want {actions: [roles:read users:read]}", env.Data)
+	}
+	if _, legacy := env.Data["permissions"]; legacy {
+		t.Fatalf("legacy permissions field still emitted: %v", env.Data)
+	}
+}
+
+func TestGetMyGlobalPermissions_Unauthenticated(t *testing.T) {
+	r := chi.NewRouter()
+	r.Get("/users/me/global-permissions", handler.NewUserHandler(&mockUserSvc{}).GetMyGlobalPermissions)
+
+	w := do(t, r, http.MethodGet, "/users/me/global-permissions", nil)
+	if w.Code != http.StatusUnauthorized {
+		t.Fatalf("expected 401, got %d", w.Code)
+	}
+	if code := errorCode(t, w); code != "AUTH_UNAUTHENTICATED" {
+		t.Errorf("expected error_code AUTH_UNAUTHENTICATED, got %q", code)
+	}
+}
+
+func TestGetMyGlobalPermissions_InvalidSubjectClaim(t *testing.T) {
+	r := chi.NewRouter()
+	claims := testClaims("not-a-uuid", "me", "USER")
+	r.With(injectClaims(claims)).Get("/users/me/global-permissions", handler.NewUserHandler(&mockUserSvc{}).GetMyGlobalPermissions)
+
+	w := do(t, r, http.MethodGet, "/users/me/global-permissions", nil)
+	if w.Code != http.StatusUnauthorized {
+		t.Fatalf("expected 401, got %d", w.Code)
+	}
+	if code := errorCode(t, w); code != "AUTH_UNAUTHENTICATED" {
+		t.Errorf("expected error_code BAD_REQUEST, got %q", code)
+	}
+}
+
+func TestGetMyGlobalPermissions_ServiceError(t *testing.T) {
+	id := uuid.New()
+	svc := &mockUserSvc{
+		listGlobalPermissions: func(_ context.Context, _ uuid.UUID) ([]string, error) {
+			return nil, domainuser.ErrNotFound
+		},
+	}
+	r := chi.NewRouter()
+	claims := testClaims(id.String(), "me", "USER")
+	r.With(injectClaims(claims)).Get("/users/me/global-permissions", handler.NewUserHandler(svc).GetMyGlobalPermissions)
+
+	w := do(t, r, http.MethodGet, "/users/me/global-permissions", nil)
+	if w.Code != http.StatusNotFound {
+		t.Fatalf("expected 404, got %d", w.Code)
+	}
+	if code := errorCode(t, w); code != "USER_NOT_FOUND" {
+		t.Errorf("expected error_code USER_NOT_FOUND, got %q", code)
+	}
+}
+
+// ---------------------------------------------------------------------------
+// AdminUpdateUser (admin)
+// ---------------------------------------------------------------------------
+
+func TestAdminUpdateUser_Success(t *testing.T) {
+	id := uuid.New()
+	svc := &mockUserSvc{
+		adminUpdate: func(_ context.Context, got uuid.UUID, in domainuser.AdminUpdateInput) (*domainuser.User, error) {
+			if got != id {
+				t.Fatalf("unexpected id: %v", got)
+			}
+			return &domainuser.User{ID: id, FullName: in.FullName}, nil
+		},
+	}
+	r := newUserRouter(svc)
+
+	w := do(t, r, http.MethodPatch, fmt.Sprintf("/admin/users/%s", id),
+		jsonBody(t, map[string]string{"full_name": "New Name"}))
+	if w.Code != http.StatusOK {
+		t.Errorf("expected 200, got %d: %s", w.Code, w.Body.String())
+	}
+}
+
+func TestAdminUpdateUser_BadID(t *testing.T) {
+	r := newUserRouter(&mockUserSvc{})
+
+	w := do(t, r, http.MethodPatch, "/admin/users/not-a-uuid",
+		jsonBody(t, map[string]string{"full_name": "X"}))
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400, got %d", w.Code)
+	}
+	if code := errorCode(t, w); code != "BAD_REQUEST" {
+		t.Errorf("expected error_code BAD_REQUEST, got %q", code)
+	}
+}
+
+func TestAdminUpdateUser_NotFound(t *testing.T) {
+	svc := &mockUserSvc{
+		adminUpdate: func(_ context.Context, _ uuid.UUID, _ domainuser.AdminUpdateInput) (*domainuser.User, error) {
+			return nil, domainuser.ErrNotFound
+		},
+	}
+	r := newUserRouter(svc)
+
+	w := do(t, r, http.MethodPatch, fmt.Sprintf("/admin/users/%s", uuid.New()),
+		jsonBody(t, map[string]string{"full_name": "X"}))
+	if w.Code != http.StatusNotFound {
+		t.Fatalf("expected 404, got %d", w.Code)
+	}
+	if code := errorCode(t, w); code != "USER_NOT_FOUND" {
+		t.Errorf("expected error_code USER_NOT_FOUND, got %q", code)
+	}
+}
+
+// ---------------------------------------------------------------------------
+// DeleteUser (admin)
+// ---------------------------------------------------------------------------
+
+func TestDeleteUser_Success(t *testing.T) {
+	deleted := false
+	svc := &mockUserSvc{
+		delete: func(_ context.Context, _ uuid.UUID) error {
+			deleted = true
+			return nil
+		},
+	}
+	r := newUserRouter(svc)
+	id := uuid.New()
+
+	w := do(t, r, http.MethodDelete, fmt.Sprintf("/admin/users/%s", id), nil)
+	if w.Code != http.StatusNoContent {
+		t.Errorf("expected 204, got %d: %s", w.Code, w.Body.String())
+	}
+	if !deleted {
+		t.Error("expected svc.Delete to be called")
+	}
+}
+
+func TestDeleteUser_BadID(t *testing.T) {
+	r := newUserRouter(&mockUserSvc{})
+
+	w := do(t, r, http.MethodDelete, "/admin/users/not-a-uuid", nil)
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400, got %d", w.Code)
+	}
+	if code := errorCode(t, w); code != "BAD_REQUEST" {
+		t.Errorf("expected error_code BAD_REQUEST, got %q", code)
+	}
+}
+
+func TestDeleteUser_NotFound(t *testing.T) {
+	svc := &mockUserSvc{
+		delete: func(_ context.Context, _ uuid.UUID) error {
+			return domainuser.ErrNotFound
+		},
+	}
+	r := newUserRouter(svc)
+
+	w := do(t, r, http.MethodDelete, fmt.Sprintf("/admin/users/%s", uuid.New()), nil)
+	if w.Code != http.StatusNotFound {
+		t.Fatalf("expected 404, got %d", w.Code)
+	}
+	if code := errorCode(t, w); code != "USER_NOT_FOUND" {
+		t.Errorf("expected error_code USER_NOT_FOUND, got %q", code)
+	}
+}
+
+// ---------------------------------------------------------------------------
+// ResetPassword (admin)
+// ---------------------------------------------------------------------------
+
+func TestResetPassword_Success(t *testing.T) {
+	id := uuid.New()
+	resetCalled := false
+	svc := &mockUserSvc{
+		resetPassword: func(_ context.Context, got uuid.UUID, pw string) error {
+			if got != id {
+				t.Fatalf("unexpected id: %v", got)
+			}
+			if pw != "newpassword123" {
+				t.Fatalf("unexpected password: %q", pw)
+			}
+			resetCalled = true
+			return nil
+		},
+	}
+	r := newUserRouter(svc)
+
+	w := do(t, r, http.MethodPatch, fmt.Sprintf("/admin/users/%s/password", id),
+		jsonBody(t, map[string]string{"new_password": "newpassword123"}))
+	if w.Code != http.StatusNoContent {
+		t.Errorf("expected 204, got %d: %s", w.Code, w.Body.String())
+	}
+	if !resetCalled {
+		t.Error("expected svc.ResetPassword to be called")
+	}
+}
+
+func TestResetPassword_UserNotFound(t *testing.T) {
+	svc := &mockUserSvc{
+		resetPassword: func(_ context.Context, _ uuid.UUID, _ string) error {
+			return domainuser.ErrNotFound
+		},
+	}
+	r := newUserRouter(svc)
+
+	w := do(t, r, http.MethodPatch, fmt.Sprintf("/admin/users/%s/password", uuid.New()),
+		jsonBody(t, map[string]string{"new_password": "newpassword123"}))
+	if w.Code != http.StatusNotFound {
+		t.Fatalf("expected 404, got %d", w.Code)
+	}
+	if code := errorCode(t, w); code != "USER_NOT_FOUND" {
+		t.Errorf("expected error_code USER_NOT_FOUND, got %q", code)
+	}
+}
+
+func TestResetPassword_BadID(t *testing.T) {
+	r := newUserRouter(&mockUserSvc{})
+
+	w := do(t, r, http.MethodPatch, "/admin/users/not-a-uuid/password",
+		jsonBody(t, map[string]string{"new_password": "newpassword123"}))
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400, got %d", w.Code)
+	}
+	if code := errorCode(t, w); code != "BAD_REQUEST" {
+		t.Errorf("expected error_code BAD_REQUEST, got %q", code)
+	}
+}
+
+func TestResetPassword_MalformedJSON(t *testing.T) {
+	r := newUserRouter(&mockUserSvc{})
+
+	w := do(t, r, http.MethodPatch, fmt.Sprintf("/admin/users/%s/password", uuid.New()),
+		bytes.NewBufferString("{bad json"))
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400 for malformed JSON, got %d", w.Code)
+	}
+	if code := errorCode(t, w); code != "BAD_REQUEST" {
+		t.Errorf("expected error_code BAD_REQUEST, got %q", code)
+	}
+}
+
+func TestResetPassword_PasswordTooShort(t *testing.T) {
+	r := newUserRouter(&mockUserSvc{})
+
+	w := do(t, r, http.MethodPatch, fmt.Sprintf("/admin/users/%s/password", uuid.New()),
+		jsonBody(t, map[string]string{"new_password": "short"}))
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400 for too-short password, got %d", w.Code)
+	}
+	if code := errorCode(t, w); code != "BAD_REQUEST" {
+		t.Errorf("expected error_code BAD_REQUEST, got %q", code)
+	}
+}
+
+// ---------------------------------------------------------------------------
+// ChangeMyPassword (self-service)
+// ---------------------------------------------------------------------------
+
+func TestChangeMyPassword_Success(t *testing.T) {
+	id := uuid.New()
+	called := false
+	svc := &mockUserSvc{
+		changeMyPassword: func(_ context.Context, got uuid.UUID, current, next string) error {
+			if got != id {
+				t.Fatalf("unexpected id: %v", got)
+			}
+			if current != "oldpass123" {
+				t.Fatalf("unexpected current password: %q", current)
+			}
+			if next != "newpass456" {
+				t.Fatalf("unexpected new password: %q", next)
+			}
+			called = true
+			return nil
+		},
+	}
+	r := chi.NewRouter()
+	claims := testClaims(id.String(), "me", "USER")
+	r.With(injectClaims(claims)).Patch("/users/me/password", handler.NewUserHandler(svc).ChangeMyPassword)
+
+	w := do(t, r, http.MethodPatch, "/users/me/password",
+		jsonBody(t, map[string]string{"current_password": "oldpass123", "new_password": "newpass456"}))
+	if w.Code != http.StatusNoContent {
+		t.Errorf("expected 204, got %d: %s", w.Code, w.Body.String())
+	}
+	if !called {
+		t.Error("expected svc.ChangeMyPassword to be called")
+	}
+}
+
+func TestChangeMyPassword_Unauthenticated(t *testing.T) {
+	r := chi.NewRouter()
+	r.Patch("/users/me/password", handler.NewUserHandler(&mockUserSvc{}).ChangeMyPassword)
+
+	w := do(t, r, http.MethodPatch, "/users/me/password",
+		jsonBody(t, map[string]string{"current_password": "old12345", "new_password": "new12345"}))
+	if w.Code != http.StatusUnauthorized {
+		t.Fatalf("expected 401, got %d", w.Code)
+	}
+	if code := errorCode(t, w); code != "AUTH_UNAUTHENTICATED" {
+		t.Errorf("expected error_code AUTH_UNAUTHENTICATED, got %q", code)
+	}
+}
+
+func TestChangeMyPassword_MalformedJSON(t *testing.T) {
+	id := uuid.New()
+	r := chi.NewRouter()
+	claims := testClaims(id.String(), "me", "USER")
+	r.With(injectClaims(claims)).Patch("/users/me/password", handler.NewUserHandler(&mockUserSvc{}).ChangeMyPassword)
+
+	w := do(t, r, http.MethodPatch, "/users/me/password", bytes.NewBufferString("{bad json"))
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400, got %d", w.Code)
+	}
+	if code := errorCode(t, w); code != "BAD_REQUEST" {
+		t.Errorf("expected error_code BAD_REQUEST, got %q", code)
+	}
+}
+
+func TestChangeMyPassword_NewPasswordTooShort(t *testing.T) {
+	id := uuid.New()
+	r := chi.NewRouter()
+	claims := testClaims(id.String(), "me", "USER")
+	r.With(injectClaims(claims)).Patch("/users/me/password", handler.NewUserHandler(&mockUserSvc{}).ChangeMyPassword)
+
+	w := do(t, r, http.MethodPatch, "/users/me/password",
+		jsonBody(t, map[string]string{"current_password": "old12345", "new_password": "short"}))
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400 for too-short new password, got %d", w.Code)
+	}
+	if code := errorCode(t, w); code != "BAD_REQUEST" {
+		t.Errorf("expected error_code BAD_REQUEST, got %q", code)
+	}
+}
+
+func TestChangeMyPassword_WrongCurrentPassword(t *testing.T) {
+	id := uuid.New()
+	svc := &mockUserSvc{
+		changeMyPassword: func(_ context.Context, _ uuid.UUID, _, _ string) error {
+			return domainuser.ErrInvalidCurrentPassword
+		},
+	}
+	r := chi.NewRouter()
+	claims := testClaims(id.String(), "me", "USER")
+	r.With(injectClaims(claims)).Patch("/users/me/password", handler.NewUserHandler(svc).ChangeMyPassword)
+
+	w := do(t, r, http.MethodPatch, "/users/me/password",
+		jsonBody(t, map[string]string{"current_password": "wrongpass", "new_password": "newpass456"}))
+	if w.Code != http.StatusUnprocessableEntity {
+		t.Fatalf("expected 422, got %d: %s", w.Code, w.Body.String())
+	}
+	if code := errorCode(t, w); code != "USER_INVALID_CURRENT_PASSWORD" {
+		t.Errorf("expected error_code USER_INVALID_CURRENT_PASSWORD, got %q", code)
+	}
+}
+
+func TestChangeMyPassword_InvalidSubjectClaim(t *testing.T) {
+	r := chi.NewRouter()
+	claims := testClaims("not-a-uuid", "me", "USER")
+	r.With(injectClaims(claims)).Patch("/users/me/password", handler.NewUserHandler(&mockUserSvc{}).ChangeMyPassword)
+
+	w := do(t, r, http.MethodPatch, "/users/me/password",
+		jsonBody(t, map[string]string{"current_password": "old12345", "new_password": "new12345"}))
+	if w.Code != http.StatusUnauthorized {
+		t.Fatalf("expected 401, got %d", w.Code)
+	}
+	if code := errorCode(t, w); code != "AUTH_UNAUTHENTICATED" {
+		t.Errorf("expected error_code BAD_REQUEST, got %q", code)
+	}
+}
+
+// ---------------------------------------------------------------------------
+// UpdateMe — additional cases
+// ---------------------------------------------------------------------------
+
+func TestUpdateMe_MalformedJSON(t *testing.T) {
+	id := uuid.New()
+	r := chi.NewRouter()
+	claims := testClaims(id.String(), "me", "USER")
+	r.With(injectClaims(claims)).Patch("/users/me", handler.NewUserHandler(&mockUserSvc{}).UpdateMe)
+
+	w := do(t, r, http.MethodPatch, "/users/me", bytes.NewBufferString("{bad json"))
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400, got %d", w.Code)
+	}
+	if code := errorCode(t, w); code != "BAD_REQUEST" {
+		t.Errorf("expected error_code BAD_REQUEST, got %q", code)
+	}
+}
+
+func TestUpdateMe_NotFound(t *testing.T) {
+	id := uuid.New()
+	svc := &mockUserSvc{
+		updateProfile: func(_ context.Context, _ uuid.UUID, _ domainuser.UpdateProfileInput) (*domainuser.User, error) {
+			return nil, domainuser.ErrNotFound
+		},
+	}
+	r := chi.NewRouter()
+	claims := testClaims(id.String(), "me", "USER")
+	r.With(injectClaims(claims)).Patch("/users/me", handler.NewUserHandler(svc).UpdateMe)
+
+	w := do(t, r, http.MethodPatch, "/users/me",
+		jsonBody(t, map[string]string{"full_name": "New Name"}))
+	if w.Code != http.StatusNotFound {
+		t.Fatalf("expected 404, got %d", w.Code)
+	}
+	if code := errorCode(t, w); code != "USER_NOT_FOUND" {
+		t.Errorf("expected error_code USER_NOT_FOUND, got %q", code)
+	}
+}
+
+// ---------------------------------------------------------------------------
+// CreateUser — additional validation cases
+// ---------------------------------------------------------------------------
+
+func TestCreateUser_MissingUsername(t *testing.T) {
+	r := newUserRouter(&mockUserSvc{})
+
+	w := do(t, r, http.MethodPost, "/admin/users",
+		jsonBody(t, map[string]string{"password": "pass1234", "full_name": "No Username"}))
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400, got %d", w.Code)
+	}
+	if code := errorCode(t, w); code != "BAD_REQUEST" {
+		t.Errorf("expected error_code BAD_REQUEST, got %q", code)
+	}
+}
+
+func TestCreateUser_PasswordTooShort(t *testing.T) {
+	r := newUserRouter(&mockUserSvc{})
+
+	w := do(t, r, http.MethodPost, "/admin/users",
+		jsonBody(t, map[string]string{"username": "alice", "password": "short", "full_name": "Alice"}))
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400 for too-short password, got %d", w.Code)
+	}
+	if code := errorCode(t, w); code != "BAD_REQUEST" {
+		t.Errorf("expected error_code BAD_REQUEST, got %q", code)
+	}
+}
+
+// ---------------------------------------------------------------------------
+// ListUsers — response shape
+// ---------------------------------------------------------------------------
+
+func TestListUsers_ResponseShape(t *testing.T) {
+	id := uuid.New()
+	svc := &mockUserSvc{
+		list: func(_ context.Context, _, _ int, _ domainuser.ListFilter) ([]*domainuser.User, int64, error) {
+			return []*domainuser.User{
+				{ID: id, Username: "alice", FullName: "Alice"},
+			}, 1, nil
+		},
+	}
+	r := newUserRouter(svc)
+
+	w := do(t, r, http.MethodGet, "/admin/users?page=2&page_size=5", nil)
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", w.Code, w.Body.String())
+	}
+
+	var env struct {
+		Success bool `json:"success"`
+		Data    struct {
+			Items                   []any `json:"items"`
+			Total                   int64 `json:"total"`
+			Page                    int   `json:"page"`
+			PageSize                int   `json:"page_size"`
+			MustChangePasswordCount int64 `json:"must_change_password_count"`
+		} `json:"data"`
+	}
+	if err := json.NewDecoder(w.Body).Decode(&env); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	if !env.Success {
+		t.Fatal("expected success=true")
+	}
+	if env.Data.Total != 1 {
+		t.Errorf("expected total=1, got %d", env.Data.Total)
+	}
+	if env.Data.Page != 2 {
+		t.Errorf("expected page=2, got %d", env.Data.Page)
+	}
+	if env.Data.PageSize != 5 {
+		t.Errorf("expected page_size=5, got %d", env.Data.PageSize)
+	}
+	if len(env.Data.Items) != 1 {
+		t.Errorf("expected 1 item, got %d", len(env.Data.Items))
+	}
+}
+
+// TestListUsers_MustChangePasswordCountIsWorkspaceWide guards against the
+// count silently narrowing back to "just this page" — it must come from
+// CountUsersMustChangePassword (a system-wide count), not from filtering
+// the page's own Items, so it stays correct no matter which page is
+// displayed or how small page_size is.
+func TestListUsers_MustChangePasswordCountIsWorkspaceWide(t *testing.T) {
+	svc := &mockUserSvc{
+		list: func(_ context.Context, _, _ int, _ domainuser.ListFilter) ([]*domainuser.User, int64, error) {
+			// Current page has zero must-change-password users...
+			return []*domainuser.User{
+				{ID: uuid.New(), Username: "alice", MustChangePassword: false},
+			}, 43, nil
+		},
+		countUsersMustChangePassword: func(context.Context) (int64, error) {
+			// ...but the workspace-wide count is nonzero.
+			return 7, nil
+		},
+	}
+	r := newUserRouter(svc)
+
+	w := do(t, r, http.MethodGet, "/admin/users?page=2&page_size=20", nil)
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", w.Code, w.Body.String())
+	}
+
+	var env struct {
+		Data struct {
+			MustChangePasswordCount int64 `json:"must_change_password_count"`
+		} `json:"data"`
+	}
+	if err := json.NewDecoder(w.Body).Decode(&env); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	if env.Data.MustChangePasswordCount != 7 {
+		t.Errorf("expected must_change_password_count=7, got %d", env.Data.MustChangePasswordCount)
+	}
+}
+
+func TestListUsers_MustChangePasswordCountServiceError(t *testing.T) {
+	svc := &mockUserSvc{
+		list: func(_ context.Context, _, _ int, _ domainuser.ListFilter) ([]*domainuser.User, int64, error) {
+			return []*domainuser.User{}, 0, nil
+		},
+		countUsersMustChangePassword: func(context.Context) (int64, error) {
+			return 0, errors.New("db error")
+		},
+	}
+	r := newUserRouter(svc)
+
+	w := do(t, r, http.MethodGet, "/admin/users", nil)
+	if w.Code != http.StatusInternalServerError {
+		t.Errorf("expected 500, got %d: %s", w.Code, w.Body.String())
+	}
+}
+
+// ---------------------------------------------------------------------------
+// AdminUpdateUser — additional cases
+// ---------------------------------------------------------------------------
+
+func TestAdminUpdateUser_MalformedJSON(t *testing.T) {
+	r := newUserRouter(&mockUserSvc{})
+
+	w := do(t, r, http.MethodPatch, fmt.Sprintf("/admin/users/%s", uuid.New()),
+		bytes.NewBufferString("{bad json"))
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400, got %d", w.Code)
+	}
+	if code := errorCode(t, w); code != "BAD_REQUEST" {
+		t.Errorf("expected error_code BAD_REQUEST, got %q", code)
+	}
+}
+
+// ---------------------------------------------------------------------------
+// UserResponse — must_change_password field
+// ---------------------------------------------------------------------------
+
+func TestCreateUser_ResponseIncludesMustChangePassword(t *testing.T) {
+	id := uuid.New()
+	svc := &mockUserSvc{
+		create: func(_ context.Context, _ domainuser.CreateInput) (*domainuser.User, error) {
+			return &domainuser.User{ID: id, Username: "alice", MustChangePassword: true}, nil
+		},
+	}
+	r := newUserRouter(svc)
+
+	w := do(t, r, http.MethodPost, "/admin/users",
+		jsonBody(t, map[string]string{"username": "alice", "password": "pass1234", "full_name": "Alice"}))
+	if w.Code != http.StatusCreated {
+		t.Fatalf("expected 201, got %d: %s", w.Code, w.Body.String())
+	}
+
+	var env struct {
+		Data struct {
+			MustChangePassword bool `json:"must_change_password"`
+		} `json:"data"`
+	}
+	if err := json.NewDecoder(w.Body).Decode(&env); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	if !env.Data.MustChangePassword {
+		t.Error("expected must_change_password=true in response")
+	}
+}

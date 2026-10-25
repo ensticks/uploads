@@ -1,0 +1,114 @@
+name: acp-bridge-pr-ci
+
+on:
+  pull_request:
+    paths:
+      - "apps/acp-bridge/**"
+      - ".github/workflows/acp-bridge-pr-ci.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: acp-bridge-pr-ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  GO_VERSION: "1.26.4"
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # 1. Lint — fast feedback, no services needed
+  # ---------------------------------------------------------------------------
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    defaults:
+      run:
+        working-directory: apps/acp-bridge
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 1
+
+      - name: Setup Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache-dependency-path: apps/acp-bridge/go.sum
+
+      - name: Install golangci-lint
+        run: go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@latest
+
+      - name: Run golangci-lint
+        run: golangci-lint run --timeout=5m
+
+  # ---------------------------------------------------------------------------
+  # 2. Build — verify the binary compiles
+  # ---------------------------------------------------------------------------
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    defaults:
+      run:
+        working-directory: apps/acp-bridge
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 1
+
+      - name: Setup Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache-dependency-path: apps/acp-bridge/go.sum
+
+      - name: Build all packages
+        run: go build ./...
+
+  # ---------------------------------------------------------------------------
+  # 3. Unit tests — no external services needed: the ACP subprocess and the
+  #    bridge's own WebSocket server are both faked in-process (an io.Pipe
+  #    stand-in for the ACP CLI, an httptest.Server for the bridge), plus a
+  #    couple of end-to-end cases that re-exec this test binary itself as a
+  #    scripted fake agent (see internal/runner/runner_test.go's TestMain).
+  # ---------------------------------------------------------------------------
+  test:
+    name: Unit tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    defaults:
+      run:
+        working-directory: apps/acp-bridge
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 1
+
+      - name: Setup Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache-dependency-path: apps/acp-bridge/go.sum
+
+      - name: Run tests (race detector)
+        run: go test -race -timeout 120s -coverprofile=coverage.out ./...
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v6
+        with:
+          name: coverage-report
+          path: apps/acp-bridge/coverage.out
+          retention-days: 7

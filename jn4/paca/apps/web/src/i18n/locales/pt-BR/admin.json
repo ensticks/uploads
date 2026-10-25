@@ -1,0 +1,632 @@
+{
+	"users": {
+		"header": {
+			"title": "Gerenciamento de Usuários",
+			"description": "Visualize e gerencie contas de usuários e as funções atribuídas a eles.",
+			"newUser": "Novo Usuário"
+		},
+		"stats": {
+			"userCount_one": "{{count}} usuário",
+			"userCount_other": "{{count}} usuários",
+			"inSystem": "no sistema",
+			"mustChangePassword": "devem alterar a senha"
+		},
+		"empty": {
+			"title": "Nenhum usuário encontrado",
+			"description": "Crie seu primeiro usuário para começar.",
+			"createUser": "Criar usuário"
+		},
+		"errors": {
+			"loadFailed": "Falha ao carregar usuários",
+			"tryAgain": "Atualize a página e tente novamente."
+		},
+		"noPermission": {
+			"title": "Você não tem permissão para visualizar usuários",
+			"description": "Você ainda pode criar novos usuários usando o botão acima."
+		},
+		"table": {
+			"columnUser": "Usuário",
+			"columnRole": "Função",
+			"columnCreated": "Criado em",
+			"pwdResetBadge": "senha redefinida",
+			"youBadge": "você",
+			"noFullName": "—",
+			"resetPasswordAction": "Redefinir senha",
+			"editAction": "Editar usuário",
+			"changeRoleAction": "Alterar função",
+			"deleteAction": "Excluir usuário",
+			"pwdResetHint": "Este usuário precisa definir uma nova senha no próximo login",
+			"columnActions": "Ações"
+		},
+		"formDialog": {
+			"createdTitle": "Usuário criado",
+			"createdDescriptionSuffix": "foi criado. Compartilhe a senha temporária abaixo — será solicitado ao usuário que a altere no primeiro login.",
+			"temporaryPasswordLabel": "Senha temporária",
+			"hidePassword": "Ocultar senha",
+			"showPassword": "Mostrar senha",
+			"copyPassword": "Copiar senha",
+			"passwordNotShownAgain": "Esta senha não será exibida novamente. Certifique-se de copiá-la agora.",
+			"done": "Concluído",
+			"editTitle": "Editar Usuário",
+			"createTitle": "Criar Usuário",
+			"editDescription": "Atualize o nome de exibição e o e-mail do usuário.",
+			"createDescription": "Uma senha temporária segura será gerada automaticamente. Será solicitado ao usuário que a altere no primeiro login.",
+			"roleStepDescription": "{{username}} foi criado com a função {{role}}. Mantenha-a ou escolha outra.",
+			"stepIndicator": "{{step}} / {{total}}",
+			"usernameLabel": "Usuário",
+			"usernamePlaceholder": "ex.: joao.silva",
+			"fullNameLabel": "Nome Completo",
+			"fullNamePlaceholder": "ex.: João Silva",
+			"emailLabel": "E-mail",
+			"emailOptionalHint": "(opcional — envia um e-mail de boas-vindas com um link para definir a senha)",
+			"emailPlaceholder": "ex.: joao.silva@example.com",
+			"roleStep": {
+				"title": "Função"
+			},
+			"cancel": "Cancelar",
+			"continue": "Continuar",
+			"saving": "Salvando…",
+			"creating": "Criando…",
+			"saveChanges": "Salvar alterações",
+			"createUser": "Criar usuário",
+			"errors": {
+				"fullNameRequired": "O nome completo é obrigatório.",
+				"invalidEmail": "Informe um endereço de e-mail válido.",
+				"usernameTaken": "Este nome de usuário já está em uso.",
+				"emailTaken": "Este e-mail já está em uso.",
+				"userNotFound": "Usuário não encontrado. Ele pode já ter sido excluído.",
+				"forbidden": "Você não tem permissão para executar esta ação.",
+				"noDefaultRole": "Não há uma função padrão para a nova conta. Defina uma na página Funções Globais e tente novamente.",
+				"internalError": "Algo deu errado no servidor. Tente novamente.",
+				"generic": "Algo deu errado."
+			}
+		},
+		"roleDialog": {
+			"title": "Alterar função",
+			"description": "Escolha uma função para {{username}}. Ela vale a partir da próxima requisição.",
+			"assign": "Atribuir função",
+			"assigning": "Atribuindo…",
+			"fullAccessWarning": "Esta função tem acesso total. Ela pode fazer tudo, inclusive gerenciar usuários e funções.",
+			"selfWarning": "Esta é a sua própria conta. Alterar sua função pode remover seu acesso a esta página.",
+			"errors": {
+				"roleNotFound": "Essa função não existe mais. Feche esta caixa de diálogo e tente novamente."
+			}
+		},
+		"resetPasswordDialog": {
+			"title": "Redefinir senha",
+			"descriptionSuccessPrefix": "A senha de",
+			"descriptionSuccessSuffix": "foi redefinida. Compartilhe a senha temporária abaixo — ela não será exibida novamente.",
+			"descriptionConfirmPrefix": "Uma senha temporária forte será gerada e atribuída a",
+			"descriptionConfirmSuffix": "Será solicitado a ele que a altere no próximo login.",
+			"temporaryPasswordLabel": "Senha Temporária",
+			"hidePassword": "Ocultar senha",
+			"showPassword": "Mostrar senha",
+			"copyPassword": "Copiar senha",
+			"notShownAgain": "⚠ Esta senha não será exibida novamente após o fechamento.",
+			"done": "Concluído",
+			"cancel": "Cancelar",
+			"resetting": "Redefinindo…",
+			"resetButton": "Redefinir senha",
+			"errors": {
+				"userNotFound": "Este usuário não existe mais.",
+				"forbidden": "Você não tem permissão para redefinir a senha deste usuário.",
+				"internalError": "Algo deu errado. Tente novamente.",
+				"generic": "Algo deu errado."
+			}
+		},
+		"deleteDialog": {
+			"title": "Excluir usuário",
+			"confirmTextPrefix": "Tem certeza de que deseja excluir",
+			"confirmTextSuffix": "? A conta dele será removida permanentemente.",
+			"cannotBeUndone": "Esta ação não pode ser desfeita.",
+			"cancel": "Cancelar",
+			"deleting": "Excluindo…",
+			"confirmButton": "Excluir usuário",
+			"errors": {
+				"userNotFound": "Este usuário não existe mais.",
+				"forbidden": "Você não tem permissão para excluir este usuário.",
+				"internalError": "Algo deu errado. Tente novamente.",
+				"generic": "Algo deu errado."
+			}
+		},
+		"filters": {
+			"searchPlaceholder": "Pesquisar por nome, usuário ou e-mail…",
+			"searchLabel": "Pesquisar usuários",
+			"roleLabel": "Filtrar por função",
+			"allRoles": "Todas as funções",
+			"clearSearch": "Limpar pesquisa",
+			"resultsCount": "Resultados: {{count}}",
+			"clearAll": "Limpar filtros"
+		},
+		"noMatch": {
+			"title": "Nenhum usuário encontrado",
+			"description": "Tente outra pesquisa ou filtro de função.",
+			"clear": "Limpar filtros"
+		}
+	},
+	"globalRoles": {
+		"header": {
+			"title": "Funções Globais",
+			"description": "Gerencie funções de todo o sistema e as permissões que elas concedem aos usuários.",
+			"newRole": "Nova Função"
+		},
+		"stats": {
+			"roleCount_one": "{{count}} função",
+			"roleCount_other": "{{count}} funções",
+			"defined": "definidas",
+			"permissionGrants": "concessões de permissão em todas as funções"
+		},
+		"empty": {
+			"title": "Nenhuma função definida ainda",
+			"description": "Crie sua primeira função para começar a gerenciar as permissões dos usuários.",
+			"createRole": "Criar função"
+		},
+		"errors": {
+			"loadFailed": "Falha ao carregar funções",
+			"tryAgain": "Atualize a página e tente novamente."
+		},
+		"noPermission": {
+			"title": "Você não tem permissão para visualizar funções",
+			"description": "Você ainda pode criar novas funções usando o botão acima."
+		},
+		"table": {
+			"columnName": "Nome",
+			"columnDescription": "Descrição",
+			"columnDefault": "Padrão",
+			"noPermissionsAssigned": "Nenhuma permissão atribuída",
+			"default": "Padrão",
+			"setDefaultAction": "Definir como função padrão",
+			"editAction": "Editar função",
+			"deleteAction": "Excluir função",
+			"deleteDefaultDisabled": "A função padrão não pode ser excluída. Defina primeiro outra função como padrão.",
+			"builtIn": "Papel integrado",
+			"noDescription": "Sem descrição"
+		},
+		"formDialog": {
+			"editTitle": "Editar Função",
+			"createTitle": "Criar Função",
+			"editDescription": "Atualize o nome da função e suas concessões de permissão.",
+			"createDescription": "Defina uma nova função de todo o sistema e configure suas permissões.",
+			"roleNameLabel": "Nome da Função",
+			"roleNamePlaceholder": "ex.: SECURITY_ADMIN",
+			"permissionsLabel": "Permissões",
+			"enabledCount_one": "{{count}} ativada",
+			"enabledCount_other": "{{count}} ativadas",
+			"cancel": "Cancelar",
+			"saving": "Salvando…",
+			"saveChanges": "Salvar alterações",
+			"createRole": "Criar função"
+		},
+		"deleteDialog": {
+			"title": "Excluir função",
+			"confirmTextPrefix": "Tem certeza de que deseja excluir",
+			"confirmTextSuffix": "? Isso também removerá todas as atribuições de usuários para esta função.",
+			"cannotBeUndone": "Esta ação não pode ser desfeita.",
+			"cancel": "Cancelar",
+			"deleting": "Excluindo…",
+			"confirmButton": "Excluir função",
+			"errors": {
+				"roleNotFound": "Esta função não existe mais.",
+				"isDefault": "A função padrão não pode ser excluída. Defina primeiro outra função como padrão.",
+				"forbidden": "Você não tem permissão para excluir esta função.",
+				"internalError": "Algo deu errado. Tente novamente.",
+				"generic": "Algo deu errado."
+			}
+		},
+		"permissions": {
+			"globalRolesRead": {
+				"label": "Ler Funções Globais",
+				"description": "Visualizar definições de funções globais"
+			},
+			"globalRolesWrite": {
+				"label": "Escrever Funções Globais",
+				"description": "Criar e atualizar definições de funções globais"
+			},
+			"globalRolesAssign": {
+				"label": "Atribuir Funções Globais",
+				"description": "Atribuir funções globais a usuários"
+			},
+			"usersRead": {
+				"label": "Ler Usuários",
+				"description": "Visualizar perfis e lista de usuários"
+			},
+			"usersWrite": {
+				"label": "Escrever Usuários",
+				"description": "Criar e atualizar contas de usuários"
+			},
+			"usersDelete": {
+				"label": "Excluir Usuários",
+				"description": "Remover contas de usuários"
+			},
+			"projectsRead": {
+				"label": "Ler Todos os Projetos",
+				"description": "Visualizar todos os projetos no workspace"
+			},
+			"projectsCreate": {
+				"label": "Criar Projetos",
+				"description": "Criar novos projetos"
+			},
+			"projectsWrite": {
+				"label": "Escrever Projetos",
+				"description": "Atualizar detalhes do projeto"
+			},
+			"projectsDelete": {
+				"label": "Excluir Projetos",
+				"description": "Excluir projetos permanentemente"
+			},
+			"projectMembersRead": {
+				"label": "Ler Membros do Projeto",
+				"description": "Visualizar membros de qualquer projeto"
+			},
+			"projectMembersWrite": {
+				"label": "Escrever Membros do Projeto",
+				"description": "Adicionar, remover e atualizar membros em qualquer projeto"
+			},
+			"projectRolesRead": {
+				"label": "Ler Funções do Projeto",
+				"description": "Visualizar funções definidas em qualquer projeto"
+			},
+			"projectRolesWrite": {
+				"label": "Escrever Funções do Projeto",
+				"description": "Criar e atualizar funções em qualquer projeto"
+			},
+			"settingsWrite": {
+				"label": "Editar configurações do workspace",
+				"description": "Atualizar o logotipo, o favicon e a cor principal do workspace"
+			},
+			"settingsSsoWrite": {
+				"label": "Gerenciar provedores SSO",
+				"description": "Configurar os provedores de identidade usados para login. Permite entrar como outros usuários, então trate como acesso total de administrador."
+			},
+			"agentsRead": {
+				"label": "Ver agentes",
+				"description": "Ver os agentes de IA do espaço de trabalho"
+			},
+			"agentsWrite": {
+				"label": "Gerenciar agentes",
+				"description": "Criar, editar e excluir os agentes de IA do espaço de trabalho"
+			},
+			"pluginsRead": {
+				"label": "Ver plugins",
+				"description": "Ver os plugins instalados"
+			},
+			"pluginsWrite": {
+				"label": "Gerenciar plugins",
+				"description": "Instalar, atualizar, ativar e remover plugins"
+			},
+			"serviceAccountsRead": {
+				"label": "Ler contas de serviço",
+				"description": "Ver contas de serviço e suas chaves de API"
+			},
+			"serviceAccountsWrite": {
+				"label": "Gerenciar contas de serviço",
+				"description": "Criar, editar e excluir contas de serviço e emitir ou revogar suas chaves de API"
+			}
+		},
+		"permissionGroups": {
+			"globalRoles": "Funções Globais",
+			"users": "Usuários",
+			"agents": "Agentes de IA",
+			"projects": "Projetos",
+			"plugins": "Plugins",
+			"settings": "Configurações",
+			"serviceAccounts": "Contas de serviço"
+		},
+		"defaultDialog": {
+			"title": "Definir função padrão",
+			"description": "Novos usuários e novos agentes globais começarão com a função {{role}}. As contas que já existem mantêm a função atual.",
+			"fullAccessWarning": "Esta função concede todas as permissões, então toda conta criada a partir de agora começará com acesso total. Confirme se é isso que você quer.",
+			"cancel": "Cancelar",
+			"confirm": "Definir como padrão",
+			"confirming": "Salvando…",
+			"errors": {
+				"roleNotFound": "Esta função não existe mais.",
+				"forbidden": "Você não tem permissão para alterar a função padrão.",
+				"generic": "Algo deu errado. Tente novamente."
+			}
+		}
+	},
+	"rolePicker": {
+		"current": "Atual",
+		"fullAccess": "Acesso total",
+		"loadFailed": "Não foi possível carregar as funções.",
+		"retry": "Tentar novamente",
+		"empty": "Nenhuma função foi criada ainda.",
+		"default": "Padrão"
+	},
+	"plugins": {
+		"title": "Configurações de Plugins",
+		"description": "Gerencie a ordenação e a visibilidade dos painéis de plugins de todo o sistema para todos os usuários.",
+		"tabs": {
+			"marketplace": "Marketplace",
+			"layout": "Layout de Pontos de Extensão"
+		},
+		"marketplace": {
+			"title": "Marketplace",
+			"description": "Instale ou desinstale plugins do catálogo público paca-plugins."
+		},
+		"layout": {
+			"title": "Layout de Pontos de Extensão",
+			"description": "Arraste para reordenar os painéis de plugins dentro de cada ponto de extensão. Alterne a visibilidade para mostrar ou ocultar painéis para todos os usuários."
+		}
+	},
+	"changelog": {
+		"title": "Novidades",
+		"description": "Acompanhe as melhorias e novidades das últimas versões do Paca.",
+		"current": "Versão atual",
+		"error": "Não foi possível carregar as novidades agora. Tente novamente mais tarde.",
+		"empty": "Nenhuma novidade disponível no momento."
+	},
+	"agents": {
+		"searchPlaceholder": "Pesquisar agentes por nome ou identificador…",
+		"header": {
+			"title": "Agentes Globais",
+			"description": "Gerencie agentes de IA que conversam na página inicial e nas páginas de administração, e que podem ser convidados para qualquer projeto.",
+			"newAgent": "Novo agente"
+		},
+		"empty": {
+			"title": "Ainda não há agentes globais",
+			"description": "Crie um agente global para disponibilizá-lo para conversas e convites de projeto.",
+			"createAgent": "Criar agente"
+		},
+		"noPermission": {
+			"title": "You don't have permission to view agents",
+			"description": "You can still create new agents using the button above."
+		}
+	},
+	"settings": {
+		"title": "Configurações do espaço de trabalho",
+		"description": "Opções de marca e de login deste espaço de trabalho.",
+		"images": {
+			"title": "Logotipo e favicon",
+			"logo": {
+				"label": "Logotipo",
+				"change": "Alterar logotipo",
+				"remove": "Remover logotipo",
+				"uploading": "Enviando…"
+			},
+			"favicon": {
+				"label": "Favicon",
+				"change": "Alterar favicon",
+				"remove": "Remover favicon",
+				"uploading": "Enviando…"
+			},
+			"errors": {
+				"invalidType": "Escolha uma imagem PNG, JPEG, WEBP ou GIF.",
+				"tooLarge": "A imagem deve ter no máximo 5 MB.",
+				"uploadFailed": "Falha ao enviar a imagem. Tente novamente.",
+				"removeFailed": "Falha ao remover a imagem. Tente novamente."
+			}
+		},
+		"general": {
+			"title": "Geral",
+			"brandNameLabel": "Nome da marca",
+			"brandNamePlaceholder": "Paca",
+			"colorsLabel": "Cor principal",
+			"colorsDescription": "Escolha uma cor de destaque para os botões e elementos em destaque do app — ajustada automaticamente para os modos claro e escuro.",
+			"colorPresets": {
+				"green": "Verde",
+				"blue": "Azul",
+				"teal": "Verde-azulado",
+				"indigo": "Índigo",
+				"purple": "Roxo",
+				"pink": "Rosa",
+				"red": "Vermelho",
+				"orange": "Laranja"
+			},
+			"save": "Salvar alterações",
+			"saved": "Salvo",
+			"errors": {
+				"updateFailed": "Falha ao salvar. Tente novamente."
+			}
+		},
+		"sso": {
+			"title": "Login único (SSO)",
+			"description": "Permita o login com um provedor de identidade OpenID Connect, como Google, Microsoft Entra ID, Okta ou Keycloak.",
+			"add": "Adicionar provedor",
+			"empty": "Nenhum provedor SSO ainda. Os usuários entram com nome de usuário e senha.",
+			"enabled": "Ativado",
+			"disabled": "Desativado",
+			"edit": "Editar {{name}}",
+			"delete": "Excluir {{name}}",
+			"copy": "Copiar",
+			"dialog": {
+				"createTitle": "Adicionar provedor SSO",
+				"editTitle": "Editar provedor SSO",
+				"description": "Registre o Paca como cliente OpenID Connect no seu provedor de identidade e depois informe os dados fornecidos por ele.",
+				"cancel": "Cancelar",
+				"save": "Salvar"
+			},
+			"fields": {
+				"displayName": "Nome de exibição",
+				"displayNamePlaceholder": "SSO da empresa",
+				"slug": "Identificador",
+				"slugHint": "Usado nas URLs de login e de retorno. Alterá-lo invalida a URL de retorno registrada no provedor.",
+				"callbackUrl": "URL de retorno",
+				"callbackUrlHint": "Registre-a como URI de redirecionamento no seu provedor de identidade.",
+				"issuerUrl": "URL do emissor",
+				"issuerUrlHint": "O emissor OpenID Connect. Seu documento de descoberta precisa estar acessível a partir do servidor do Paca.",
+				"clientId": "ID do cliente",
+				"clientSecret": "Segredo do cliente",
+				"clientSecretKeepHint": "Há um segredo salvo. Deixe em branco para mantê-lo.",
+				"scopes": "Escopos",
+				"scopesHint": "Separados por espaços. \"openid\" é sempre incluído.",
+				"allowedDomains": "Domínios de e-mail permitidos",
+				"allowedDomainsHint": "Separados por vírgulas. Deixe vazio para permitir qualquer domínio. Apenas e-mails verificados são aceitos.",
+				"enabled": "Ativado",
+				"enabledHint": "Mostrar este provedor na página de login.",
+				"autoProvision": "Criar contas automaticamente",
+				"autoProvisionHint": "Usuários de primeiro acesso recebem uma conta nova com a função padrão.",
+				"linkByEmail": "Vincular contas existentes por e-mail",
+				"linkByEmailHint": "Um usuário de primeiro acesso cujo e-mail verificado corresponda a uma conta existente entra nessa conta.",
+				"linkByEmailWarning": "Ative apenas para um provedor totalmente confiável: quem o controla pode entrar como qualquer conta com e-mail correspondente, inclusive administradores."
+			},
+			"deleteDialog": {
+				"title": "Excluir provedor SSO",
+				"description": "Excluir \"{{name}}\"? Não será mais possível entrar com ele, e as contas criadas por ele perderão o vínculo. As contas em si são mantidas.",
+				"confirm": "Excluir"
+			},
+			"errors": {
+				"slugTaken": "Outro provedor já usa este identificador.",
+				"discoveryFailed": "Não foi possível acessar o documento de descoberta OpenID Connect do emissor. Verifique a URL do emissor.",
+				"invalid": "Alguns campos são inválidos. Verifique o identificador, a URL do emissor, o ID do cliente e os domínios.",
+				"saveFailed": "Falha ao salvar o provedor. Tente novamente.",
+				"loadFailed": "Falha ao carregar os provedores SSO.",
+				"deleteFailed": "Falha ao excluir o provedor. Tente novamente."
+			}
+		}
+	},
+	"serviceAccounts": {
+		"searchPlaceholder": "Pesquisar por nome ou descrição…",
+		"header": {
+			"title": "Contas de serviço",
+			"description": "Contas não humanas com suas próprias chaves de API e funções, para integrações, CI e automação.",
+			"newAccount": "Nova conta de serviço"
+		},
+		"empty": {
+			"title": "Ainda não há contas de serviço",
+			"description": "Crie uma para dar a uma integração sua própria identidade e chave de API.",
+			"create": "Criar conta de serviço"
+		},
+		"errors": {
+			"loadFailed": "Falha ao carregar as contas de serviço",
+			"tryAgain": "Atualize a página e tente novamente."
+		},
+		"noPermission": {
+			"title": "Você não tem permissão para ver as contas de serviço",
+			"description": "Peça acesso a um administrador do espaço de trabalho."
+		},
+		"table": {
+			"columnAccount": "Conta",
+			"columnActions": "Ações",
+			"noDescription": "Sem descrição",
+			"changeRoleAction": "Alterar funções",
+			"editAction": "Editar conta de serviço",
+			"deleteAction": "Excluir conta de serviço",
+			"columnRole": "Funções"
+		},
+		"formDialog": {
+			"createTitle": "Nova conta de serviço",
+			"editTitle": "Editar conta de serviço",
+			"createDescription": "Começa sem permissões. Crie chaves de API para ela e depois conceda funções.",
+			"editDescription": "Altere o nome, a descrição ou o avatar. As chaves de API e as funções são gerenciadas separadamente.",
+			"nameLabel": "Nome",
+			"namePlaceholder": "ex.: Bot de deploy do CI",
+			"descriptionLabel": "Descrição",
+			"descriptionPlaceholder": "Para que esta conta é usada?",
+			"cancel": "Cancelar",
+			"create": "Criar",
+			"creating": "Criando…",
+			"save": "Salvar",
+			"saving": "Salvando…",
+			"avatar": {
+				"change": "Alterar avatar",
+				"remove": "Remover avatar",
+				"uploading": "Enviando…",
+				"errors": {
+					"invalidType": "Use uma imagem PNG, JPEG, WebP ou GIF.",
+					"tooLarge": "A imagem deve ter no máximo 5 MB.",
+					"uploadFailed": "Não foi possível enviar o avatar. Tente novamente.",
+					"removeFailed": "Não foi possível remover o avatar. Tente novamente."
+				}
+			},
+			"errors": {
+				"nameInvalid": "O nome deve ter de 1 a 100 caracteres.",
+				"descriptionTooLong": "A descrição é muito longa (máximo de 1000 caracteres).",
+				"notFound": "Esta conta de serviço não existe mais.",
+				"generic": "Algo deu errado. Tente novamente."
+			}
+		},
+		"deleteDialog": {
+			"title": "Excluir conta de serviço",
+			"description": "Excluir “{{name}}”? As chaves de API deixam de funcionar imediatamente e as funções e participações em projetos são removidas. Isso não pode ser desfeito.",
+			"cancel": "Cancelar",
+			"confirm": "Excluir",
+			"deleting": "Excluindo…",
+			"error": "Não foi possível excluir a conta de serviço. Tente novamente."
+		},
+		"keys": {
+			"nameLabel": "Nome da chave",
+			"namePlaceholder": "ex.: GitHub Actions",
+			"expiryLabel": "Expira em",
+			"expiryOptional": "(opcional)",
+			"create": "Criar chave",
+			"creating": "Criando…",
+			"empty": "Ainda não há chaves de API.",
+			"revokeAria": "Revogar a chave {{name}}",
+			"reveal": {
+				"title": "Copie sua nova chave de API",
+				"description": "Esta é a única vez que a chave completa é exibida. Guarde-a em um lugar seguro; se a perder, crie uma nova.",
+				"copyAria": "Copiar chave",
+				"copied": "Copiada para a área de transferência",
+				"done": "Concluído"
+			},
+			"errors": {
+				"nameRequired": "Dê um nome à chave.",
+				"nameTooLong": "O nome da chave é muito longo (máximo de 100 caracteres).",
+				"createFailed": "Não foi possível criar a chave. Entre com sua conta (não com uma chave de API) e tente novamente.",
+				"revokeFailed": "Não foi possível revogar a chave. Tente novamente.",
+				"copyFailed": "Não foi possível copiar para a área de transferência. Selecione a chave e copie manualmente."
+			},
+			"revoke": {
+				"title": "Revogar chave de API",
+				"description": "Revogar “{{name}}”? Tudo que a usa deixa de funcionar imediatamente. Isso não pode ser desfeito.",
+				"cancel": "Cancelar",
+				"confirm": "Revogar chave",
+				"revoking": "Revogando…"
+			},
+			"count": "Chaves de API: {{count}}",
+			"newKey": "Nova chave",
+			"createFirst": "Criar a primeira chave",
+			"createDialog": {
+				"title": "Criar chave de API",
+				"description": "A chave autentica como esta conta. Ela é exibida só uma vez, logo após a criação.",
+				"cancel": "Cancelar"
+			},
+			"row": {
+				"created": "Criada em {{date}}",
+				"expires": "Expira em {{date}}",
+				"noExpiry": "Sem expiração",
+				"lastUsed": "Último uso {{date}}",
+				"neverUsed": "Nunca usada"
+			}
+		},
+		"roleDialog": {
+			"title": "Alterar funções",
+			"description": "Escolha as funções do espaço de trabalho de {{name}}. Ela poderá fazer exatamente o que essas funções permitem.",
+			"assign": "Salvar funções",
+			"assigning": "Salvando…",
+			"fullAccessWarning": "Esta função concede todas as permissões. Qualquer pessoa com a chave de API desta conta teria acesso total."
+		},
+		"detail": {
+			"notFound": {
+				"title": "Conta de serviço não encontrada",
+				"description": "Pode ter sido excluída."
+			},
+			"roles": {
+				"description": "O que esta conta pode fazer no espaço de trabalho. Uma conta nova não tem nenhuma.",
+				"none": "Sem funções: esta conta ainda não pode fazer nada.",
+				"change": "Alterar funções",
+				"noneHint": "Conceda uma função para que ela possa fazer algo.",
+				"readOnly": "Você pode ver as funções desta conta, mas não alterá-las."
+			},
+			"badge": "Conta de serviço",
+			"tabs": {
+				"overview": "Visão geral",
+				"apiKeys": "Chaves de API",
+				"roles": "Funções"
+			},
+			"overview": {
+				"descriptionHint": "Exibida na lista de contas e ao convidá-la para um projeto.",
+				"saveChanges": "Salvar alterações",
+				"saved": "Salvo",
+				"saveFailed": "Não foi possível salvar as alterações. Tente novamente.",
+				"idLabel": "ID",
+				"createdLabel": "Criada em",
+				"updatedLabel": "Atualizada em",
+				"deleteTitle": "Excluir esta conta de serviço",
+				"deleteHint": "As chaves de API deixam de funcionar e as funções e participações em projetos são removidas."
+			}
+		}
+	}
+}

@@ -1,0 +1,473 @@
+package handler
+
+import (
+	"context"
+
+	"net/http"
+	"net/mail"
+	"strings"
+
+	"github.com/go-chi/chi/v5"
+	"github.com/google/uuid"
+
+	"github.com/Paca-AI/api/internal/apierr"
+	attachmentdom "github.com/Paca-AI/api/internal/domain/attachment"
+	domainuser "github.com/Paca-AI/api/internal/domain/user"
+	"github.com/Paca-AI/api/internal/transport/http/dto"
+	"github.com/Paca-AI/api/internal/transport/http/middleware"
+	"github.com/Paca-AI/api/internal/transport/http/presenter"
+)
+
+// normalizeEmail trims raw and, if non-empty, validates it as an RFC 5322
+// address, returning the canonical address lowercased. An empty/whitespace
+// -only input passes through as "" unchanged — every Email input field in
+// this package treats "" as "not provided" (create) or "no change"
+// (update), matching FullName's existing convention. Lowercasing keeps
+// the uniqueness pre-check consistent with the case-sensitive
+// uni_users_email_active index: without it, "User@x.com" and "user@x.com"
+// would be stored as distinct rows for what mail servers treat as the same
+// mailbox.
+func normalizeEmail(raw string) (string, error) {
+	trimmed := strings.TrimSpace(raw)
+	if trimmed == "" {
+		return "", nil
+	}
+	addr, err := mail.ParseAddress(trimmed)
+	if err != nil {
+		return "", apierr.New(apierr.CodeBadRequest, "invalid email address")
+	}
+	return strings.ToLower(addr.Address), nil
+}
+
+// SessionInvalidator revokes an authentication session by family ID.
+// It is satisfied by domain/auth.Service.
+type SessionInvalidator interface {
+	Logout(ctx context.Context, familyID string) error
+}
+
+// UserHandler handles user-related endpoints.
+type UserHandler struct {
+	svc       domainuser.Service
+	authSvc   SessionInvalidator
+	avatarSvc attachmentdom.AvatarService
+}
+
+// NewUserHandler returns a UserHandler wired to the provided user service.
+// Pass an optional SessionInvalidator (e.g. the auth service) as the second
+// argument to enable automatic session revocation on password change.
+func NewUserHandler(svc domainuser.Service, authSvc ...SessionInvalidator) *UserHandler {
+	h := &UserHandler{svc: svc}
+	if len(authSvc) > 0 {
+		h.authSvc = authSvc[0]
+	}
+	return h
+}
+
+// WithAvatarService configures avatar URL resolution for UserResponse.
+func (h *UserHandler) WithAvatarService(svc attachmentdom.AvatarService) *UserHandler {
+	h.avatarSvc = svc
+	return h
+}
+
+// toUserResponse maps u to a UserResponse and, if an AvatarService is
+// configured, resolves its avatar keys into presigned display URLs.
+func (h *UserHandler) toUserResponse(ctx context.Context, u *domainuser.User) dto.UserResponse {
+	resp := dto.UserFromEntity(u)
+	if h.avatarSvc != nil {
+		resp.AvatarURL, _ = h.avatarSvc.ResolveAvatarURL(ctx, u.AvatarKey)
+		resp.AvatarThumbURL, _ = h.avatarSvc.ResolveAvatarURL(ctx, u.AvatarThumbKey)
+	}
+	return resp
+}
+
+// --- Self-service routes ---------------------------------------------------
+
+// GetMe handles GET /users/me — returns the caller's own profile.
+func (h *UserHandler) GetMe(w http.ResponseWriter, r *http.Request) {
+	id, ok := requireAccountID(w, r)
+	if !ok {
+		return
+	}
+
+	u, err := h.svc.GetByID(r.Context(), id)
+	if err != nil {
+		presenter.Error(w, r, err)
+		return
+	}
+
+	presenter.OK(w, r, h.toUserResponse(r.Context(), u))
+}
+
+// UpdateMe handles PATCH /users/me — lets users update their own profile.
+func (h *UserHandler) UpdateMe(w http.ResponseWriter, r *http.Request) {
+	id, ok := requireAccountID(w, r)
+	if !ok {
+		return
+	}
+
+	var req dto.UpdateProfileRequest
+	if !middleware.BindJSON(w, r, &req) {
+		return
+	}
+	email, err := normalizeEmail(req.Email)
+	if err != nil {
+		presenter.Error(w, r, err)
+		return
+	}
+
+	u, err := h.svc.UpdateProfile(r.Context(), id, domainuser.UpdateProfileInput{
+		FullName: req.FullName,
+		Email:    email,
+	})
+	if err != nil {
+		presenter.Error(w, r, err)
+		return
+	}
+
+	presenter.OK(w, r, h.toUserResponse(r.Context(), u))
+}
+
+// GetMyGlobalPermissions handles GET /users/me/global-permissions. It returns
+// {"actions": [...]}: the caller's effective platform-level IAM actions.
+func (h *UserHandler) GetMyGlobalPermissions(w http.ResponseWriter, r *http.Request) {
+	id, ok := requireAccountID(w, r)
+	if !ok {
+		return
+	}
+
+	permissions, err := h.svc.ListGlobalPermissions(r.Context(), id)
+	if err != nil {
+		presenter.Error(w, r, err)
+		return
+	}
+
+	presenter.OK(w, r, map[string]any{"actions": permissions})
+}
+
+// --- Admin user management routes ------------------------------------------
+
+// ListUsers handles GET /admin/users — returns a paginated list of all users.
+func (h *UserHandler) ListUsers(w http.ResponseWriter, r *http.Request) {
+	page, err := parsePage(r)
+	if err != nil {
+		presenter.Error(w, r, err)
+		return
+	}
+	pageSize, err := parsePageSize(r, 20, 100)
+	if err != nil {
+		presenter.Error(w, r, err)
+		return
+	}
+
+	users, total, err := h.svc.List(r.Context(), page, pageSize, domainuser.ListFilter{
+		Search: strings.TrimSpace(r.URL.Query().Get("search")),
+		Role:   strings.TrimSpace(r.URL.Query().Get("role")),
+	})
+	if err != nil {
+		presenter.Error(w, r, err)
+		return
+	}
+	mustChangePasswordCount, err := h.svc.CountUsersMustChangePassword(r.Context())
+	if err != nil {
+		presenter.Error(w, r, err)
+		return
+	}
+
+	items := make([]dto.UserResponse, 0, len(users))
+	for _, u := range users {
+		items = append(items, h.toUserResponse(r.Context(), u))
+	}
+
+	presenter.OK(w, r, dto.PagedUsersResponse{
+		Items:                   items,
+		Total:                   total,
+		Page:                    page,
+		PageSize:                pageSize,
+		MustChangePasswordCount: mustChangePasswordCount,
+	})
+}
+
+// ListUsersByCursor handles GET /admin/users/cursor — a keyset-paginated
+// variant of ListUsers for infinite-scroll pickers.
+//
+// Supported query params (all optional):
+//   - page_size=<1-100>  defaults to 20
+//   - cursor=<opaque>    from the previous page's next_cursor; omit for the first page
+//   - search=<text>      same matching as ListUsers
+//   - role=<name>        same matching as ListUsers
+func (h *UserHandler) ListUsersByCursor(w http.ResponseWriter, r *http.Request) {
+	pageSize, err := parsePageSize(r, 20, 100)
+	if err != nil {
+		presenter.Error(w, r, err)
+		return
+	}
+	cursor := parseCursorParam(r)
+
+	users, hasMore, err := h.svc.ListAfter(r.Context(), pageSize, cursor, domainuser.ListFilter{
+		Search: strings.TrimSpace(r.URL.Query().Get("search")),
+		Role:   strings.TrimSpace(r.URL.Query().Get("role")),
+	})
+	if err != nil {
+		presenter.Error(w, r, err)
+		return
+	}
+
+	items := make([]dto.UserResponse, 0, len(users))
+	for _, u := range users {
+		items = append(items, h.toUserResponse(r.Context(), u))
+	}
+	var nextCursor *string
+	if hasMore && len(users) > 0 {
+		s := domainuser.EncodeCursor(users[len(users)-1])
+		nextCursor = &s
+	}
+
+	presenter.OK(w, r, dto.CursorUsersResponse{
+		Items:      items,
+		PageSize:   pageSize,
+		NextCursor: nextCursor,
+	})
+}
+
+// GetUserByID handles GET /admin/users/:userId.
+func (h *UserHandler) GetUserByID(w http.ResponseWriter, r *http.Request) {
+	id, err := uuid.Parse(chi.URLParam(r, "userId"))
+	if err != nil {
+		presenter.Error(w, r, apierr.New(apierr.CodeBadRequest, "invalid user id"))
+		return
+	}
+
+	u, err := h.svc.GetByID(r.Context(), id)
+	if err != nil {
+		presenter.Error(w, r, err)
+		return
+	}
+
+	presenter.OK(w, r, h.toUserResponse(r.Context(), u))
+}
+
+// CreateUser handles POST /admin/users — admin-only user creation.
+func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
+	var req dto.CreateUserRequest
+	if !middleware.BindJSON(w, r, &req) {
+		return
+	}
+	if req.Username == "" || req.FullName == "" {
+		presenter.Error(w, r, apierr.New(apierr.CodeBadRequest, "username and full_name are required"))
+		return
+	}
+	if len(req.Password) < 8 {
+		presenter.Error(w, r, apierr.New(apierr.CodeBadRequest, "password must be at least 8 characters"))
+		return
+	}
+	email, err := normalizeEmail(req.Email)
+	if err != nil {
+		presenter.Error(w, r, err)
+		return
+	}
+
+	u, err := h.svc.Create(r.Context(), domainuser.CreateInput{
+		Username:           req.Username,
+		Password:           req.Password,
+		FullName:           req.FullName,
+		Email:              email,
+		MustChangePassword: true,
+	})
+	if err != nil {
+		presenter.Error(w, r, err)
+		return
+	}
+
+	presenter.Created(w, r, h.toUserResponse(r.Context(), u))
+}
+
+// AdminUpdateUser handles PATCH /admin/users/:userId — admin update of any user.
+func (h *UserHandler) AdminUpdateUser(w http.ResponseWriter, r *http.Request) {
+	id, err := uuid.Parse(chi.URLParam(r, "userId"))
+	if err != nil {
+		presenter.Error(w, r, apierr.New(apierr.CodeBadRequest, "invalid user id"))
+		return
+	}
+
+	var req dto.AdminUpdateUserRequest
+	if !middleware.BindJSON(w, r, &req) {
+		return
+	}
+	email, err := normalizeEmail(req.Email)
+	if err != nil {
+		presenter.Error(w, r, err)
+		return
+	}
+
+	u, err := h.svc.AdminUpdate(r.Context(), id, domainuser.AdminUpdateInput{
+		FullName: req.FullName,
+		Email:    email,
+	})
+	if err != nil {
+		presenter.Error(w, r, err)
+		return
+	}
+
+	presenter.OK(w, r, h.toUserResponse(r.Context(), u))
+}
+
+// DeleteUser handles DELETE /admin/users/:userId.
+func (h *UserHandler) DeleteUser(w http.ResponseWriter, r *http.Request) {
+	id, err := uuid.Parse(chi.URLParam(r, "userId"))
+	if err != nil {
+		presenter.Error(w, r, apierr.New(apierr.CodeBadRequest, "invalid user id"))
+		return
+	}
+
+	if err := h.svc.Delete(r.Context(), id); err != nil {
+		presenter.Error(w, r, err)
+		return
+	}
+
+	presenter.NoContent(w)
+}
+
+// ResetPassword handles PATCH /admin/users/:userId/password — resets a user's password.
+func (h *UserHandler) ResetPassword(w http.ResponseWriter, r *http.Request) {
+	id, err := uuid.Parse(chi.URLParam(r, "userId"))
+	if err != nil {
+		presenter.Error(w, r, apierr.New(apierr.CodeBadRequest, "invalid user id"))
+		return
+	}
+
+	var req dto.ResetPasswordRequest
+	if !middleware.BindJSON(w, r, &req) {
+		return
+	}
+	if len(req.NewPassword) < 8 {
+		presenter.Error(w, r, apierr.New(apierr.CodeBadRequest, "new_password must be at least 8 characters"))
+		return
+	}
+
+	if err := h.svc.ResetPassword(r.Context(), id, req.NewPassword); err != nil {
+		presenter.Error(w, r, err)
+		return
+	}
+
+	presenter.NoContent(w)
+}
+
+// ChangeMyPassword handles PATCH /users/me/password — lets a user change their own password.
+// After a successful change the current session is revoked and the user must re-authenticate.
+func (h *UserHandler) ChangeMyPassword(w http.ResponseWriter, r *http.Request) {
+	id, ok := requireAccountID(w, r)
+	if !ok {
+		return
+	}
+
+	var req dto.ChangeMyPasswordRequest
+	if !middleware.BindJSON(w, r, &req) {
+		return
+	}
+	if req.CurrentPassword == "" {
+		presenter.Error(w, r, apierr.New(apierr.CodeBadRequest, "current_password is required"))
+		return
+	}
+	if len(req.NewPassword) < 8 {
+		presenter.Error(w, r, apierr.New(apierr.CodeBadRequest, "new_password must be at least 8 characters"))
+		return
+	}
+
+	if err := h.svc.ChangeMyPassword(r.Context(), id, req.CurrentPassword, req.NewPassword); err != nil {
+		presenter.Error(w, r, err)
+		return
+	}
+
+	// Revoke the current session so old tokens cannot be reused after the
+	// password change. The client must re-authenticate with the new password.
+	if h.authSvc != nil {
+		if err := h.authSvc.Logout(r.Context(), middleware.ClaimsFrom(r).FamilyID); err != nil {
+			presenter.Error(w, r, err)
+			return
+		}
+	}
+
+	presenter.NoContent(w)
+}
+
+// SetPassword handles POST /auth/password/set — the public, unauthenticated
+// endpoint a password-set-link email points to. It never requires knowing
+// the account's current/previous password, only a valid single-use token
+// (see domainuser.Service.IssuePasswordSetToken).
+func (h *UserHandler) SetPassword(w http.ResponseWriter, r *http.Request) {
+	var req dto.SetPasswordRequest
+	if !middleware.BindJSON(w, r, &req) {
+		return
+	}
+	if len(req.NewPassword) < 8 {
+		presenter.Error(w, r, apierr.New(apierr.CodeBadRequest, "new_password must be at least 8 characters"))
+		return
+	}
+
+	if err := h.svc.SetPasswordWithToken(r.Context(), req.Token, req.NewPassword); err != nil {
+		presenter.Error(w, r, err)
+		return
+	}
+
+	presenter.NoContent(w)
+}
+
+// --- Avatar ------------------------------------------------------------
+
+// InitiateAvatarUpload handles POST /users/me/avatar/initiate-upload.
+func (h *UserHandler) InitiateAvatarUpload(w http.ResponseWriter, r *http.Request) {
+	id, ok := requireAccountID(w, r)
+	if !ok {
+		return
+	}
+
+	var req dto.InitiateUploadRequest
+	if !middleware.BindJSON(w, r, &req) {
+		return
+	}
+
+	session, err := h.svc.InitiateAvatarUpload(r.Context(), id, req.FileName, req.ContentType, req.FileSize)
+	if err != nil {
+		presenter.Error(w, r, err)
+		return
+	}
+
+	presenter.Created(w, r, dto.UploadSessionFromDomain(session))
+}
+
+// CompleteAvatarUpload handles POST /users/me/avatar/complete-upload.
+func (h *UserHandler) CompleteAvatarUpload(w http.ResponseWriter, r *http.Request) {
+	id, ok := requireAccountID(w, r)
+	if !ok {
+		return
+	}
+
+	var req dto.CompleteAvatarUploadRequest
+	if !middleware.BindJSON(w, r, &req) {
+		return
+	}
+
+	u, err := h.svc.CompleteAvatarUpload(r.Context(), id, req.FileID)
+	if err != nil {
+		presenter.Error(w, r, err)
+		return
+	}
+
+	presenter.OK(w, r, h.toUserResponse(r.Context(), u))
+}
+
+// DeleteAvatar handles DELETE /users/me/avatar.
+func (h *UserHandler) DeleteAvatar(w http.ResponseWriter, r *http.Request) {
+	id, ok := requireAccountID(w, r)
+	if !ok {
+		return
+	}
+
+	u, err := h.svc.RemoveAvatar(r.Context(), id)
+	if err != nil {
+		presenter.Error(w, r, err)
+		return
+	}
+
+	presenter.OK(w, r, h.toUserResponse(r.Context(), u))
+}

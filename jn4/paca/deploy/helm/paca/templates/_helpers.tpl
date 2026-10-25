@@ -1,0 +1,219 @@
+{{/*
+Standard name/label helpers — same shape `helm create`'s own scaffold
+generates, kept unmodified so this chart behaves the way anyone already
+familiar with Helm conventions expects.
+*/}}
+
+{{- define "paca.name" -}}
+{{- default .Chart.Name .Values.nameOverride | trunc 63 | trimSuffix "-" -}}
+{{- end -}}
+
+{{- define "paca.fullname" -}}
+{{- if .Values.fullnameOverride -}}
+{{- .Values.fullnameOverride | trunc 63 | trimSuffix "-" -}}
+{{- else -}}
+{{- $name := default .Chart.Name .Values.nameOverride -}}
+{{- if contains $name .Release.Name -}}
+{{- .Release.Name | trunc 63 | trimSuffix "-" -}}
+{{- else -}}
+{{- printf "%s-%s" .Release.Name $name | trunc 63 | trimSuffix "-" -}}
+{{- end -}}
+{{- end -}}
+{{- end -}}
+
+{{- define "paca.chart" -}}
+{{- printf "%s-%s" .Chart.Name .Chart.Version | replace "+" "_" | trunc 63 | trimSuffix "-" -}}
+{{- end -}}
+
+{{- define "paca.labels" -}}
+helm.sh/chart: {{ include "paca.chart" . }}
+app.kubernetes.io/name: {{ include "paca.name" . }}
+app.kubernetes.io/instance: {{ .Release.Name }}
+{{- if .Chart.AppVersion }}
+app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
+{{- end }}
+app.kubernetes.io/managed-by: {{ .Release.Service }}
+{{- end -}}
+
+{{/* Component-scoped labels/selector take a (root-context, component-name) pair via dict, e.g. (dict "root" . "component" "api") — every Deployment/Service/etc. below calls these the same way so a component's own Pods are never accidentally selected by a sibling's Service. */}}
+{{- define "paca.selectorLabels" -}}
+app.kubernetes.io/name: {{ include "paca.name" .root }}
+app.kubernetes.io/instance: {{ .root.Release.Name }}
+app.kubernetes.io/component: {{ .component }}
+{{- end -}}
+
+{{- define "paca.componentLabels" -}}
+{{ include "paca.labels" .root }}
+app.kubernetes.io/component: {{ .component }}
+{{- end -}}
+
+{{- define "paca.componentFullname" -}}
+{{- printf "%s-%s" (include "paca.fullname" .root) .component | trunc 63 | trimSuffix "-" -}}
+{{- end -}}
+
+{{/*
+Secret name every component's env reads from — either the chart's own
+generated Secret, or Values.secrets.existingSecret when the caller manages
+one themselves (see values.yaml's own doc comment on that field).
+*/}}
+{{- define "paca.secretName" -}}
+{{- if .Values.secrets.existingSecret -}}
+{{- .Values.secrets.existingSecret -}}
+{{- else -}}
+{{- include "paca.fullname" . -}}-secret
+{{- end -}}
+{{- end -}}
+
+{{/*
+Derived connection strings/URLs — computed once here so every template
+that needs one (Secret, Deployments, NOTES.txt) agrees, instead of each
+hand-rolling its own copy that could drift.
+*/}}
+
+{{- define "paca.databaseUrl" -}}
+{{- if not .Values.postgres.enabled -}}
+{{- required "externalDatabaseUrl is required when postgres.enabled is false" .Values.externalDatabaseUrl -}}
+{{- else -}}
+{{- printf "postgres://%s:%s@%s-postgres:5432/%s?sslmode=disable" .Values.postgres.username (required "secrets.postgresPassword is required" .Values.secrets.postgresPassword) (include "paca.fullname" .) .Values.postgres.database -}}
+{{- end -}}
+{{- end -}}
+
+{{- define "paca.redisUrl" -}}
+{{- if not .Values.valkey.enabled -}}
+{{- required "externalRedisUrl is required when valkey.enabled is false" .Values.externalRedisUrl -}}
+{{- else -}}
+{{- printf "redis://%s-valkey:6379/0" (include "paca.fullname" .) -}}
+{{- end -}}
+{{- end -}}
+
+{{/*
+The bundled rustfs dependency's own "rustfs.fullname" helper, replicated
+here verbatim (see
+https://github.com/rustfs/rustfs/blob/main/helm/rustfs/templates/_helpers.tpl).
+This isn't a guess: Helm never templates values.yaml, so a subchart's own
+computed resource names can't be threaded back up through values — the only
+way a parent chart's templates can address a dependency's resources by name
+is to recompute the same name from the same inputs (.Release.Name and the
+dependency's own override values, both equally visible here and in the
+subchart). Keep this in sync if that upstream helper ever changes shape —
+`helm template` catches drift immediately since the predicted Service/Secret
+name would stop matching what the subchart actually renders.
+*/}}
+{{- define "paca.rustfsFullname" -}}
+{{- if .Values.rustfs.fullnameOverride -}}
+{{- .Values.rustfs.fullnameOverride | trunc 63 | trimSuffix "-" -}}
+{{- else -}}
+{{- $name := default "rustfs" .Values.rustfs.nameOverride -}}
+{{- if contains $name .Release.Name -}}
+{{- .Release.Name | trunc 63 | trimSuffix "-" -}}
+{{- else -}}
+{{- printf "%s-%s" .Release.Name $name | trunc 63 | trimSuffix "-" -}}
+{{- end -}}
+{{- end -}}
+{{- end -}}
+
+{{/*
+In-cluster address of the bundled rustfs dependency's own Service (named
+"<rustfs.fullname>-svc" by that chart's templates/service.yaml, unconditionally
+— i.e. regardless of mode.standalone vs mode.distributed).
+*/}}
+{{- define "paca.rustfsEndpoint" -}}
+{{- printf "%s-svc:%v" (include "paca.rustfsFullname" .) (.Values.rustfs.service.endpoint.port | default 9000) -}}
+{{- end -}}
+
+{{/*
+Secret holding the bundled rustfs dependency's own access/secret key —
+either that chart's own generated Secret (mirroring its "rustfs.secretName"
+helper the same way paca.rustfsFullname mirrors "rustfs.fullname" above), or
+rustfs.secret.existingSecret verbatim when the operator brought their own.
+Either way the keys are RUSTFS_ACCESS_KEY/RUSTFS_SECRET_KEY — that chart's
+own envFrom expects those exact names, so api/deployment.yaml reads the same
+two keys from here instead of paca's own Secret, keeping the bundled
+instance's credentials at a single source of truth
+(rustfs.secret.rustfs.access_key/secret_key) instead of asking the operator
+to enter the same value twice.
+*/}}
+{{- define "paca.rustfsSecretName" -}}
+{{- if .Values.rustfs.secret.existingSecret -}}
+{{- .Values.rustfs.secret.existingSecret -}}
+{{- else -}}
+{{- printf "%s-secret" (include "paca.rustfsFullname" .) -}}
+{{- end -}}
+{{- end -}}
+
+{{- define "paca.storageEndpoint" -}}
+{{- if .Values.storage.endpoint -}}
+{{- .Values.storage.endpoint -}}
+{{- else if .Values.rustfs.enabled -}}
+{{- include "paca.rustfsEndpoint" . -}}
+{{- else -}}
+{{- required "storage.endpoint is required when rustfs.enabled is false (e.g. s3.amazonaws.com, or a region-specific S3 endpoint)" .Values.storage.endpoint -}}
+{{- end -}}
+{{- end -}}
+
+{{- define "paca.storagePublicUrl" -}}
+{{- if .Values.storage.publicUrl -}}
+{{- .Values.storage.publicUrl -}}
+{{- else if .Values.publicUrl -}}
+{{- printf "%s/storage" .Values.publicUrl -}}
+{{- else -}}
+{{- print "http://localhost/storage" -}}
+{{- end -}}
+{{- end -}}
+
+{{/*
+Namespace the kubernetes sandbox backend creates Jobs/Pods/environment
+Deployments in — and the same namespace templates/agent-runner/role.yaml +
+rolebinding.yaml grant RBAC in, so the two never drift apart (see
+agentRunner.sandbox.namespace's own doc comment in values.yaml on why that
+matters).
+
+Empty (the default) resolves to "<release-name>-sandbox", a namespace
+templates/agent-runner/sandbox-namespace.yaml creates — dedicated to
+sandboxes/environments only, never the release's own namespace alongside
+postgres/valkey/rustfs/api/web/gateway. This matters more than it would for
+a typical scoped Role: the RBAC this chart grants here includes
+patch/delete on Deployments and Services (needed for environment
+start/stop/port-forward management), which Kubernetes RBAC cannot scope to
+"only objects this ServiceAccount created" — granting it in the release's
+own namespace would let agent-runner's ServiceAccount patch or delete this
+chart's own api/gateway/web Deployments/Services, not just sandbox ones.
+*/}}
+{{- define "paca.sandboxNamespace" -}}
+{{- default (printf "%s-sandbox" .Release.Name) .Values.agentRunner.sandbox.namespace -}}
+{{- end -}}
+
+{{/*
+SITE_ADDRESS for the gateway's Caddyfile (see that file's own doc comment
+on what this controls). When an Ingress fronts the gateway, TLS is
+terminated there, so Caddy itself should stay plain HTTP — provisioning
+its own certificate for the same hostname would be redundant at best and,
+since Caddy's automatic HTTPS needs ports 80+443 reachable directly from
+the internet (not true once an Ingress/LoadBalancer sits in front), would
+simply fail at worst. Falls back to publicUrl's own host when set and no
+Ingress is used (a LoadBalancer Service exposing the gateway directly), or
+plain ":80" when neither is configured.
+*/}}
+{{- define "paca.gatewaySiteAddress" -}}
+{{- if .Values.ingress.enabled -}}
+:80
+{{- else if .Values.publicUrl -}}
+{{- (urlParse .Values.publicUrl).host -}}
+{{- else -}}
+:80
+{{- end -}}
+{{- end -}}
+
+{{/*
+The plugins volume shared between api (writer) and gateway (reader) — see
+values.yaml's api.plugins.persistence doc comment. One definition so the
+api and gateway Deployments can never reference the volume differently.
+*/}}
+{{- define "paca.pluginsVolume" -}}
+{{- if .Values.api.plugins.persistence.enabled -}}
+persistentVolumeClaim:
+  claimName: {{ include "paca.fullname" . }}-plugins
+{{- else -}}
+emptyDir: {}
+{{- end -}}
+{{- end -}}

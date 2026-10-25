@@ -1,0 +1,48 @@
+{
+	"common": {
+		"notFound": "Not found",
+		"somethingWentWrong": "Something went wrong",
+		"retry": "Retry",
+		"noPermissionToView": "You don't have permission to view this",
+		"loadMore": "Load more",
+		"loadingMore": "Loading more…"
+	},
+	"dialog": {
+		"closeLabel": "Close",
+		"closeButton": "Close"
+	},
+	"sidebar": {
+		"title": "Sidebar",
+		"description": "Displays the mobile sidebar.",
+		"toggleLabel": "Toggle Sidebar"
+	},
+	"validation": {
+		"usernameRequired": "Username is required.",
+		"usernameMinLength": "Username must be at least {{min}} characters.",
+		"passwordRequired": "Password is required.",
+		"passwordMinLength": "Password must be at least {{min}} characters.",
+		"newPasswordRequired": "New password is required.",
+		"newPasswordMinLength": "New password must be at least {{min}} characters.",
+		"newPasswordMustDiffer": "New password must be different from current password.",
+		"confirmPasswordRequired": "Please confirm your new password.",
+		"passwordsDoNotMatch": "Passwords do not match."
+	},
+	"timeAgo": {
+		"justNow": "just now",
+		"minutes_one": "{{count}}m ago",
+		"minutes_other": "{{count}}m ago",
+		"hours_one": "{{count}}h ago",
+		"hours_other": "{{count}}h ago",
+		"days_one": "{{count}}d ago",
+		"days_other": "{{count}}d ago"
+	},
+	"pagination": {
+		"navLabel": "Pagination",
+		"previous": "Previous page",
+		"next": "Next page",
+		"page": "Page {{page}}",
+		"pageOfTotal": "Page {{page}} of {{totalPages}}",
+		"rowsPerPage": "Rows per page",
+		"range": "{{from}}–{{to}} of {{total}}"
+	}
+}

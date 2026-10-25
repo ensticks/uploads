@@ -1,0 +1,841 @@
+package automationsvc
+
+import (
+	"context"
+	"encoding/json"
+	"errors"
+	"testing"
+
+	"github.com/google/uuid"
+
+	automationdom "github.com/Paca-AI/api/internal/domain/automation"
+	taskdom "github.com/Paca-AI/api/internal/domain/task"
+)
+
+func newNode(kind automationdom.Kind, nodeType string, config string) *automationdom.Node {
+	return &automationdom.Node{
+		ID:     uuid.New(),
+		Kind:   kind,
+		Type:   nodeType,
+		Config: json.RawMessage(config),
+	}
+}
+
+func newEdge(source, target uuid.UUID) *automationdom.Edge {
+	return &automationdom.Edge{ID: uuid.New(), SourceNodeID: source, TargetNodeID: target}
+}
+
+func TestWouldCreateCycle_DetectsDirectCycle(t *testing.T) {
+	a, b := uuid.New(), uuid.New()
+	edges := []*automationdom.Edge{newEdge(a, b)}
+	// Adding b -> a would close a 2-node cycle.
+	if !wouldCreateCycle(edges, b, a) {
+		t.Fatal("expected b->a to be detected as creating a cycle given a->b exists")
+	}
+}
+
+func TestWouldCreateCycle_AllowsAcyclicAddition(t *testing.T) {
+	a, b, c := uuid.New(), uuid.New(), uuid.New()
+	edges := []*automationdom.Edge{newEdge(a, b)}
+	if wouldCreateCycle(edges, b, c) {
+		t.Fatal("expected b->c to be safe given only a->b exists")
+	}
+}
+
+func TestWouldCreateCycle_DetectsIndirectCycle(t *testing.T) {
+	a, b, c := uuid.New(), uuid.New(), uuid.New()
+	edges := []*automationdom.Edge{newEdge(a, b), newEdge(b, c)}
+	// c -> a would close a 3-node cycle (a->b->c->a).
+	if !wouldCreateCycle(edges, c, a) {
+		t.Fatal("expected c->a to be detected as creating a cycle given a->b->c exists")
+	}
+}
+
+func TestHasCycle_DetectsCycleInExistingGraph(t *testing.T) {
+	a, b, c := uuid.New(), uuid.New(), uuid.New()
+	nodes := []*automationdom.Node{{ID: a}, {ID: b}, {ID: c}}
+	edges := []*automationdom.Edge{newEdge(a, b), newEdge(b, c), newEdge(c, a)}
+	if !hasCycle(nodes, edges) {
+		t.Fatal("expected a->b->c->a to be detected as a cycle")
+	}
+}
+
+func TestHasCycle_NoFalsePositiveOnDAG(t *testing.T) {
+	a, b, c := uuid.New(), uuid.New(), uuid.New()
+	nodes := []*automationdom.Node{{ID: a}, {ID: b}, {ID: c}}
+	edges := []*automationdom.Edge{newEdge(a, b), newEdge(a, c)}
+	if hasCycle(nodes, edges) {
+		t.Fatal("expected a fan-out DAG to not be flagged as a cycle")
+	}
+}
+
+func TestValidateEdgeHandle_TriggerSourceRejectsHandle(t *testing.T) {
+	source := newNode(automationdom.KindTrigger, "status_changed", "{}")
+	handle := "some-handle"
+	if err := validateEdgeHandle(source, &handle); err != automationdom.ErrEdgeHandleNotAllowed {
+		t.Fatalf("expected ErrEdgeHandleNotAllowed, got %v", err)
+	}
+	if err := validateEdgeHandle(source, nil); err != nil {
+		t.Fatalf("expected nil handle from a trigger source to be valid, got %v", err)
+	}
+}
+
+func TestValidateEdgeHandle_ActionSourceRejectsHandle(t *testing.T) {
+	source := newNode(automationdom.KindAction, "add_tag", "{}")
+	handle := "x"
+	if err := validateEdgeHandle(source, &handle); err != automationdom.ErrEdgeHandleNotAllowed {
+		t.Fatalf("expected ErrEdgeHandleNotAllowed, got %v", err)
+	}
+}
+
+func TestValidateEdgeHandle_ConditionSourceRequiresHandle(t *testing.T) {
+	source := newNode(automationdom.KindCondition, automationdom.ConditionNodeType, `{"branches":[{"handle":"bug"}]}`)
+	if err := validateEdgeHandle(source, nil); err != automationdom.ErrEdgeHandleRequired {
+		t.Fatalf("expected ErrEdgeHandleRequired, got %v", err)
+	}
+}
+
+func TestValidateEdgeHandle_ConditionSourceAcceptsElse(t *testing.T) {
+	source := newNode(automationdom.KindCondition, automationdom.ConditionNodeType, `{"branches":[{"handle":"bug"}]}`)
+	elseHandle := automationdom.ElseHandle
+	if err := validateEdgeHandle(source, &elseHandle); err != nil {
+		t.Fatalf("expected else handle to be valid, got %v", err)
+	}
+}
+
+func TestValidateEdgeHandle_ConditionSourceAcceptsDeclaredBranch(t *testing.T) {
+	source := newNode(automationdom.KindCondition, automationdom.ConditionNodeType, `{"branches":[{"handle":"bug"},{"handle":"feature"}]}`)
+	handle := "bug"
+	if err := validateEdgeHandle(source, &handle); err != nil {
+		t.Fatalf("expected declared branch handle to be valid, got %v", err)
+	}
+}
+
+func TestValidateEdgeHandle_ConditionSourceRejectsUndeclaredHandle(t *testing.T) {
+	source := newNode(automationdom.KindCondition, automationdom.ConditionNodeType, `{"branches":[{"handle":"bug"}]}`)
+	handle := "not-a-real-branch"
+	if err := validateEdgeHandle(source, &handle); err == nil {
+		t.Fatal("expected an error for a handle that isn't a declared branch or else")
+	}
+}
+
+// TestValidateEdgeHandle_PluginConditionSource covers a plugin-contributed
+// condition node (Type != ConditionNodeType): its config is opaque to this
+// package (no Branches to check against, unlike the built-in switch), so the
+// only two valid handles are PluginConditionTrueHandle ("true") — the handle
+// walker.walkPluginCondition follows on a match — and the shared ElseHandle
+// fallback. Anything else must still be rejected.
+func TestValidateEdgeHandle_PluginConditionSource(t *testing.T) {
+	source := newNode(automationdom.KindCondition, "com.acme.github.pr_status", `{"repo":"acme/widgets"}`)
+	trueHandle := automationdom.PluginConditionTrueHandle
+	if err := validateEdgeHandle(source, &trueHandle); err != nil {
+		t.Fatalf("expected the plugin condition's true handle to be valid, got %v", err)
+	}
+	elseHandle := automationdom.ElseHandle
+	if err := validateEdgeHandle(source, &elseHandle); err != nil {
+		t.Fatalf("expected else handle to remain valid for a plugin condition node, got %v", err)
+	}
+	bogusHandle := "not_a_real_handle"
+	if err := validateEdgeHandle(source, &bogusHandle); err == nil {
+		t.Fatal("expected an arbitrary, undeclared handle to be rejected for a plugin condition node")
+	}
+}
+
+func TestValidateEdgeHandle_JevConditionChoice(t *testing.T) {
+	source := newNode(automationdom.KindCondition, automationdom.JevConditionNodeType, `{"answer_type":"choice","instructions":"?","options":{"billing":"money","tech":"bugs"}}`)
+	billing := "billing"
+	if err := validateEdgeHandle(source, &billing); err != nil {
+		t.Fatalf("expected a declared option key to be a valid handle, got %v", err)
+	}
+	elseHandle := automationdom.ElseHandle
+	if err := validateEdgeHandle(source, &elseHandle); err != nil {
+		t.Fatalf("expected else handle to remain valid, got %v", err)
+	}
+	bogus := "not_an_option_key"
+	if err := validateEdgeHandle(source, &bogus); err == nil {
+		t.Fatal("expected an undeclared option key to be rejected")
+	}
+	trueHandle := automationdom.PluginConditionTrueHandle
+	if err := validateEdgeHandle(source, &trueHandle); err == nil {
+		t.Fatal("the true handle is only valid for the noul answer type")
+	}
+}
+
+func TestValidateEdgeHandle_JevConditionScore(t *testing.T) {
+	source := newNode(automationdom.KindCondition, automationdom.JevConditionNodeType, `{"answer_type":"score","instructions":"?","levels":["low","medium","high"]}`)
+	for _, h := range []string{"0", "1", "2"} {
+		handle := h
+		if err := validateEdgeHandle(source, &handle); err != nil {
+			t.Fatalf("expected level index %q to be a valid handle, got %v", h, err)
+		}
+	}
+	outOfRange := "3"
+	if err := validateEdgeHandle(source, &outOfRange); err == nil {
+		t.Fatal("expected an out-of-range level index to be rejected")
+	}
+	notANumber := "high"
+	if err := validateEdgeHandle(source, &notANumber); err == nil {
+		t.Fatal("expected a non-numeric handle to be rejected (level indices, not labels)")
+	}
+}
+
+func TestValidateEdgeHandle_JevConditionNoul(t *testing.T) {
+	source := newNode(automationdom.KindCondition, automationdom.JevConditionNodeType, `{"answer_type":"noul","instructions":"?"}`)
+	trueHandle := automationdom.PluginConditionTrueHandle
+	if err := validateEdgeHandle(source, &trueHandle); err != nil {
+		t.Fatalf("expected the true handle to be valid for noul, got %v", err)
+	}
+	elseHandle := automationdom.ElseHandle
+	if err := validateEdgeHandle(source, &elseHandle); err != nil {
+		t.Fatalf("expected else handle to remain valid, got %v", err)
+	}
+	bogus := "maybe"
+	if err := validateEdgeHandle(source, &bogus); err == nil {
+		t.Fatal("expected an arbitrary handle to be rejected for noul")
+	}
+}
+
+func TestValidateEdgeHandle_JevConditionWithoutAnswerTypeOnlyAllowsElse(t *testing.T) {
+	source := newNode(automationdom.KindCondition, automationdom.JevConditionNodeType, `{}`)
+	elseHandle := automationdom.ElseHandle
+	if err := validateEdgeHandle(source, &elseHandle); err != nil {
+		t.Fatalf("expected else handle to be valid on an unconfigured node, got %v", err)
+	}
+	trueHandle := automationdom.PluginConditionTrueHandle
+	if err := validateEdgeHandle(source, &trueHandle); err == nil {
+		t.Fatal("expected no non-else handle to be valid before answer_type is chosen")
+	}
+}
+
+func TestValidateJevConditionConfig(t *testing.T) {
+	s := &Service{}
+
+	cases := []struct {
+		name    string
+		config  string
+		wantErr bool
+	}{
+		{"missing answer_type", `{"instructions":"?"}`, true},
+		{"unknown answer_type", `{"answer_type":"maybe","instructions":"?"}`, true},
+		{"choice: empty instructions", `{"answer_type":"choice","instructions":"","options":{"a":"x"}}`, true},
+		{"choice: no options", `{"answer_type":"choice","instructions":"?","options":{}}`, true},
+		{"choice: option collides with else", `{"answer_type":"choice","instructions":"?","options":{"else":"x"}}`, true},
+		{"choice: valid", `{"answer_type":"choice","instructions":"?","options":{"a":"x"}}`, false},
+		{"score: fewer than 2 levels", `{"answer_type":"score","instructions":"?","levels":["only one"]}`, true},
+		{"score: more than 10 levels", `{"answer_type":"score","instructions":"?","levels":["1","2","3","4","5","6","7","8","9","10","11"]}`, true},
+		{"score: valid", `{"answer_type":"score","instructions":"?","levels":["a","b"]}`, false},
+		{"noul: empty instructions", `{"answer_type":"noul","instructions":""}`, true},
+		{"noul: valid", `{"answer_type":"noul","instructions":"is this urgent?"}`, false},
+	}
+	for _, c := range cases {
+		err := s.validateJevConditionConfig([]byte(c.config), true)
+		if (err != nil) != c.wantErr {
+			t.Errorf("%s: wantErr=%v, got %v", c.name, c.wantErr, err)
+		}
+	}
+}
+
+// TestValidateJevConditionConfig_NotStrictAllowsEmptyConfig is a regression
+// test for a brand-new Jev condition node failing AUTOMATION_NODE_CONFIG_INVALID
+// immediately on creation, before the user ever reaches the config panel:
+// AddNode always creates nodes with an empty {} config and calls this with
+// strict=false, so the required-field checks must not run in that case.
+func TestValidateJevConditionConfig_NotStrictAllowsEmptyConfig(t *testing.T) {
+	s := &Service{}
+	for _, cfg := range [][]byte{[]byte(`{}`), nil, []byte(`{"answer_type":"score"}`)} {
+		if err := s.validateJevConditionConfig(cfg, false); err != nil {
+			t.Errorf("config %s: expected to pass when not strict, got %v", cfg, err)
+		}
+	}
+	// An answer_type that is set but unknown is rejected even when not
+	// strict — it can never become valid by filling in more fields.
+	if err := s.validateJevConditionConfig([]byte(`{"answer_type":"maybe"}`), false); err == nil {
+		t.Error("expected an unknown answer_type to be rejected even when not strict")
+	}
+}
+
+func TestHandlesEqual(t *testing.T) {
+	a, b := "x", "x"
+	c := "y"
+	if !handlesEqual(&a, &b) {
+		t.Fatal("expected equal string pointers to compare equal")
+	}
+	if handlesEqual(&a, &c) {
+		t.Fatal("expected different string pointers to compare unequal")
+	}
+	if !handlesEqual(nil, nil) {
+		t.Fatal("expected both-nil to compare equal")
+	}
+	if handlesEqual(&a, nil) || handlesEqual(nil, &a) {
+		t.Fatal("expected nil vs non-nil to compare unequal")
+	}
+}
+
+func TestValidateConditionConfig_RejectsElseAsBranchHandle(t *testing.T) {
+	cfg, _ := json.Marshal(automationdom.ConditionConfig{
+		Branches: []automationdom.ConditionBranch{{Handle: automationdom.ElseHandle, Tree: &automationdom.ConditionLeaf{Field: automationdom.FieldStatus, Operator: automationdom.OpIsEmpty}}},
+	})
+	if err := (&Service{}).validateConditionConfig(context.Background(), uuid.New(), cfg, true); err == nil {
+		t.Fatal("expected an error when a branch uses the reserved 'else' handle")
+	}
+}
+
+func TestValidateConditionConfig_RejectsDuplicateHandles(t *testing.T) {
+	leafNode := &automationdom.ConditionLeaf{Field: automationdom.FieldStatus, Operator: automationdom.OpIsEmpty}
+	cfg, _ := json.Marshal(automationdom.ConditionConfig{
+		Branches: []automationdom.ConditionBranch{
+			{Handle: "a", Tree: leafNode},
+			{Handle: "a", Tree: leafNode},
+		},
+	})
+	if err := (&Service{}).validateConditionConfig(context.Background(), uuid.New(), cfg, true); err == nil {
+		t.Fatal("expected an error for duplicate branch handles")
+	}
+}
+
+func TestValidateConditionConfig_AcceptsValidBranches(t *testing.T) {
+	leafNode := &automationdom.ConditionLeaf{Field: automationdom.FieldStatus, Operator: automationdom.OpIsEmpty}
+	cfg, _ := json.Marshal(automationdom.ConditionConfig{
+		Branches: []automationdom.ConditionBranch{
+			{Handle: "bug", Tree: leafNode},
+			{Handle: "feature", Tree: leafNode},
+		},
+	})
+	if err := (&Service{}).validateConditionConfig(context.Background(), uuid.New(), cfg, true); err != nil {
+		t.Fatalf("expected valid branches to pass, got %v", err)
+	}
+}
+
+// --- Plugin node resolver fallthrough ---------------------------------------
+
+type stubPluginResolver struct {
+	triggers, conditions, actions map[string]bool
+}
+
+func (s *stubPluginResolver) IsPluginTrigger(t string) bool   { return s.triggers[t] }
+func (s *stubPluginResolver) IsPluginCondition(t string) bool { return s.conditions[t] }
+func (s *stubPluginResolver) IsPluginAction(t string) bool    { return s.actions[t] }
+
+func TestService_ValidateNodeTypeAndConfig_PluginActionFallthrough(t *testing.T) {
+	svc := &Service{}
+	svc.WithPluginNodeResolver(&stubPluginResolver{actions: map[string]bool{"com.acme.github.comment_on_pr": true}})
+
+	err := svc.validateNodeTypeAndConfig(context.TODO(), uuid.Nil, automationdom.KindAction, "com.acme.github.comment_on_pr", json.RawMessage(`{"template":"lgtm"}`), true)
+	if err != nil {
+		t.Fatalf("expected a registered plugin action type to validate, got %v", err)
+	}
+
+	err = svc.validateNodeTypeAndConfig(context.TODO(), uuid.Nil, automationdom.KindAction, "com.acme.unregistered.action", json.RawMessage(`{}`), true)
+	if err != automationdom.ErrNodeInvalidType {
+		t.Fatalf("expected ErrNodeInvalidType for an unregistered action type, got %v", err)
+	}
+}
+
+// TestService_ValidateNodeTypeAndConfig_PluginConditionFallthrough covers a
+// plugin-contributed condition node: its own node type (KindCondition, not
+// the built-in ConditionNodeType), validated opaquely once the resolver
+// confirms it's registered.
+func TestService_ValidateNodeTypeAndConfig_PluginConditionFallthrough(t *testing.T) {
+	svc := &Service{}
+	svc.WithPluginNodeResolver(&stubPluginResolver{conditions: map[string]bool{"com.acme.github.pr_status": true}})
+
+	err := svc.validateNodeTypeAndConfig(context.TODO(), uuid.Nil, automationdom.KindCondition, "com.acme.github.pr_status", json.RawMessage(`{"status":"open"}`), true)
+	if err != nil {
+		t.Fatalf("expected a registered plugin condition type to validate, got %v", err)
+	}
+
+	err = svc.validateNodeTypeAndConfig(context.TODO(), uuid.Nil, automationdom.KindCondition, "com.acme.unregistered.condition", json.RawMessage(`{}`), true)
+	if err != automationdom.ErrNodeInvalidType {
+		t.Fatalf("expected ErrNodeInvalidType for an unregistered condition type, got %v", err)
+	}
+}
+
+func TestService_ValidateNodeTypeAndConfig_NoPluginResolverRejectsUnknownTypes(t *testing.T) {
+	svc := &Service{}
+	err := svc.validateNodeTypeAndConfig(context.TODO(), uuid.Nil, automationdom.KindAction, "com.acme.github.comment_on_pr", json.RawMessage(`{}`), true)
+	if err != automationdom.ErrNodeInvalidType {
+		t.Fatalf("expected ErrNodeInvalidType when no plugin resolver is configured, got %v", err)
+	}
+}
+
+// --- Cron / API trigger / call_api validation -------------------------------
+
+func TestValidateTriggerConfig_Cron_InvalidExpressionRejectedRegardlessOfStrict(t *testing.T) {
+	svc := &Service{}
+	cfg, _ := json.Marshal(automationdom.TriggerConfig{CronExpression: "not a cron expression"})
+	if err := svc.validateTriggerConfig(context.TODO(), uuid.Nil, automationdom.TriggerCron, cfg, false); err == nil {
+		t.Fatal("expected an invalid cron expression to be rejected even in non-strict mode")
+	}
+}
+
+func TestValidateTriggerConfig_Cron_NonStrictAllowsEmptyConfig(t *testing.T) {
+	svc := &Service{}
+	if err := svc.validateTriggerConfig(context.TODO(), uuid.Nil, automationdom.TriggerCron, json.RawMessage(`{}`), false); err != nil {
+		t.Fatalf("expected an empty cron config to pass non-strict (create-time) validation, got %v", err)
+	}
+}
+
+func TestValidateTriggerConfig_Cron_StrictRequiresExpressionButNotTargetTask(t *testing.T) {
+	svc := &Service{}
+	if err := svc.validateTriggerConfig(context.TODO(), uuid.Nil, automationdom.TriggerCron, json.RawMessage(`{}`), true); err == nil {
+		t.Fatal("expected strict validation to require a cron_expression")
+	}
+	// target_task_id is optional — a valid cron_expression with no target
+	// task passes strict validation; validateTaskReachability (not this
+	// function) is what enforces such a node can only reach call_api
+	// actions downstream.
+	cfg, _ := json.Marshal(automationdom.TriggerConfig{CronExpression: "*/5 * * * *"})
+	if err := svc.validateTriggerConfig(context.TODO(), uuid.Nil, automationdom.TriggerCron, cfg, true); err != nil {
+		t.Fatalf("expected strict validation to allow an unset target_task_id, got %v", err)
+	}
+}
+
+func TestValidateTriggerConfig_Cron_ValidExpressionPassesNonStrict(t *testing.T) {
+	svc := &Service{}
+	for _, expr := range []string{"* * * * *", "*/15 * * * *", "0 9 * * 1-5"} {
+		cfg, _ := json.Marshal(automationdom.TriggerConfig{CronExpression: expr})
+		if err := svc.validateTriggerConfig(context.TODO(), uuid.Nil, automationdom.TriggerCron, cfg, false); err != nil {
+			t.Fatalf("expected %q to be a valid cron expression, got %v", expr, err)
+		}
+	}
+}
+
+func TestValidateTriggerConfig_APITrigger_TargetTaskIDOptionalInBothModes(t *testing.T) {
+	svc := &Service{}
+	if err := svc.validateTriggerConfig(context.TODO(), uuid.Nil, automationdom.TriggerAPITrigger, json.RawMessage(`{}`), true); err != nil {
+		t.Fatalf("expected strict validation to allow an unset target_task_id, got %v", err)
+	}
+	if err := svc.validateTriggerConfig(context.TODO(), uuid.Nil, automationdom.TriggerAPITrigger, json.RawMessage(`{}`), false); err != nil {
+		t.Fatalf("expected non-strict (create-time) validation to allow an empty api_trigger config, got %v", err)
+	}
+}
+
+func TestValidateActionConfig_CallAPI_FormatChecksApplyRegardlessOfStrict(t *testing.T) {
+	svc := &Service{}
+	cfg, _ := json.Marshal(automationdom.ActionConfig{Method: "TRACE", URL: "https://example.com"})
+	if err := svc.validateActionConfig(context.TODO(), uuid.Nil, automationdom.ActionCallAPI, cfg, false); err == nil {
+		t.Fatal("expected an unsupported HTTP method to be rejected even in non-strict mode")
+	}
+
+	cfg, _ = json.Marshal(automationdom.ActionConfig{Method: "GET", URL: "ftp://example.com/file"})
+	if err := svc.validateActionConfig(context.TODO(), uuid.Nil, automationdom.ActionCallAPI, cfg, false); err == nil {
+		t.Fatal("expected a non-http(s) URL scheme to be rejected even in non-strict mode")
+	}
+}
+
+func TestValidateActionConfig_CallAPI_StrictRequiresMethodAndURL(t *testing.T) {
+	svc := &Service{}
+	if err := svc.validateActionConfig(context.TODO(), uuid.Nil, automationdom.ActionCallAPI, json.RawMessage(`{}`), false); err != nil {
+		t.Fatalf("expected an empty call_api config to pass non-strict (create-time) validation, got %v", err)
+	}
+	if err := svc.validateActionConfig(context.TODO(), uuid.Nil, automationdom.ActionCallAPI, json.RawMessage(`{}`), true); err == nil {
+		t.Fatal("expected strict validation to require method and url")
+	}
+}
+
+func TestValidateActionConfig_CallAPI_ValidConfigPasses(t *testing.T) {
+	svc := &Service{}
+	cfg, _ := json.Marshal(automationdom.ActionConfig{Method: "post", URL: "https://example.com/webhook"})
+	if err := svc.validateActionConfig(context.TODO(), uuid.Nil, automationdom.ActionCallAPI, cfg, true); err != nil {
+		t.Fatalf("expected a valid call_api config to pass, got %v", err)
+	}
+}
+
+func TestValidateActionConfig_Wait_NonPositiveMinutesRejectedRegardlessOfStrict(t *testing.T) {
+	svc := &Service{}
+	zero := 0
+	cfg, _ := json.Marshal(automationdom.ActionConfig{WaitMinutes: &zero})
+	if err := svc.validateActionConfig(context.TODO(), uuid.Nil, automationdom.ActionWait, cfg, false); err == nil {
+		t.Fatal("expected wait_minutes=0 to be rejected even in non-strict mode")
+	}
+	negative := -5
+	cfg, _ = json.Marshal(automationdom.ActionConfig{WaitMinutes: &negative})
+	if err := svc.validateActionConfig(context.TODO(), uuid.Nil, automationdom.ActionWait, cfg, false); err == nil {
+		t.Fatal("expected a negative wait_minutes to be rejected even in non-strict mode")
+	}
+}
+
+func TestValidateActionConfig_Wait_StrictRequiresWaitMinutes(t *testing.T) {
+	svc := &Service{}
+	if err := svc.validateActionConfig(context.TODO(), uuid.Nil, automationdom.ActionWait, json.RawMessage(`{}`), false); err != nil {
+		t.Fatalf("expected an empty wait config to pass non-strict (create-time) validation, got %v", err)
+	}
+	if err := svc.validateActionConfig(context.TODO(), uuid.Nil, automationdom.ActionWait, json.RawMessage(`{}`), true); err == nil {
+		t.Fatal("expected strict validation to require wait_minutes")
+	}
+}
+
+func TestValidateActionConfig_Wait_RejectsTarget(t *testing.T) {
+	svc := &Service{}
+	minutes := 5
+	cfg, _ := json.Marshal(automationdom.ActionConfig{WaitMinutes: &minutes, Target: &automationdom.TaskTarget{Kind: automationdom.TaskTargetChildren}})
+	if err := svc.validateActionConfig(context.Background(), uuid.New(), automationdom.ActionWait, cfg, true); err == nil {
+		t.Fatal("expected wait to reject a target — it doesn't operate on a task")
+	}
+}
+
+func TestValidateActionConfig_Wait_ValidConfigPasses(t *testing.T) {
+	svc := &Service{}
+	minutes := 10
+	cfg, _ := json.Marshal(automationdom.ActionConfig{WaitMinutes: &minutes})
+	if err := svc.validateActionConfig(context.TODO(), uuid.Nil, automationdom.ActionWait, cfg, true); err != nil {
+		t.Fatalf("expected a valid wait config to pass, got %v", err)
+	}
+}
+
+// --- validateTaskReachability ------------------------------------------------
+
+func taskLessTriggerNode(t *testing.T, triggerType automationdom.TriggerType) *automationdom.Node {
+	t.Helper()
+	cfg, err := json.Marshal(automationdom.TriggerConfig{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return newNode(automationdom.KindTrigger, string(triggerType), string(cfg))
+}
+
+func targetedTriggerNode(t *testing.T, triggerType automationdom.TriggerType) *automationdom.Node {
+	t.Helper()
+	targetTaskID := uuid.New()
+	cfg, err := json.Marshal(automationdom.TriggerConfig{TargetTaskID: &targetTaskID})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return newNode(automationdom.KindTrigger, string(triggerType), string(cfg))
+}
+
+func TestValidateTaskReachability_TaskLessTriggerToCallAPI_Allowed(t *testing.T) {
+	trigger := taskLessTriggerNode(t, automationdom.TriggerCron)
+	action := newNode(automationdom.KindAction, string(automationdom.ActionCallAPI), "{}")
+	nodes := []*automationdom.Node{trigger, action}
+	edges := []*automationdom.Edge{newEdge(trigger.ID, action.ID)}
+	if err := validateTaskReachability(nodes, edges); err != nil {
+		t.Fatalf("expected a task-less cron trigger connected only to call_api to be valid, got %v", err)
+	}
+}
+
+func TestValidateTaskReachability_TaskLessTriggerToTriggerAIAgent_Allowed(t *testing.T) {
+	trigger := taskLessTriggerNode(t, automationdom.TriggerAPITrigger)
+	action := newNode(automationdom.KindAction, string(automationdom.ActionTriggerAIAgent), "{}")
+	nodes := []*automationdom.Node{trigger, action}
+	edges := []*automationdom.Edge{newEdge(trigger.ID, action.ID)}
+	if err := validateTaskReachability(nodes, edges); err != nil {
+		t.Fatalf("expected a task-less api_trigger connected to trigger_ai_agent to be valid — it fires a direct message instead of assigning a task, got %v", err)
+	}
+}
+
+func TestValidateTaskReachability_TaskLessTriggerToCondition_Rejected(t *testing.T) {
+	trigger := taskLessTriggerNode(t, automationdom.TriggerPredecessorDone)
+	condition := newNode(automationdom.KindCondition, automationdom.ConditionNodeType, "{}")
+	nodes := []*automationdom.Node{trigger, condition}
+	edges := []*automationdom.Edge{newEdge(trigger.ID, condition.ID)}
+	if err := validateTaskReachability(nodes, edges); err == nil {
+		t.Fatal("expected a task-less predecessor_done trigger reaching a condition node to be rejected")
+	}
+}
+
+func TestValidateTaskReachability_TaskLessTriggerToNonCallAPIAction_Rejected(t *testing.T) {
+	trigger := taskLessTriggerNode(t, automationdom.TriggerAPITrigger)
+	action := newNode(automationdom.KindAction, string(automationdom.ActionUpdateTask), "{}")
+	nodes := []*automationdom.Node{trigger, action}
+	edges := []*automationdom.Edge{newEdge(trigger.ID, action.ID)}
+	if err := validateTaskReachability(nodes, edges); err == nil {
+		t.Fatal("expected a task-less api_trigger reaching an update_task action to be rejected")
+	}
+}
+
+func TestValidateTaskReachability_TransitiveThroughCallAPI_Rejected(t *testing.T) {
+	trigger := taskLessTriggerNode(t, automationdom.TriggerCron)
+	callAPI := newNode(automationdom.KindAction, string(automationdom.ActionCallAPI), "{}")
+	condition := newNode(automationdom.KindCondition, automationdom.ConditionNodeType, "{}")
+	nodes := []*automationdom.Node{trigger, callAPI, condition}
+	edges := []*automationdom.Edge{newEdge(trigger.ID, callAPI.ID), newEdge(callAPI.ID, condition.ID)}
+	if err := validateTaskReachability(nodes, edges); err == nil {
+		t.Fatal("expected the check to catch a condition reached transitively through call_api")
+	}
+}
+
+func TestValidateTaskReachability_TriggerWithTargetTask_AllowsAnything(t *testing.T) {
+	trigger := targetedTriggerNode(t, automationdom.TriggerCron)
+	condition := newNode(automationdom.KindCondition, automationdom.ConditionNodeType, "{}")
+	nodes := []*automationdom.Node{trigger, condition}
+	edges := []*automationdom.Edge{newEdge(trigger.ID, condition.ID)}
+	if err := validateTaskReachability(nodes, edges); err != nil {
+		t.Fatalf("expected a trigger with a target task to reach a condition node fine, got %v", err)
+	}
+}
+
+func TestValidateTaskReachability_EmptyGraph_NoError(t *testing.T) {
+	if err := validateTaskReachability(nil, nil); err != nil {
+		t.Fatalf("expected an empty graph to be valid, got %v", err)
+	}
+}
+
+// --- validateTaskTarget ------------------------------------------------------
+
+type fakeTaskLookup struct {
+	tasks map[uuid.UUID]*taskdom.Task
+}
+
+func (f *fakeTaskLookup) FindTaskByID(_ context.Context, id uuid.UUID) (*taskdom.Task, error) {
+	t, ok := f.tasks[id]
+	if !ok {
+		return nil, automationdom.ErrNotFound
+	}
+	return t, nil
+}
+
+func (f *fakeTaskLookup) FindTaskStatusByID(context.Context, uuid.UUID) (*taskdom.TaskStatus, error) {
+	return nil, nil
+}
+
+func TestValidateTaskTarget_NilOrSelf_NoError(t *testing.T) {
+	svc := &Service{}
+	if err := svc.validateTaskTarget(context.Background(), uuid.New(), nil, true); err != nil {
+		t.Fatalf("expected nil target to be valid, got %v", err)
+	}
+	if err := svc.validateTaskTarget(context.Background(), uuid.New(), &automationdom.TaskTarget{}, true); err != nil {
+		t.Fatalf("expected an empty-kind target to be valid, got %v", err)
+	}
+}
+
+func TestValidateTaskTarget_UnknownKind_Rejected(t *testing.T) {
+	svc := &Service{}
+	err := svc.validateTaskTarget(context.Background(), uuid.New(), &automationdom.TaskTarget{Kind: "bogus"}, true)
+	if err == nil {
+		t.Fatal("expected an unknown target kind to be rejected")
+	}
+}
+
+func TestValidateTaskTarget_ParentAndChildren_NoTaskLookupNeeded(t *testing.T) {
+	svc := &Service{}
+	for _, kind := range []automationdom.TaskTargetKind{automationdom.TaskTargetParent, automationdom.TaskTargetChildren, automationdom.TaskTargetBlocks} {
+		if err := svc.validateTaskTarget(context.Background(), uuid.New(), &automationdom.TaskTarget{Kind: kind}, true); err != nil {
+			t.Errorf("expected target kind %q to need no further config, got %v", kind, err)
+		}
+	}
+}
+
+func TestValidateTaskTarget_Other_StrictRequiresOtherTaskID(t *testing.T) {
+	svc := &Service{}
+	if err := svc.validateTaskTarget(context.Background(), uuid.New(), &automationdom.TaskTarget{Kind: automationdom.TaskTargetOther}, true); err == nil {
+		t.Fatal("expected strict validation to require other_task_id for target kind \"other\"")
+	}
+	if err := svc.validateTaskTarget(context.Background(), uuid.New(), &automationdom.TaskTarget{Kind: automationdom.TaskTargetOther}, false); err != nil {
+		t.Fatalf("expected non-strict validation to allow an unset other_task_id, got %v", err)
+	}
+}
+
+func TestValidateTaskTarget_Other_CrossProjectRejected(t *testing.T) {
+	projectID := uuid.New()
+	otherTaskID := uuid.New()
+	svc := &Service{taskRepo: &fakeTaskLookup{tasks: map[uuid.UUID]*taskdom.Task{
+		otherTaskID: {ID: otherTaskID, ProjectID: uuid.New()}, // different project
+	}}}
+	err := svc.validateTaskTarget(context.Background(), projectID, &automationdom.TaskTarget{Kind: automationdom.TaskTargetOther, OtherTaskID: &otherTaskID}, true)
+	if err == nil {
+		t.Fatal("expected a cross-project other_task_id to be rejected")
+	}
+}
+
+func TestValidateTaskTarget_Other_SameProjectAccepted(t *testing.T) {
+	projectID := uuid.New()
+	otherTaskID := uuid.New()
+	svc := &Service{taskRepo: &fakeTaskLookup{tasks: map[uuid.UUID]*taskdom.Task{
+		otherTaskID: {ID: otherTaskID, ProjectID: projectID},
+	}}}
+	err := svc.validateTaskTarget(context.Background(), projectID, &automationdom.TaskTarget{Kind: automationdom.TaskTargetOther, OtherTaskID: &otherTaskID}, true)
+	if err != nil {
+		t.Fatalf("expected a same-project other_task_id to be valid, got %v", err)
+	}
+}
+
+func TestValidateActionConfig_CallAPI_RejectsTarget(t *testing.T) {
+	svc := &Service{}
+	cfg, _ := json.Marshal(automationdom.ActionConfig{
+		Method: "GET", URL: "https://example.com",
+		Target: &automationdom.TaskTarget{Kind: automationdom.TaskTargetParent},
+	})
+	if err := svc.validateActionConfig(context.Background(), uuid.New(), automationdom.ActionCallAPI, cfg, true); err == nil {
+		t.Fatal("expected call_api to reject a target — it doesn't operate on a task")
+	}
+}
+
+func TestValidateActionConfig_UpdateTask_AcceptsTarget(t *testing.T) {
+	svc := &Service{}
+	cfg, _ := json.Marshal(automationdom.ActionConfig{
+		Update: &automationdom.TaskFieldUpdate{Tags: []string{"x"}},
+		Target: &automationdom.TaskTarget{Kind: automationdom.TaskTargetChildren},
+	})
+	if err := svc.validateActionConfig(context.Background(), uuid.New(), automationdom.ActionUpdateTask, cfg, true); err != nil {
+		t.Fatalf("expected update_task to accept a children target, got %v", err)
+	}
+}
+
+func TestValidateConditionConfig_RejectsBadMatchMode(t *testing.T) {
+	svc := &Service{}
+	cfg, _ := json.Marshal(automationdom.ConditionConfig{
+		Branches: []automationdom.ConditionBranch{
+			{Handle: "a", Tree: &automationdom.ConditionLeaf{Field: automationdom.FieldStatus, Operator: automationdom.OpIsEmpty, MatchMode: "sometimes"}},
+		},
+	})
+	if err := svc.validateConditionConfig(context.Background(), uuid.New(), cfg, true); err == nil {
+		t.Fatal("expected an invalid match_mode to be rejected")
+	}
+}
+
+// --- validateNoSelfParent ----------------------------------------------------
+
+func targetedTriggerNodeWithTask(t *testing.T, triggerType automationdom.TriggerType, targetTaskID uuid.UUID) *automationdom.Node {
+	t.Helper()
+	id := targetTaskID
+	cfg, err := json.Marshal(automationdom.TriggerConfig{TargetTaskID: &id})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return newNode(automationdom.KindTrigger, string(triggerType), string(cfg))
+}
+
+func updateTaskNodeWithParent(t *testing.T, parentTaskID *uuid.UUID) *automationdom.Node {
+	t.Helper()
+	cfg, err := json.Marshal(automationdom.ActionConfig{
+		Update: &automationdom.TaskFieldUpdate{ParentTaskID: parentTaskID},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return newNode(automationdom.KindAction, string(automationdom.ActionUpdateTask), string(cfg))
+}
+
+func TestValidateNoSelfParent_DirectChild_Rejected(t *testing.T) {
+	target := uuid.New()
+	trigger := targetedTriggerNodeWithTask(t, automationdom.TriggerAPITrigger, target)
+	update := updateTaskNodeWithParent(t, &target)
+	nodes := []*automationdom.Node{trigger, update}
+	edges := []*automationdom.Edge{newEdge(trigger.ID, update.ID)}
+
+	err := validateNoSelfParent(nodes, edges)
+	if !errors.Is(err, automationdom.ErrUpdateTaskSelfParent) {
+		t.Fatalf("expected ErrUpdateTaskSelfParent for parent_task_id == the trigger's target task, got %v", err)
+	}
+}
+
+func TestValidateNoSelfParent_TransitiveChild_Rejected(t *testing.T) {
+	target := uuid.New()
+	trigger := targetedTriggerNodeWithTask(t, automationdom.TriggerAPITrigger, target)
+	condition := newNode(automationdom.KindCondition, automationdom.ConditionNodeType, "{}")
+	update := updateTaskNodeWithParent(t, &target)
+	nodes := []*automationdom.Node{trigger, condition, update}
+	edges := []*automationdom.Edge{newEdge(trigger.ID, condition.ID), newEdge(condition.ID, update.ID)}
+
+	if err := validateNoSelfParent(nodes, edges); !errors.Is(err, automationdom.ErrUpdateTaskSelfParent) {
+		t.Fatalf("expected the check to catch a self-parent reached transitively, got %v", err)
+	}
+}
+
+func TestValidateNoSelfParent_DifferentParent_Allowed(t *testing.T) {
+	target, otherParent := uuid.New(), uuid.New()
+	trigger := targetedTriggerNodeWithTask(t, automationdom.TriggerAPITrigger, target)
+	update := updateTaskNodeWithParent(t, &otherParent)
+	nodes := []*automationdom.Node{trigger, update}
+	edges := []*automationdom.Edge{newEdge(trigger.ID, update.ID)}
+
+	if err := validateNoSelfParent(nodes, edges); err != nil {
+		t.Fatalf("expected a parent that is not the triggered task to be valid, got %v", err)
+	}
+}
+
+func TestValidateNoSelfParent_NoParentSet_Allowed(t *testing.T) {
+	target := uuid.New()
+	trigger := targetedTriggerNodeWithTask(t, automationdom.TriggerAPITrigger, target)
+	update := updateTaskNodeWithParent(t, nil)
+	nodes := []*automationdom.Node{trigger, update}
+	edges := []*automationdom.Edge{newEdge(trigger.ID, update.ID)}
+
+	if err := validateNoSelfParent(nodes, edges); err != nil {
+		t.Fatalf("expected an update_task without parent_task_id to be valid, got %v", err)
+	}
+}
+
+// An update_task node off the trigger's own path can never see the triggered
+// task, so its parent choice is none of this check's business.
+func TestValidateNoSelfParent_NotDownstream_Allowed(t *testing.T) {
+	target := uuid.New()
+	trigger := targetedTriggerNodeWithTask(t, automationdom.TriggerAPITrigger, target)
+	other := targetedTriggerNodeWithTask(t, automationdom.TriggerStatusChanged, uuid.New())
+	update := updateTaskNodeWithParent(t, &target)
+	nodes := []*automationdom.Node{trigger, other, update}
+	edges := []*automationdom.Edge{newEdge(other.ID, update.ID)}
+
+	if err := validateNoSelfParent(nodes, edges); err != nil {
+		t.Fatalf("expected an update_task outside the trigger's subtree to be valid, got %v", err)
+	}
+}
+
+// Task-activity triggers derive the task from the event, so no static target
+// task exists to compare against; runtime keeps rejecting it.
+func TestValidateNoSelfParent_EventDrivenTrigger_Skipped(t *testing.T) {
+	parent := uuid.New()
+	trigger := newNode(automationdom.KindTrigger, string(automationdom.TriggerStatusChanged), "{}")
+	update := updateTaskNodeWithParent(t, &parent)
+	nodes := []*automationdom.Node{trigger, update}
+	edges := []*automationdom.Edge{newEdge(trigger.ID, update.ID)}
+
+	if err := validateNoSelfParent(nodes, edges); err != nil {
+		t.Fatalf("expected an event-driven trigger to be skipped, got %v", err)
+	}
+}
+
+func updateTaskNodeWithParentAndTarget(t *testing.T, parentTaskID *uuid.UUID, target *automationdom.TaskTarget) *automationdom.Node {
+	t.Helper()
+	cfg, err := json.Marshal(automationdom.ActionConfig{
+		Update: &automationdom.TaskFieldUpdate{ParentTaskID: parentTaskID},
+		Target: target,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return newNode(automationdom.KindAction, string(automationdom.ActionUpdateTask), string(cfg))
+}
+
+// A retargeted action mutates the task it names, so parenting that task to
+// itself is the same failure — even with no trigger in play at all.
+func TestValidateNoSelfParent_RetargetedOtherTask_Rejected(t *testing.T) {
+	other := uuid.New()
+	update := updateTaskNodeWithParentAndTarget(t, &other, &automationdom.TaskTarget{
+		Kind:        automationdom.TaskTargetOther,
+		OtherTaskID: &other,
+	})
+	if err := validateNoSelfParent([]*automationdom.Node{update}, nil); !errors.Is(err, automationdom.ErrUpdateTaskSelfParent) {
+		t.Fatalf("expected a retargeted update_task to reject parenting its own target task to itself, got %v", err)
+	}
+}
+
+// ...and parenting some unrelated task to the run's task is not a self-parent.
+func TestValidateNoSelfParent_RetargetedOtherTask_Allowed(t *testing.T) {
+	target, other := uuid.New(), uuid.New()
+	trigger := targetedTriggerNodeWithTask(t, automationdom.TriggerAPITrigger, target)
+	update := updateTaskNodeWithParentAndTarget(t, &target, &automationdom.TaskTarget{
+		Kind:        automationdom.TaskTargetOther,
+		OtherTaskID: &other,
+	})
+	nodes := []*automationdom.Node{trigger, update}
+	edges := []*automationdom.Edge{newEdge(trigger.ID, update.ID)}
+	if err := validateNoSelfParent(nodes, edges); err != nil {
+		t.Fatalf("expected a retargeted action setting another task's parent to the run's task to be valid, got %v", err)
+	}
+}
+
+// children/parent/link targets resolve per run, so the static pass must not
+// guess: the same parent_task_id that is rejected for a non-retargeted node
+// is left to the runtime check here.
+func TestValidateNoSelfParent_DynamicTarget_Skipped(t *testing.T) {
+	target := uuid.New()
+	trigger := targetedTriggerNodeWithTask(t, automationdom.TriggerAPITrigger, target)
+	update := updateTaskNodeWithParentAndTarget(t, &target, &automationdom.TaskTarget{Kind: automationdom.TaskTargetChildren})
+	nodes := []*automationdom.Node{trigger, update}
+	edges := []*automationdom.Edge{newEdge(trigger.ID, update.ID)}
+	if err := validateNoSelfParent(nodes, edges); err != nil {
+		t.Fatalf("expected a children-targeted update_task to be skipped by the static check, got %v", err)
+	}
+}

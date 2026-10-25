@@ -1,0 +1,48 @@
+{
+	"common": {
+		"notFound": "Not found",
+		"somethingWentWrong": "Something went wrong",
+		"retry": "Retry",
+		"noPermissionToView": "You don't have permission to view this",
+		"loadMore": "もっと読み込む",
+		"loadingMore": "読み込み中…"
+	},
+	"dialog": {
+		"closeLabel": "閉じる",
+		"closeButton": "閉じる"
+	},
+	"sidebar": {
+		"title": "サイドバー",
+		"description": "モバイル用サイドバーを表示します。",
+		"toggleLabel": "サイドバーの切り替え"
+	},
+	"validation": {
+		"usernameRequired": "ユーザー名を入力してください。",
+		"usernameMinLength": "ユーザー名は{{min}}文字以上で入力してください。",
+		"passwordRequired": "パスワードを入力してください。",
+		"passwordMinLength": "パスワードは{{min}}文字以上で入力してください。",
+		"newPasswordRequired": "新しいパスワードを入力してください。",
+		"newPasswordMinLength": "新しいパスワードは{{min}}文字以上で入力してください。",
+		"newPasswordMustDiffer": "新しいパスワードは現在のパスワードと異なるものにしてください。",
+		"confirmPasswordRequired": "新しいパスワードを再入力してください。",
+		"passwordsDoNotMatch": "パスワードが一致しません。"
+	},
+	"timeAgo": {
+		"justNow": "たった今",
+		"minutes_one": "{{count}}分前",
+		"minutes_other": "{{count}}分前",
+		"hours_one": "{{count}}時間前",
+		"hours_other": "{{count}}時間前",
+		"days_one": "{{count}}日前",
+		"days_other": "{{count}}日前"
+	},
+	"pagination": {
+		"navLabel": "ページ送り",
+		"previous": "前のページ",
+		"next": "次のページ",
+		"page": "{{page}} ページ",
+		"pageOfTotal": "{{totalPages}} ページ中 {{page}} ページ目",
+		"rowsPerPage": "1ページの行数",
+		"range": "{{total}} 件中 {{from}}–{{to}} 件"
+	}
+}

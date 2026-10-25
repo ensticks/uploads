@@ -1,0 +1,56 @@
+{
+	"marketplace": {
+		"loading": "正在加载插件市场...",
+		"searchPlaceholder": "搜索插件",
+		"empty": "未找到任何插件市场插件。",
+		"card": {
+			"installed": "已安装",
+			"updateAvailable": "有可用更新",
+			"source": "来源",
+			"official": "Paca 官方插件",
+			"upgrading": "正在升级...",
+			"upgradeTo": "升级到 {{version}}",
+			"uninstalling": "正在卸载...",
+			"uninstall": "卸载",
+			"installing": "正在安装...",
+			"install": "安装",
+			"features": {
+				"backend": "后端",
+				"frontend": "前端",
+				"migrations": "数据库迁移",
+				"mcp": "MCP",
+				"skills": "技能"
+			},
+			"errors": {
+				"incompatibleHostVersion": "此插件需要 Paca {{required}} 或更高版本。您当前运行的是 {{current}}。",
+				"incompatibleHostVersionGeneric": "此插件需要比当前运行版本更新的 Paca 版本。",
+				"alreadyUpToDate": "此插件已是最新版本。",
+				"downgradeNotAllowed": "无法安装比已安装版本更旧的版本。",
+				"notFound": "此插件在插件市场中已不可用。",
+				"nameTaken": "已安装同名插件。",
+				"generic": "出现错误，请重试。"
+			},
+			"legacyPermissions": {
+				"badge": "使用旧权限",
+				"description": "此插件仍在使用旧的 requirePermissions 权限模型。它仍可正常运行，但在作者发布使用 requireActions 的版本之前，无法重新安装或升级。"
+			}
+		}
+	},
+	"preferences": {
+		"empty": "尚未安装任何带扩展点的插件。",
+		"actions": {
+			"show": "显示",
+			"hide": "隐藏"
+		},
+		"extensionPoints": {
+			"sidebarGeneral": "侧边栏 — 通用",
+			"sidebarProject": "侧边栏 — 项目",
+			"taskDetail": "任务详情",
+			"projectSettingsTab": "项目设置标签页",
+			"customView": "自定义视图",
+			"projectPage": "项目页面",
+			"adminPage": "管理页面",
+			"userSettingsTab": "用户设置标签页"
+		}
+	}
+}

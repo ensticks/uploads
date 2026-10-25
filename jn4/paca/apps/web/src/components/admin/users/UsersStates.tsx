@@ -1,0 +1,72 @@
+import { Plus, Users } from "lucide-react";
+import { useTranslation } from "react-i18next";
+
+import { Button } from "@/components/ui/button";
+
+interface EmptyUsersStateProps {
+	canWrite: boolean;
+	onCreate: () => void;
+}
+
+export function EmptyUsersState({ canWrite, onCreate }: EmptyUsersStateProps) {
+	const { t } = useTranslation("admin");
+
+	return (
+		<div className="flex flex-col items-center gap-4 rounded-xl border border-dashed bg-muted/20 py-16 text-center">
+			<div className="flex size-12 items-center justify-center rounded-full bg-muted text-muted-foreground/60">
+				<Users className="size-6" />
+			</div>
+			<div>
+				<p className="text-sm font-medium">{t("users.empty.title")}</p>
+				<p className="mt-1 text-xs text-muted-foreground">
+					{t("users.empty.description")}
+				</p>
+			</div>
+			{canWrite ? (
+				<Button size="sm" variant="outline" onClick={onCreate}>
+					<Plus className="size-4" />
+					{t("users.empty.createUser")}
+				</Button>
+			) : null}
+		</div>
+	);
+}
+
+export function NoUsersMatchState({ onClear }: { onClear: () => void }) {
+	const { t } = useTranslation("admin");
+
+	return (
+		<div className="flex flex-col items-center gap-4 rounded-xl border border-dashed bg-muted/20 py-16 text-center">
+			<div className="flex size-12 items-center justify-center rounded-full bg-muted text-muted-foreground/60">
+				<Users className="size-6" />
+			</div>
+			<div>
+				<p className="text-sm font-medium">{t("users.noMatch.title")}</p>
+				<p className="mt-1 text-xs text-muted-foreground">
+					{t("users.noMatch.description")}
+				</p>
+			</div>
+			<Button size="sm" variant="outline" onClick={onClear}>
+				{t("users.noMatch.clear")}
+			</Button>
+		</div>
+	);
+}
+
+export function UsersErrorState() {
+	const { t } = useTranslation("admin");
+
+	return (
+		<div className="flex flex-col items-center gap-3 rounded-xl border border-destructive/20 bg-destructive/5 py-14 text-center">
+			<Users className="size-8 text-destructive/40" />
+			<div>
+				<p className="text-sm font-medium text-destructive">
+					{t("users.errors.loadFailed")}
+				</p>
+				<p className="mt-0.5 text-xs text-muted-foreground">
+					{t("users.errors.tryAgain")}
+				</p>
+			</div>
+		</div>
+	);
+}
